@@ -2,13 +2,15 @@ import { useParams } from 'react-router-dom'
 import { TaskBoard } from '@/components/tasks/TaskBoard'
 import { GitPanel } from '@/components/git/GitPanel'
 import { TerminalLauncher } from '@/components/terminals/TerminalLauncher'
-import { useProjects } from '@/hooks/useProjects'
+import { useProjects, useUpdateProject } from '@/hooks/useProjects'
 import { Badge } from '@/components/ui/badge'
-import { GitBranch } from 'lucide-react'
+import { GitBranch, Star, ExternalLink } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export function Workspace() {
   const { projectId } = useParams<{ projectId: string }>()
   const { data: projects } = useProjects()
+  const updateProject = useUpdateProject()
   const project = projects?.find(p => p.id === projectId)
 
   if (!project) {
@@ -25,6 +27,17 @@ export function Workspace() {
       <div className="flex-1 overflow-y-auto p-6 min-w-0 scrollbar-dark">
         {/* Compact project info bar */}
         <div className="flex items-center gap-3 mb-4">
+          <button
+            onClick={() => updateProject.mutate({ id: project.id, favorite: !project.favorite })}
+            className="shrink-0"
+          >
+            <Star className={cn(
+              'h-4 w-4 transition-colors',
+              project.favorite
+                ? 'fill-yellow-500 text-yellow-500'
+                : 'text-muted-foreground/30 hover:text-yellow-500'
+            )} />
+          </button>
           <p className="text-xs text-muted-foreground truncate">{project.path}</p>
           {project.isGitRepo && project.gitBranch && (
             <Badge variant="outline" className="text-[10px] shrink-0 gap-1">
@@ -32,6 +45,17 @@ export function Workspace() {
               {project.gitBranch}
               {project.gitDirty && ' *'}
             </Badge>
+          )}
+          {project.gitRemoteUrl && (
+            <a
+              href={project.gitRemoteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 text-muted-foreground/40 hover:text-foreground transition-colors"
+              title="Open repository"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
           )}
         </div>
         <TaskBoard projectId={project.id} projectName={project.name} projectPath={project.path} />

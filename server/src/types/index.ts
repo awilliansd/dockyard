@@ -8,6 +8,7 @@ export interface Project {
   gitDirty?: boolean;
   lastCommitDate?: string;
   lastCommitMessage?: string;
+  gitRemoteUrl?: string;
   techStack: string[];
   favorite: boolean;
   lastOpenedAt?: string;

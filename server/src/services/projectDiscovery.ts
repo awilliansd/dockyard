@@ -61,7 +61,7 @@ async function detectTechStack(projectPath: string): Promise<string[]> {
   return stack;
 }
 
-async function detectGitInfo(projectPath: string): Promise<{ isGitRepo: boolean; gitBranch?: string; gitDirty?: boolean; lastCommitDate?: string; lastCommitMessage?: string }> {
+async function detectGitInfo(projectPath: string): Promise<{ isGitRepo: boolean; gitBranch?: string; gitDirty?: boolean; lastCommitDate?: string; lastCommitMessage?: string; gitRemoteUrl?: string }> {
   const gitDir = join(projectPath, '.git');
   if (!(await fileExists(gitDir))) {
     return { isGitRepo: false };
@@ -74,12 +74,25 @@ async function detectGitInfo(projectPath: string): Promise<{ isGitRepo: boolean;
     const status = await git.status();
     const log = await git.log({ maxCount: 1 }).catch(() => null);
 
+    let gitRemoteUrl: string | undefined;
+    try {
+      const remotes = await git.getRemotes(true);
+      const origin = remotes.find(r => r.name === 'origin');
+      if (origin?.refs?.push) {
+        gitRemoteUrl = origin.refs.push
+          .replace(/\.git$/, '')
+          .replace(/^git@([^:]+):/, 'https://$1/')
+          .replace(/^ssh:\/\/git@([^/]+)\//, 'https://$1/');
+      }
+    } catch {}
+
     return {
       isGitRepo: true,
       gitBranch: branchSummary.current,
       gitDirty: !status.isClean(),
       lastCommitDate: log?.latest?.date,
       lastCommitMessage: log?.latest?.message,
+      gitRemoteUrl,
     };
   } catch {
     return { isGitRepo: true };

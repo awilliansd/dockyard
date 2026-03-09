@@ -8,8 +8,9 @@
       "isGitRepo": true,
       "gitBranch": "staging",
       "gitDirty": false,
-      "lastCommitDate": "2026-03-09T16:18:02-03:00",
-      "lastCommitMessage": "fix(payments): fix credit card payment for seller_direct strategy and misc issues",
+      "lastCommitDate": "2026-03-09T16:32:42-03:00",
+      "lastCommitMessage": "chore(release): 1.79.3",
+      "gitRemoteUrl": "https://github.com/Xifix-Tecnologia/redes-locais-marketplace",
       "techStack": [],
       "favorite": false,
       "lastOpenedAt": "2026-03-09T19:02:51.003Z"
@@ -24,6 +25,7 @@
       "gitDirty": true,
       "lastCommitDate": "2026-02-02T15:11:08-03:00",
       "lastCommitMessage": "feat: add Facebook OAuth and testing instructions, enhance package scripts for development",
+      "gitRemoteUrl": "https://github.com/Xifix-Tecnologia/rede-influencers",
       "techStack": [],
       "favorite": false
     },
@@ -51,6 +53,7 @@
       "gitDirty": true,
       "lastCommitDate": "2026-02-25T22:41:53-03:00",
       "lastCommitMessage": "migracao de criacao de usuario para postgre",
+      "gitRemoteUrl": "https://github.com/pedrofilho81/tvc-par",
       "techStack": [
         "react",
         "vite",
@@ -69,6 +72,7 @@
       "gitDirty": false,
       "lastCommitDate": "2026-03-02T16:40:52-03:00",
       "lastCommitMessage": "refactor: simplify benefit cards layout with centered flex alignment",
+      "gitRemoteUrl": "https://github.com/Xifix-Tecnologia/landing-page-empreendedores",
       "techStack": [
         "react",
         "vite",
@@ -84,12 +88,13 @@
       "isGitRepo": true,
       "gitBranch": "main",
       "gitDirty": true,
-      "lastCommitDate": "2026-03-09T16:11:58-03:00",
-      "lastCommitMessage": "Add main branch last commit indicator and enhanced copy-as-prompt with AI instructions",
+      "lastCommitDate": "2026-03-09T16:29:30-03:00",
+      "lastCommitMessage": "Update rede-capanema tasks: credit card bug done, order dates moved to in-progress",
+      "gitRemoteUrl": "https://github.com/defremont/vibedash",
       "techStack": [],
-      "favorite": false,
-      "lastOpenedAt": "2026-03-09T18:57:23.998Z"
+      "favorite": true,
+      "lastOpenedAt": "2026-03-09T19:29:17.595Z"
     }
   ],
-  "lastScannedAt": "2026-03-09T19:23:33.503Z"
+  "lastScannedAt": "2026-03-09T19:33:09.536Z"
 }
