@@ -8,8 +8,8 @@
       "isGitRepo": true,
       "gitBranch": "staging",
       "gitDirty": false,
-      "lastCommitDate": "2026-03-09T16:01:08-03:00",
-      "lastCommitMessage": "chore(release): 1.79.1",
+      "lastCommitDate": "2026-03-09T16:18:02-03:00",
+      "lastCommitMessage": "fix(payments): fix credit card payment for seller_direct strategy and misc issues",
       "techStack": [],
       "favorite": false,
       "lastOpenedAt": "2026-03-09T19:02:51.003Z"
@@ -84,12 +84,12 @@
       "isGitRepo": true,
       "gitBranch": "main",
       "gitDirty": true,
-      "lastCommitDate": "2026-03-09T15:49:04-03:00",
-      "lastCommitMessage": "Mark BUG-view-user task as done and update project timestamps",
+      "lastCommitDate": "2026-03-09T16:11:58-03:00",
+      "lastCommitMessage": "Add main branch last commit indicator and enhanced copy-as-prompt with AI instructions",
       "techStack": [],
       "favorite": false,
       "lastOpenedAt": "2026-03-09T18:57:23.998Z"
     }
   ],
-  "lastScannedAt": "2026-03-09T19:08:12.430Z"
+  "lastScannedAt": "2026-03-09T19:23:33.503Z"
 }
