@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { FileChange } from './FileChange'
 import { CommitForm } from './CommitForm'
-import { useGitStatus, useGitLog, useStageAll, useUnstageAll, useGitPush, useGitPull } from '@/hooks/useGit'
+import { useGitStatus, useGitLog, useGitMainCommit, useStageAll, useUnstageAll, useGitPush, useGitPull } from '@/hooks/useGit'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -16,6 +16,7 @@ interface GitPanelProps {
 export function GitPanel({ projectId }: GitPanelProps) {
   const { data: status, isLoading, refetch } = useGitStatus(projectId)
   const { data: logData } = useGitLog(projectId)
+  const { data: mainCommitData } = useGitMainCommit(projectId, status?.current)
   const stageAll = useStageAll()
   const unstageAll = useUnstageAll()
   const gitPush = useGitPush()
@@ -109,6 +110,26 @@ export function GitPanel({ projectId }: GitPanelProps) {
           <span className="text-[10px] text-muted-foreground/60">in sync</span>
         )}
       </div>
+
+      {/* Main branch info */}
+      {mainCommitData?.commit && status?.current && status.current !== 'main' && status.current !== 'master' && (
+        <div className="rounded border border-dashed border-muted-foreground/20 p-2 space-y-1">
+          <div className="flex items-center gap-1.5">
+            <GitBranch className="h-3 w-3 text-muted-foreground/50" />
+            <span className="text-[10px] font-medium text-muted-foreground">main</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground/70 truncate pl-[18px]">
+            <span className="font-mono">{mainCommitData.commit.hash.substring(0, 7)}</span>
+            {' '}{mainCommitData.commit.message}
+          </p>
+          <p className="text-[9px] text-muted-foreground/50 pl-[18px]">
+            {(() => {
+              try { return formatDistanceToNow(new Date(mainCommitData.commit.date), { addSuffix: true }) }
+              catch { return '' }
+            })()}
+          </p>
+        </div>
+      )}
 
       {/* Staged */}
       {stagedFiles.length > 0 && (

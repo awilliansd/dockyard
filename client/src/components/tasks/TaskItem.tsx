@@ -3,11 +3,15 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useUpdateTask, useDeleteTask, type Task } from '@/hooks/useTasks'
+import { buildTaskPrompt } from '@/lib/promptBuilder'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 import { toast } from 'sonner'
 
 interface TaskItemProps {
   task: Task
   projectName?: string
+  projectPath?: string
   onEdit: (task: Task) => void
   dragListeners?: Record<string, Function>
 }
@@ -26,9 +30,10 @@ const statusConfig = {
   done: { label: 'Done', variant: 'outline' as const },
 }
 
-export function TaskItem({ task, projectName, onEdit, dragListeners }: TaskItemProps) {
+export function TaskItem({ task, projectName, projectPath, onEdit, dragListeners }: TaskItemProps) {
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
+  const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
 
   const priority = priorityConfig[task.priority] || priorityConfig.medium
   const status = statusConfig[task.status] || statusConfig.todo
@@ -48,8 +53,7 @@ export function TaskItem({ task, projectName, onEdit, dragListeners }: TaskItemP
 
   const handleCopyPrompt = (e: React.MouseEvent) => {
     e.stopPropagation()
-    const prompt = task.promptTemplate ||
-      `Task: ${task.title}\n${task.description ? `\nDescription: ${task.description}` : ''}${projectName ? `\nProject: ${projectName}` : ''}`
+    const prompt = buildTaskPrompt(task, projectName, projectPath, settings?.tasksDir)
     navigator.clipboard.writeText(prompt)
     toast.success('Copied to clipboard')
   }

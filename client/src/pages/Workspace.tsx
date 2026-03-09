@@ -34,7 +34,7 @@ export function Workspace() {
             </Badge>
           )}
         </div>
-        <TaskBoard projectId={project.id} projectName={project.name} />
+        <TaskBoard projectId={project.id} projectName={project.name} projectPath={project.path} />
       </div>
 
       {/* Sidebar - 1/4 width */}

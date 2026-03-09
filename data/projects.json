@@ -8,11 +8,11 @@
       "isGitRepo": true,
       "gitBranch": "staging",
       "gitDirty": false,
-      "lastCommitDate": "2026-03-09T15:30:35-03:00",
-      "lastCommitMessage": "feat(db): add missing indexes to Orders and Products tables",
+      "lastCommitDate": "2026-03-09T16:01:08-03:00",
+      "lastCommitMessage": "chore(release): 1.79.1",
       "techStack": [],
       "favorite": false,
-      "lastOpenedAt": "2026-03-09T18:44:36.201Z"
+      "lastOpenedAt": "2026-03-09T19:02:51.003Z"
     },
     {
       "id": "rede-influencer",
@@ -84,12 +84,12 @@
       "isGitRepo": true,
       "gitBranch": "main",
       "gitDirty": true,
-      "lastCommitDate": "2026-03-09T13:35:46-03:00",
-      "lastCommitMessage": "Add CSV export/import with diff review for client task sharing",
+      "lastCommitDate": "2026-03-09T15:49:04-03:00",
+      "lastCommitMessage": "Mark BUG-view-user task as done and update project timestamps",
       "techStack": [],
       "favorite": false,
-      "lastOpenedAt": "2026-03-09T18:48:26.042Z"
+      "lastOpenedAt": "2026-03-09T18:57:23.998Z"
     }
   ],
-  "lastScannedAt": "2026-03-09T18:48:26.042Z"
+  "lastScannedAt": "2026-03-09T19:08:12.430Z"
 }

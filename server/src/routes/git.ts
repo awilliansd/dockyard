@@ -168,4 +168,19 @@ export async function gitRoutes(app: FastifyInstance) {
       }
     }
   );
+
+  app.get<{ Params: { projectId: string } }>(
+    '/api/projects/:projectId/git/main-commit',
+    async (request, reply) => {
+      const path = await getProjectPath(request.params.projectId);
+      if (!path) return reply.status(404).send({ error: 'Project not found' });
+
+      try {
+        const commit = await gitService.getMainBranchLastCommit(path);
+        return { commit };
+      } catch (err: any) {
+        return reply.status(500).send({ error: err.message });
+      }
+    }
+  );
 }

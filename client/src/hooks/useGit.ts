@@ -34,6 +34,16 @@ export function useGitBranches(projectId: string | undefined) {
   })
 }
 
+export function useGitMainCommit(projectId: string | undefined, currentBranch?: string) {
+  const isNotMain = !!currentBranch && currentBranch !== 'main' && currentBranch !== 'master'
+  return useQuery({
+    queryKey: ['git-main-commit', projectId],
+    queryFn: () => api.getGitMainCommit(projectId!),
+    enabled: !!projectId && isNotMain,
+    staleTime: 60_000,
+  })
+}
+
 export function useStageFile() {
   const queryClient = useQueryClient()
   return useMutation({

@@ -111,6 +111,32 @@
       "updatedAt": "2026-03-09T22:00:00.000Z",
       "order": 7,
       "inboxAt": "2026-03-09T19:00:00.000Z"
+    },
+    {
+      "title": "Pagamento com PIX não está funcionando",
+      "description": "Fix: (1) PIX 400 error causado por CPF opcional no createPixPaymentForCart — MercadoPago exige CPF para PIX. Adicionada validação obrigatória com mensagem clara. (2) CSP bloqueando secure-fields.mercadopago.com — adicionado ao connect-src e frame-src para card tokenization funcionar.",
+      "priority": "urgent",
+      "status": "done",
+      "id": "KuOETv7U6m",
+      "projectId": "rede-capanema",
+      "createdAt": "2026-03-09T18:55:34.006Z",
+      "updatedAt": "2026-03-10T00:00:00.000Z",
+      "order": 9,
+      "inProgressAt": "2026-03-09T18:55:34.006Z",
+      "doneAt": "2026-03-10T00:00:00.000Z"
+    },
+    {
+      "title": "Pagamento com cartao de credito nao funciona",
+      "description": "Investigacao revelou multiplos problemas no fluxo de pagamento com cartao de credito:\n\n**BUG CRITICO — API call inconsistente (endpoint /payments/create):**\n- paymentController.js:277 chama `mpClient.create()` mas createMercadoPagoClient() retorna `{payment, preference}`, deveria ser `mpClient.payment.create()`. Isso quebra pagamentos seller_direct no SingleOrderCheckoutPage. O fluxo principal (create-order-with-payment via CheckoutPage) usa processCreditCardPaymentForOrder que chama corretamente `sellerMPClient.payment.create()`.\n\n**Chave MercadoPago hardcoded como fallback:**\n- StreamlinedCardForm.jsx:92 tem fallback hardcoded `APP_USR-c303aba1-...` que sera usada se VITE_MP_PUBLIC_KEY nao estiver definida. Risco em producao — deveria falhar explicitamente.\n\n**Cartoes de teste expirados:**\n- ImprovedCardPaymentForm.jsx:257-258 mostra cartoes de teste com validade 11/25 (expirados desde nov/2025). Atualizar para datas futuras.\n\n**Fallback de porta errada no api.js:**\n- frontend/src/services/api.js:3 usa fallback `localhost:5001` mas backend roda em porta 5000.\n\n**Arquivos afetados:**\n- backend/src/controllers/paymentController.js (linhas 270-277 vs 2314-2320)\n- frontend/src/components/payment/StreamlinedCardForm.jsx (linha 92)\n- frontend/src/components/payment/ImprovedCardPaymentForm.jsx (linhas 257-258)\n- frontend/src/services/api.js (linha 3)\n- frontend/src/pages/CheckoutPage.jsx (fluxo principal — funciona corretamente)",
+      "priority": "urgent",
+      "status": "in_progress",
+      "id": "BUG-credit-card-payment",
+      "projectId": "rede-capanema",
+      "createdAt": "2026-03-10T00:00:00.000Z",
+      "updatedAt": "2026-03-09T19:09:28.777Z",
+      "order": 0,
+      "inboxAt": "2026-03-10T00:00:00.000Z",
+      "inProgressAt": "2026-03-09T19:09:28.777Z"
     }
   ]
 }

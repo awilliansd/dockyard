@@ -19,6 +19,9 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useAllTasks, useUpdateTask, useDeleteTask, useImportAllTasks, type Task } from '@/hooks/useTasks'
 import { useProjects, type Project } from '@/hooks/useProjects'
+import { buildTaskPrompt } from '@/lib/promptBuilder'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 import { GripVertical, Pencil, Trash2, Copy, Check, Download, Upload } from 'lucide-react'
@@ -45,9 +48,10 @@ const priorityConfig = {
   low: { icon: ArrowDown, color: 'text-red-500' },
 }
 
-function GlobalTaskCard({ task, project, onStatusToggle, onDelete }: {
+function GlobalTaskCard({ task, project, tasksDir, onStatusToggle, onDelete }: {
   task: Task
   project?: Project
+  tasksDir?: string
   onStatusToggle: (task: Task) => void
   onDelete: (task: Task) => void
 }) {
@@ -55,8 +59,7 @@ function GlobalTaskCard({ task, project, onStatusToggle, onDelete }: {
   const PriIcon = pri.icon
 
   const handleCopy = () => {
-    const prompt = task.promptTemplate ||
-      `Task: ${task.title}\n${task.description ? `\nDescription: ${task.description}` : ''}${project ? `\nProject: ${project.name}` : ''}`
+    const prompt = buildTaskPrompt(task, project?.name, project?.path, tasksDir)
     navigator.clipboard.writeText(prompt)
     toast.success('Copied to clipboard')
   }
@@ -139,9 +142,10 @@ function DroppableColumn({ col, children, count }: { col: ColumnConfig; children
   )
 }
 
-function DraggableGlobalTask({ task, project, onStatusToggle, onDelete }: {
+function DraggableGlobalTask({ task, project, tasksDir, onStatusToggle, onDelete }: {
   task: Task
   project?: Project
+  tasksDir?: string
   onStatusToggle: (task: Task) => void
   onDelete: (task: Task) => void
 }) {
@@ -160,7 +164,7 @@ function DraggableGlobalTask({ task, project, onStatusToggle, onDelete }: {
         <GripVertical className="h-3.5 w-3.5" />
       </button>
       <div className="flex-1 min-w-0">
-        <GlobalTaskCard task={task} project={project} onStatusToggle={onStatusToggle} onDelete={onDelete} />
+        <GlobalTaskCard task={task} project={project} tasksDir={tasksDir} onStatusToggle={onStatusToggle} onDelete={onDelete} />
       </div>
     </div>
   )
@@ -169,6 +173,7 @@ function DraggableGlobalTask({ task, project, onStatusToggle, onDelete }: {
 export function TasksPage() {
   const { data: tasks } = useAllTasks()
   const { data: projects } = useProjects()
+  const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
   const importAllTasks = useImportAllTasks()
@@ -307,6 +312,7 @@ export function TasksPage() {
                         key={task.id}
                         task={task}
                         project={projectMap.get(task.projectId)}
+                        tasksDir={settings?.tasksDir}
                         onStatusToggle={handleStatusToggle}
                         onDelete={handleDelete}
                       />
@@ -327,6 +333,7 @@ export function TasksPage() {
                 <GlobalTaskCard
                   task={activeTask}
                   project={projectMap.get(activeTask.projectId)}
+                  tasksDir={settings?.tasksDir}
                   onStatusToggle={() => {}}
                   onDelete={() => {}}
                 />

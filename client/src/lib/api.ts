@@ -48,6 +48,7 @@ export const api = {
   gitPull: (projectId: string) => request(`/projects/${projectId}/git/pull`, { method: 'POST' }),
   getGitLog: (projectId: string) => request<any>(`/projects/${projectId}/git/log`),
   getGitBranches: (projectId: string) => request<any>(`/projects/${projectId}/git/branches`),
+  getGitMainCommit: (projectId: string) => request<{ commit: { hash: string; message: string; date: string; author_name: string } | null }>(`/projects/${projectId}/git/main-commit`),
 
   // Terminals
   launchTerminal: (projectId: string, type: string) => request('/terminals/launch', { method: 'POST', body: JSON.stringify({ projectId, type }) }),

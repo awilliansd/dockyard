@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils'
 interface TaskBoardProps {
   projectId: string
   projectName: string
+  projectPath?: string
 }
 
 interface ColumnConfig {
@@ -88,7 +89,7 @@ function DroppableColumn({ col, children, count }: { col: ColumnConfig; children
   )
 }
 
-function DraggableTaskItem({ task, projectName, onEdit }: { task: Task; projectName?: string; onEdit: (task: Task) => void }) {
+function DraggableTaskItem({ task, projectName, projectPath, onEdit }: { task: Task; projectName?: string; projectPath?: string; onEdit: (task: Task) => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
     data: { task },
@@ -103,6 +104,7 @@ function DraggableTaskItem({ task, projectName, onEdit }: { task: Task; projectN
       <TaskItem
         task={task}
         projectName={projectName}
+        projectPath={projectPath}
         onEdit={onEdit}
         dragListeners={listeners as unknown as Record<string, Function>}
       />
@@ -110,7 +112,7 @@ function DraggableTaskItem({ task, projectName, onEdit }: { task: Task; projectN
   )
 }
 
-export function TaskBoard({ projectId, projectName }: TaskBoardProps) {
+export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProps) {
   const { data: tasks, isLoading } = useTasks(projectId)
   const updateTask = useUpdateTask()
   const importTasks = useImportTasks()
@@ -294,6 +296,7 @@ export function TaskBoard({ projectId, projectName }: TaskBoardProps) {
                       key={task.id}
                       task={task}
                       projectName={projectName}
+                      projectPath={projectPath}
                       onEdit={handleEdit}
                     />
                   ))
