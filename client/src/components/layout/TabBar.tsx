@@ -2,7 +2,59 @@ import { X, Home } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useTabs } from '@/hooks/useTabs'
-import { useProjects } from '@/hooks/useProjects'
+import { useProjects, type Project } from '@/hooks/useProjects'
+import { useGitStatus } from '@/hooks/useGit'
+
+function ProjectTab({ tabId, project, isActive, onSwitch, onClose }: {
+  tabId: string
+  project?: Project
+  isActive: boolean
+  onSwitch: () => void
+  onClose: () => void
+}) {
+  const { data: gitStatus } = useGitStatus(project?.isGitRepo ? tabId : undefined)
+  const label = project?.name || tabId
+
+  // Use live git status if available, fallback to cached project.gitDirty
+  const isDirty = gitStatus
+    ? ((gitStatus.modified?.length || 0) + (gitStatus.not_added?.length || 0) + (gitStatus.staged?.length || 0) + (gitStatus.deleted?.length || 0) + (gitStatus.created?.length || 0)) > 0
+    : project?.gitDirty
+
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-1 pl-3 pr-1 h-8 rounded-t-md transition-colors shrink-0 group max-w-[200px]',
+        isActive
+          ? 'bg-background border border-b-0 text-foreground'
+          : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+      )}
+    >
+      <button
+        className="text-xs truncate font-medium"
+        onClick={onSwitch}
+        title={project?.path || tabId}
+      >
+        {label}
+      </button>
+      {isDirty && (
+        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0" title="Uncommitted changes" />
+      )}
+      <button
+        className={cn(
+          'p-0.5 rounded hover:bg-accent shrink-0 ml-1',
+          isActive ? 'opacity-60 hover:opacity-100' : 'opacity-0 group-hover:opacity-60 hover:!opacity-100'
+        )}
+        onClick={(e) => {
+          e.stopPropagation()
+          onClose()
+        }}
+        title="Close tab"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  )
+}
 
 export function TabBar() {
   const { tabs, activeTabId, switchTab, closeTab } = useTabs()
@@ -31,47 +83,16 @@ export function TabBar() {
       </button>
 
       {/* Project tabs */}
-      {tabs.map(tab => {
-        const project = projects?.find(p => p.id === tab.id)
-        const isActive = tab.id === activeTabId
-        const label = project?.name || tab.id
-
-        return (
-          <div
-            key={tab.id}
-            className={cn(
-              'flex items-center gap-1 pl-3 pr-1 h-8 rounded-t-md transition-colors shrink-0 group max-w-[200px]',
-              isActive
-                ? 'bg-background border border-b-0 text-foreground'
-                : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-            )}
-          >
-            <button
-              className="text-xs truncate font-medium"
-              onClick={() => switchTab(tab.id)}
-              title={project?.path || tab.id}
-            >
-              {label}
-            </button>
-            {project?.gitDirty && (
-              <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0" title="Uncommitted changes" />
-            )}
-            <button
-              className={cn(
-                'p-0.5 rounded hover:bg-accent shrink-0 ml-1',
-                isActive ? 'opacity-60 hover:opacity-100' : 'opacity-0 group-hover:opacity-60 hover:!opacity-100'
-              )}
-              onClick={(e) => {
-                e.stopPropagation()
-                closeTab(tab.id)
-              }}
-              title="Close tab"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        )
-      })}
+      {tabs.map(tab => (
+        <ProjectTab
+          key={tab.id}
+          tabId={tab.id}
+          project={projects?.find(p => p.id === tab.id)}
+          isActive={tab.id === activeTabId}
+          onSwitch={() => switchTab(tab.id)}
+          onClose={() => closeTab(tab.id)}
+        />
+      ))}
     </div>
   )
 }
