@@ -235,8 +235,7 @@ export function CsvReviewDialog({ open, onOpenChange, diff, projectId }: CsvRevi
         const edited = modifiedEdits[mod.id]?.[field]
         const csvVal = mod.incoming[field as keyof CsvRow]
         const value = edited ?? csvVal
-        if (field === 'prompt_template') upd.promptTemplate = value
-        else upd[field] = value
+        upd[field] = value
       }
       update.push(upd)
     }
@@ -250,7 +249,6 @@ export function CsvReviewDialog({ open, onOpenChange, diff, projectId }: CsvRevi
         description: edits.description ?? row.description,
         priority: edits.priority ?? row.priority,
         status: edits.status ?? row.status,
-        promptTemplate: (edits.prompt_template ?? row.prompt_template) || undefined,
       })
     }
 
@@ -468,16 +466,6 @@ export function CsvReviewDialog({ open, onOpenChange, diff, projectId }: CsvRevi
                                   />
                                 </div>
                               </div>
-                              {(row.prompt_template || edits.prompt_template) && (
-                                <div>
-                                  <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Prompt</div>
-                                  <Input
-                                    value={edits.prompt_template ?? row.prompt_template}
-                                    onChange={e => setAddedEdit(idx, 'prompt_template', e.target.value)}
-                                    className="h-7 text-xs font-mono"
-                                  />
-                                </div>
-                              )}
                             </div>
                           </div>
                         </div>

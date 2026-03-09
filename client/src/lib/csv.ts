@@ -1,6 +1,6 @@
 import type { Task } from '@/hooks/useTasks'
 
-const CSV_COLUMNS = ['id', 'title', 'description', 'priority', 'status', 'prompt_template'] as const
+const CSV_COLUMNS = ['id', 'title', 'description', 'priority', 'status'] as const
 
 export type CsvRow = {
   id: string
@@ -8,7 +8,6 @@ export type CsvRow = {
   description: string
   priority: string
   status: string
-  prompt_template: string
 }
 
 function escapeField(value: string): string {
@@ -28,7 +27,6 @@ export function tasksToCSV(tasks: Task[]): string {
       description: task.description || '',
       priority: task.priority,
       status: task.status,
-      prompt_template: task.promptTemplate || '',
     }
     return CSV_COLUMNS.map(col => escapeField(row[col])).join(',')
   })
@@ -58,7 +56,6 @@ export function parseCSV(text: string): CsvRow[] {
         description: obj.description || '',
         priority: VALID_PRIORITIES.includes(obj.priority) ? obj.priority : 'medium',
         status: VALID_STATUSES.includes(obj.status) ? obj.status : 'todo',
-        prompt_template: obj.prompt_template || '',
       }
     })
     .filter(row => row.title)
@@ -166,8 +163,6 @@ export function diffTasks(currentTasks: Task[], csvRows: CsvRow[]): CsvDiff {
         changes.push({ field: 'priority', label: 'Priority', oldValue: current.priority, newValue: row.priority })
       if (row.status !== current.status)
         changes.push({ field: 'status', label: 'Status', oldValue: current.status, newValue: row.status })
-      if (row.prompt_template !== (current.promptTemplate || ''))
-        changes.push({ field: 'prompt_template', label: 'Prompt', oldValue: current.promptTemplate || '', newValue: row.prompt_template })
 
       if (changes.length > 0) {
         modified.push({ id: row.id, current, incoming: row, changes })
