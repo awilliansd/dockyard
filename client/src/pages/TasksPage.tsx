@@ -5,12 +5,14 @@ import {
   DndContext,
   DragOverlay,
   useDroppable,
-  closestCorners,
+  pointerWithin,
+  closestCenter,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
   type DragStartEvent,
+  type CollisionDetection,
 } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -48,6 +50,21 @@ const columns: ColumnConfig[] = [
 ]
 
 const COLUMN_KEYS = new Set(columns.map(c => c.key))
+
+// Custom collision detection: prioritize sortable items over column containers
+const itemsFirstCollision: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args)
+  if (pointerCollisions.length > 0) {
+    const itemCollisions = pointerCollisions.filter(c => !COLUMN_KEYS.has(c.id as string))
+    if (itemCollisions.length > 0) {
+      const itemIds = new Set(itemCollisions.map(c => c.id))
+      const itemContainers = args.droppableContainers.filter(c => itemIds.has(c.id))
+      return closestCenter({ ...args, droppableContainers: itemContainers })
+    }
+    return pointerCollisions.filter(c => COLUMN_KEYS.has(c.id as string))
+  }
+  return closestCenter(args)
+}
 
 type Priority = Task['priority']
 const priorities: { key: Priority; icon: React.ElementType; color: string; label: string }[] = [
@@ -417,7 +434,7 @@ export function TasksPage() {
 
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCorners}
+          collisionDetection={itemsFirstCollision}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >

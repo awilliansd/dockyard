@@ -4,12 +4,14 @@ import {
   DndContext,
   DragOverlay,
   useDroppable,
-  closestCorners,
+  pointerWithin,
+  closestCenter,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
   type DragStartEvent,
+  type CollisionDetection,
 } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -67,6 +69,28 @@ const columns: ColumnConfig[] = [
 ]
 
 const COLUMN_KEYS = new Set(columns.map(c => c.key))
+
+// Custom collision detection: prioritize sortable items over column containers
+const itemsFirstCollision: CollisionDetection = (args) => {
+  // First try pointerWithin to find containers the pointer is inside
+  const pointerCollisions = pointerWithin(args)
+
+  if (pointerCollisions.length > 0) {
+    // Filter to only sortable items (not column containers)
+    const itemCollisions = pointerCollisions.filter(c => !COLUMN_KEYS.has(c.id as string))
+    if (itemCollisions.length > 0) {
+      // Among items, pick the closest center
+      const itemIds = new Set(itemCollisions.map(c => c.id))
+      const itemContainers = args.droppableContainers.filter(c => itemIds.has(c.id))
+      return closestCenter({ ...args, droppableContainers: itemContainers })
+    }
+    // No items found — return the column container
+    return pointerCollisions.filter(c => COLUMN_KEYS.has(c.id as string))
+  }
+
+  // Fallback: closestCenter across everything
+  return closestCenter(args)
+}
 
 function DroppableColumn({ col, children, count, taskIds }: { col: ColumnConfig; children: React.ReactNode; count: number; taskIds: string[] }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.key })
@@ -360,7 +384,7 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
 
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={itemsFirstCollision}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
