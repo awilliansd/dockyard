@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Star, FolderOpen, RefreshCw, Settings, ClipboardList, PanelLeftClose, PanelLeft, ArrowUp, ArrowDown, FileEdit } from 'lucide-react'
+import { LayoutDashboard, Star, FolderOpen, RefreshCw, Settings, ClipboardList, PanelLeftClose, PanelLeft, ArrowUp, ArrowDown, FileEdit, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useProjects, useRefreshProjects } from '@/hooks/useProjects'
 import { useAllTasks } from '@/hooks/useTasks'
 import { useTabs } from '@/hooks/useTabs'
@@ -85,16 +86,30 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { openTab } = useTabs()
   const [search, setSearch] = useState('')
 
+  const [collapsedSearchOpen, setCollapsedSearchOpen] = useState(false)
+  const [collapsedSearch, setCollapsedSearch] = useState('')
+  const collapsedInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (collapsedSearchOpen) {
+      setCollapsedSearch('')
+      setTimeout(() => collapsedInputRef.current?.focus(), 0)
+    }
+  }, [collapsedSearchOpen])
+
   const favorites = projects?.filter(p => p.favorite) || []
   const filtered = search
     ? projects?.filter(p => p.name.toLowerCase().includes(search.toLowerCase())) || []
+    : []
+  const collapsedFiltered = collapsedSearch
+    ? projects?.filter(p => p.name.toLowerCase().includes(collapsedSearch.toLowerCase())) || []
     : []
 
   const inboxCount = tasks?.filter(t => t.status === 'backlog' || t.status === 'todo').length || 0
   const inProgressCount = tasks?.filter(t => t.status === 'in_progress').length || 0
 
   const activeProjects = projects?.filter(p =>
-    tasks?.some(t => t.projectId === p.id && t.status === 'in_progress')
+    tasks?.some(t => t.projectId === p.id && (t.status === 'backlog' || t.status === 'todo'))
   ) || []
 
   // Collapsed sidebar - icons only
@@ -143,6 +158,47 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <TooltipContent side="right">All Tasks ({inboxCount + inProgressCount})</TooltipContent>
           </Tooltip>
 
+          <Popover open={collapsedSearchOpen} onOpenChange={setCollapsedSearchOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <button
+                    className="flex items-center justify-center w-8 h-8 rounded-md transition-colors text-muted-foreground hover:bg-accent/50"
+                  >
+                    <Search className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="right">Search projects</TooltipContent>
+            </Tooltip>
+            <PopoverContent side="right" align="start" className="w-56 p-2">
+              <Input
+                ref={collapsedInputRef}
+                placeholder="Search projects..."
+                value={collapsedSearch}
+                onChange={e => setCollapsedSearch(e.target.value)}
+                className="h-7 text-xs mb-1"
+              />
+              {collapsedFiltered.length > 0 && (
+                <div className="max-h-48 overflow-y-auto space-y-0.5">
+                  {collapsedFiltered.slice(0, 8).map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => { openTab(p.id); setCollapsedSearchOpen(false) }}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs w-full text-left hover:bg-accent/50 transition-colors"
+                    >
+                      <ProjectAvatar name={p.name} className="w-5 h-5 shrink-0" />
+                      <span className="truncate">{p.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {collapsedSearch && collapsedFiltered.length === 0 && (
+                <p className="text-[10px] text-muted-foreground/50 text-center py-2">No projects found</p>
+              )}
+            </PopoverContent>
+          </Popover>
+
           {activeProjects.length > 0 && (
             <>
               <div className="w-6 border-t my-1" />
@@ -163,8 +219,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                         )}
                       >
                         <ProjectAvatar name={p.name} className="w-7 h-7" />
-                        <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-yellow-500" />
-                        {(p.gitAhead ?? 0) > 0 && (
+                        {((p.gitAhead ?? 0) > 0 || (p.gitBehind ?? 0) > 0 || (p.gitStaged ?? 0) > 0 || (p.gitUnstaged ?? 0) > 0 || (p.gitUntracked ?? 0) > 0) && (
                           <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-orange-400" />
                         )}
                       </button>
@@ -303,7 +358,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 <ProjectAvatar name={p.name} className="w-5 h-5 shrink-0" />
                 <span className="truncate flex-1">{p.name}</span>
                 <GitIndicators project={p} />
-                <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0" />
               </button>
             ))}
           </>

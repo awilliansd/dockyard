@@ -15,10 +15,10 @@ function ProjectTab({ tabId, project, isActive, onSwitch, onClose }: {
   const { data: gitStatus } = useGitStatus(project?.isGitRepo ? tabId : undefined)
   const label = project?.name || tabId
 
-  // Use live git status if available, fallback to cached project.gitDirty
-  const isDirty = gitStatus
-    ? ((gitStatus.modified?.length || 0) + (gitStatus.not_added?.length || 0) + (gitStatus.staged?.length || 0) + (gitStatus.deleted?.length || 0) + (gitStatus.created?.length || 0)) > 0
-    : project?.gitDirty
+  // Show dot only when out of sync with remote (unpushed or unpulled commits)
+  const isOutOfSync = gitStatus
+    ? ((gitStatus.ahead ?? 0) > 0 || (gitStatus.behind ?? 0) > 0)
+    : ((project?.gitAhead ?? 0) > 0 || (project?.gitBehind ?? 0) > 0)
 
   return (
     <div
@@ -36,8 +36,8 @@ function ProjectTab({ tabId, project, isActive, onSwitch, onClose }: {
       >
         {label}
       </button>
-      {isDirty && (
-        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0" title="Uncommitted changes" />
+      {isOutOfSync && (
+        <span className="w-1.5 h-1.5 rounded-full bg-white/70 shrink-0" title="Out of sync with remote" />
       )}
       <button
         className={cn(

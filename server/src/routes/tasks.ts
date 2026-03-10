@@ -16,7 +16,7 @@ export async function taskRoutes(app: FastifyInstance) {
     }
   );
 
-  app.post<{ Params: { projectId: string }; Body: { title: string; description?: string; priority?: string; status?: string; promptTemplate?: string } }>(
+  app.post<{ Params: { projectId: string }; Body: { title: string; description?: string; priority?: string; status?: string; prompt?: string } }>(
     '/api/projects/:projectId/tasks',
     async (request) => {
       const task = await taskStore.createTask(request.params.projectId, {
@@ -24,13 +24,13 @@ export async function taskRoutes(app: FastifyInstance) {
         description: request.body.description || '',
         priority: (request.body.priority as any) || 'medium',
         status: (request.body.status as any) || 'todo',
-        promptTemplate: request.body.promptTemplate,
+        prompt: request.body.prompt,
       });
       return task;
     }
   );
 
-  app.put<{ Params: { projectId: string; taskId: string }; Body: Partial<{ title: string; description: string; priority: string; status: string; promptTemplate: string; order: number }> }>(
+  app.put<{ Params: { projectId: string; taskId: string }; Body: Partial<{ title: string; description: string; priority: string; status: string; prompt: string; order: number }> }>(
     '/api/projects/:projectId/tasks/:taskId',
     async (request, reply) => {
       const task = await taskStore.updateTask(request.params.projectId, request.params.taskId, request.body as any);

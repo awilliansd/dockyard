@@ -20,6 +20,7 @@ export interface Project {
   techStack: string[]
   favorite: boolean
   lastOpenedAt?: string
+  externalLink?: string
 }
 
 export function useProjects() {
@@ -46,7 +47,7 @@ export function useRefreshProjects() {
 export function useUpdateProject() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string } & Partial<Pick<Project, 'name' | 'favorite' | 'lastOpenedAt'>>) =>
+    mutationFn: ({ id, ...data }: { id: string } & Partial<Pick<Project, 'name' | 'favorite' | 'lastOpenedAt' | 'externalLink'>>) =>
       api.updateProject(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })

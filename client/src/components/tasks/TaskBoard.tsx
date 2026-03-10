@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
-import { Plus, Inbox, Loader, CheckCircle2, Download, Upload, FileSpreadsheet, Copy } from 'lucide-react'
+import { Plus, Inbox, Loader, CheckCircle2, FileSpreadsheet, Copy } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -21,7 +21,7 @@ import { TaskItem } from './TaskItem'
 import { TaskEditor } from './TaskEditor'
 import { TaskViewer } from './TaskViewer'
 import { CsvReviewDialog } from './CsvReviewDialog'
-import { useTasks, useUpdateTask, useReorderTasks, useImportTasks, type Task } from '@/hooks/useTasks'
+import { useTasks, useUpdateTask, useReorderTasks, type Task } from '@/hooks/useTasks'
 import { tasksToCSV, parseCSV, diffTasks, type CsvDiff } from '@/lib/csv'
 import { buildColumnPrompt } from '@/lib/promptBuilder'
 import { useQuery } from '@tanstack/react-query'
@@ -172,7 +172,6 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
   const updateTask = useUpdateTask()
   const reorderTasks = useReorderTasks()
-  const importTasks = useImportTasks()
   const [editorOpen, setEditorOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [viewerOpen, setViewerOpen] = useState(false)
@@ -198,39 +197,6 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
   const handleNew = () => {
     setEditingTask(null)
     setEditorOpen(true)
-  }
-
-  const handleExport = () => {
-    if (!tasks?.length) { toast.info('No tasks to export'); return }
-    const data = { exportedAt: new Date().toISOString(), source: 'devdash', projectId, tasks }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `tasks-${projectId}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const handleImport = () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.json'
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
-      if (!file) return
-      try {
-        const text = await file.text()
-        const data = JSON.parse(text)
-        const list = Array.isArray(data) ? data : data.tasks
-        if (!Array.isArray(list)) { toast.error('Invalid format: expected { tasks: [...] }'); return }
-        importTasks.mutate({ projectId, tasks: list }, {
-          onSuccess: (res: any) => toast.success(`Imported ${res.imported} tasks`),
-          onError: () => toast.error('Failed to import tasks'),
-        })
-      } catch { toast.error('Failed to read file') }
-    }
-    input.click()
   }
 
   const handleCsvExport = () => {
@@ -366,23 +332,6 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">Tasks ({tasks?.length || 0})</h2>
         <div className="flex items-center gap-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleExport}>
-                <Download className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Export tasks as JSON (for backup or transfer to another machine)</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleImport}>
-                <Upload className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Import tasks from a JSON file</TooltipContent>
-          </Tooltip>
-          <div className="w-px h-4 bg-border mx-0.5" />
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={handleCsvExport}>

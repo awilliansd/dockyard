@@ -17,6 +17,7 @@ export interface Project {
   techStack: string[];
   favorite: boolean;
   lastOpenedAt?: string;
+  externalLink?: string;
 }
 
 export interface Task {
@@ -26,7 +27,7 @@ export interface Task {
   description: string;
   priority: 'urgent' | 'high' | 'medium' | 'low';
   status: 'backlog' | 'todo' | 'in_progress' | 'done';
-  promptTemplate?: string;
+  prompt?: string;
   createdAt: string;
   updatedAt: string;
   order: number;

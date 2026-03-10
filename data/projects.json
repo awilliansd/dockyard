@@ -53,9 +53,9 @@
       "gitDirty": true,
       "gitAhead": 0,
       "gitBehind": 0,
-      "gitStaged": 4,
-      "gitUnstaged": 2,
-      "gitUntracked": 6,
+      "gitStaged": 10,
+      "gitUnstaged": 1,
+      "gitUntracked": 0,
       "lastCommitDate": "2026-03-06T00:05:55-03:00",
       "lastCommitMessage": "docs: simplified portfolio and resume content",
       "gitRemoteUrl": "https://github.com/defremont/dcoderio",
@@ -80,7 +80,9 @@
       "lastCommitMessage": "chore(release): 1.79.3",
       "gitRemoteUrl": "https://github.com/Xifix-Tecnologia/redes-locais-marketplace",
       "techStack": [],
-      "favorite": true
+      "favorite": true,
+      "lastOpenedAt": "2026-03-10T02:53:24.351Z",
+      "externalLink": "https://docs.google.com/spreadsheets/d/1nHhLYvRejo-TsoXM5MRNu2Db5mgWQygL0WlouzHhNMw/edit?gid=108137116#gid=108137116"
     },
     {
       "id": "rede-influencers",
@@ -190,18 +192,18 @@
       "category": "freelas",
       "isGitRepo": true,
       "gitBranch": "main",
-      "gitDirty": true,
-      "gitAhead": 1,
+      "gitDirty": false,
+      "gitAhead": 2,
       "gitBehind": 0,
-      "gitStaged": 16,
+      "gitStaged": 0,
       "gitUnstaged": 0,
-      "gitUntracked": 1,
-      "lastCommitDate": "2026-03-06T10:37:33-03:00",
-      "lastCommitMessage": "chore(proposals): added 99freelas proposal templates",
+      "gitUntracked": 0,
+      "lastCommitDate": "2026-03-09T23:21:38-03:00",
+      "lastCommitMessage": "chore(proposals): added 21 99freelas proposal templates",
       "gitRemoteUrl": "https://github.com/defremont/freelas",
       "techStack": [],
       "favorite": false,
-      "lastOpenedAt": "2026-03-10T02:06:52.866Z"
+      "lastOpenedAt": "2026-03-10T02:21:00.645Z"
     },
     {
       "id": "canoe-claudio",
@@ -226,7 +228,8 @@
         "typescript"
       ],
       "favorite": true,
-      "lastOpenedAt": "2026-03-10T00:43:30.658Z"
+      "lastOpenedAt": "2026-03-10T03:36:36.444Z",
+      "externalLink": "https://docs.google.com/spreadsheets/d/1PNmq7dU3EjCGd9eovuHc0d3S_URKreg0yCujpmij240/edit?gid=414093864#gid=414093864"
     },
     {
       "id": "devdash",
@@ -239,10 +242,10 @@
       "gitAhead": 1,
       "gitBehind": 0,
       "gitStaged": 0,
-      "gitUnstaged": 5,
+      "gitUnstaged": 19,
       "gitUntracked": 1,
-      "lastCommitDate": "2026-03-09T20:38:29-03:00",
-      "lastCommitMessage": "Add onboarding wizard, git indicators, setup scripts, and project polish",
+      "lastCommitDate": "2026-03-09T23:18:33-03:00",
+      "lastCommitMessage": "Separate task description from promptTemplate and document the pattern",
       "gitRemoteUrl": "https://github.com/defremont/vibedash",
       "techStack": [
         "react",
@@ -252,8 +255,8 @@
         "fastify"
       ],
       "favorite": true,
-      "lastOpenedAt": "2026-03-10T01:50:37.142Z"
+      "lastOpenedAt": "2026-03-10T02:18:57.780Z"
     }
   ],
-  "lastScannedAt": "2026-03-10T02:06:52.866Z"
+  "lastScannedAt": "2026-03-10T03:36:36.444Z"
 }

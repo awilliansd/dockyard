@@ -43,7 +43,7 @@ vibedash/
 │   │   ├── index.css              # Tema dark/light (CSS variables shadcn)
 │   │   ├── components/
 │   │   │   ├── ui/                # shadcn/ui: button, card, badge, input, textarea,
-│   │   │   │                      #   dialog, select, tabs, tooltip, folder-browser
+│   │   │   │                      #   dialog, select, tabs, tooltip, popover, folder-browser
 │   │   │   ├── layout/
 │   │   │   │   ├── Sidebar.tsx    # Nav: All Projects, All Tasks, counters, favorites, active, git indicators
 │   │   │   │   ├── Header.tsx     # Titulo + acoes do projeto (Claude, Dev, Shell, VS Code, Folder)
@@ -53,7 +53,8 @@ vibedash/
 │   │   │   ├── projects/
 │   │   │   │   ├── ProjectList.tsx    # Grid com busca, filtro por categoria, sorting
 │   │   │   │   ├── ProjectCard.tsx    # Card: nome, stack, branch, git status indicators, launchers
-│   │   │   │   └── ProjectSettings.tsx
+│   │   │   │   ├── ProjectSettings.tsx
+│   │   │   │   └── ExternalLinkEditor.tsx  # Inline editor para link externo (popover)
 │   │   │   ├── tasks/
 │   │   │   │   ├── TaskBoard.tsx      # Kanban 3 colunas com drag-and-drop (@dnd-kit)
 │   │   │   │   ├── TaskItem.tsx       # Card de tarefa com prioridade, status, acoes
@@ -138,6 +139,7 @@ interface Project {
   techStack: string[];      // Detectado do package.json (ex: ["react", "vite"])
   favorite: boolean;
   lastOpenedAt?: string;
+  externalLink?: string;   // URL para documento externo (Notion, Google Sheets, etc.)
 }
 
 interface Task {
@@ -147,7 +149,7 @@ interface Task {
   description: string;
   priority: 'urgent' | 'high' | 'medium' | 'low';
   status: 'backlog' | 'todo' | 'in_progress' | 'done';
-  promptTemplate?: string;  // Prompt pre-pronto para copiar pro Claude
+  prompt?: string;  // Detalhes tecnicos, causas, solucoes (copiado junto ao contexto)
   createdAt: string;
   updatedAt: string;
   order: number;
@@ -165,7 +167,7 @@ interface Settings {
 
 ### Projetos
 - `GET /api/projects` - Lista projetos selecionados (com git info atualizado)
-- `PATCH /api/projects/:id` - Atualiza nome/favorito
+- `PATCH /api/projects/:id` - Atualiza nome/favorito/externalLink
 - `POST /api/projects/refresh` - Rebuilda git info de todos
 - `POST /api/projects/scan` - Escaneia diretorio para encontrar projetos
 - `POST /api/projects/add` - Adiciona projetos por paths[]
@@ -244,7 +246,11 @@ interface Settings {
   - **Git Panel**: staged/unstaged retrateis, stage all, unstage all, commit, push, pull, log
   - Staged vem minimizado por padrao
 - Sem Header duplicado — TabBar mostra nome do projeto + botao fechar
-- Linha de info compacta: path do projeto + badge da branch
+- Linha de info compacta: path do projeto + badge da branch + link externo editavel
+- **External Link**: icone de link na barra de info, clicavel para abrir URL externo (Notion, Sheets, etc.)
+  - Popover inline para adicionar/editar/remover o link
+  - Persistido no campo `externalLink` do Project via PATCH
+  - Sobrevive a refresh (preservado em `buildProject`)
 - Criar/editar/deletar tarefas via dialog
 - Copiar tarefa como prompt (clipboard)
 - Toggle de status clicando no icone da tarefa
@@ -314,17 +320,17 @@ O `terminalLauncher.ts` detecta o OS via `os.platform()` e usa comandos nativos:
 
 **Zero modulos nativos** - nenhum node-pty ou binding C++.
 
-## Padrao de Tarefas (description vs promptTemplate)
+## Padrao de Tarefas (description vs prompt)
 
 Ao criar ou importar tarefas (via CSV, texto ou manualmente), seguir esta separacao:
 
 - **description**: Entendimento geral da tarefa. Descreve O QUE precisa ser feito do ponto de vista do usuario/produto. Linguagem clara, sem referencias a codigo. Baseado nos documentos/requisitos fornecidos pelo cliente. Qualquer pessoa deve entender a tarefa lendo apenas este campo.
-- **promptTemplate**: Analise tecnica detalhada. Contem: detalhes do erro/bug, causas identificadas, arquivos e linhas relevantes, possiveis solucoes, checklist de implementacao. Este campo e destinado ao desenvolvedor/Claude que vai executar a tarefa.
+- **prompt**: Analise tecnica detalhada. Contem: detalhes do erro/bug, causas identificadas, arquivos e linhas relevantes, possiveis solucoes, checklist de implementacao. Este campo e destinado ao desenvolvedor/Claude que vai executar a tarefa.
 
 Quando o usuario fornecer um texto ou CSV com novas tarefas:
 1. Extrair a descricao original do cliente para o campo `description` (melhorar redacao mantendo a essencia)
-2. Fazer analise tecnica do codebase e colocar no campo `promptTemplate` (causas, arquivos, solucoes)
-3. Se a tarefa ja estiver concluida (done), o `promptTemplate` contem o resumo da implementacao
+2. Fazer analise tecnica do codebase e colocar no campo `prompt` (causas, arquivos, solucoes)
+3. Se a tarefa ja estiver concluida (done), o `prompt` contem o resumo da implementacao
 
 ## Regras para Contribuicao
 

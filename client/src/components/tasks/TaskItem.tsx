@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { Pencil, Trash2, Copy, Check, Circle, AlertTriangle, ArrowUp, ArrowDown, Minus } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -18,6 +20,8 @@ interface TaskItemProps {
   task: Task
   projectName?: string
   projectPath?: string
+  showProjectBadge?: boolean
+  projectLink?: string
   onEdit: (task: Task) => void
   onView?: (task: Task) => void
   dragListeners?: Record<string, Function>
@@ -37,7 +41,7 @@ const statusConfig = {
   done: { label: 'Done', variant: 'outline' as const },
 }
 
-export function TaskItem({ task, projectName, projectPath, onEdit, onView, dragListeners }: TaskItemProps) {
+export function TaskItem({ task, projectName, projectPath, showProjectBadge, projectLink, onEdit, onView, dragListeners }: TaskItemProps) {
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
@@ -76,81 +80,109 @@ export function TaskItem({ task, projectName, projectPath, onEdit, onView, dragL
     onEdit(task)
   }
 
+  // Timestamp of when the task entered its current column
+  const columnDate = useMemo(() => {
+    const ts = task.status === 'done' ? task.doneAt
+      : task.status === 'in_progress' ? task.inProgressAt
+      : task.inboxAt || task.createdAt
+    if (!ts) return null
+    const d = new Date(ts)
+    if (isNaN(d.getTime())) return null
+    return d
+  }, [task.status, task.doneAt, task.inProgressAt, task.inboxAt, task.createdAt])
+
   return (
     <div
       className={cn(
-        'group flex items-start gap-2 p-2 rounded-lg border bg-card transition-colors hover:border-primary/30 cursor-grab active:cursor-grabbing',
+        'group rounded-lg border bg-card transition-colors hover:border-primary/30 cursor-grab active:cursor-grabbing p-2',
         task.status === 'done' && 'opacity-60'
       )}
       {...dragListeners}
     >
-      <button onClick={handleStatusToggle} className="shrink-0 mt-0.5">
-        {task.status === 'done' ? (
-          <Check className="h-3.5 w-3.5 text-green-500" />
-        ) : (
-          <Circle className="h-3.5 w-3.5 text-muted-foreground" />
-        )}
-      </button>
+      <div className="flex items-start gap-2">
+        <button onClick={handleStatusToggle} className="shrink-0 mt-0.5">
+          {task.status === 'done' ? (
+            <Check className="h-3.5 w-3.5 text-green-500" />
+          ) : (
+            <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+          )}
+        </button>
 
-      <PriorityIcon className={cn('h-3 w-3 shrink-0 mt-1', priority.color)} />
+        <PriorityIcon className={cn('h-3 w-3 shrink-0 mt-1', priority.color)} />
 
-      <span
-        className={cn('text-sm line-clamp-2 min-w-0 cursor-pointer hover:text-primary transition-colors', task.status === 'done' && 'line-through')}
-        onClick={(e) => { e.stopPropagation(); onView?.(task) }}
-      >
-        {task.title}
-      </span>
+        <div className="min-w-0 flex-1">
+          <span
+            className={cn('text-sm line-clamp-2 cursor-pointer hover:text-primary transition-colors', task.status === 'done' && 'line-through')}
+            onClick={(e) => { e.stopPropagation(); onView?.(task) }}
+          >
+            {task.title}
+          </span>
+          {showProjectBadge && projectName && (
+            projectLink ? (
+              <Link to={projectLink} onClick={(e) => e.stopPropagation()} className="inline-block mt-0.5">
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 hover:bg-accent">
+                  {projectName}
+                </Badge>
+              </Link>
+            ) : (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 mt-0.5">
+                {projectName}
+              </Badge>
+            )
+          )}
+        </div>
 
-      {projectName && (
-        <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0 ml-auto">
-          {projectName}
-        </Badge>
-      )}
-
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-auto">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopyPrompt}>
-              <Copy className="h-3 w-3" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Copy task as prompt — paste into Claude or any AI assistant</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleEdit}>
-              <Pencil className="h-3 w-3" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Edit task</TooltipContent>
-        </Tooltip>
-        <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-auto">
           <Tooltip>
             <TooltipTrigger asChild>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={(e) => e.stopPropagation()}>
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </AlertDialogTrigger>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopyPrompt}>
+                <Copy className="h-3 w-3" />
+              </Button>
             </TooltipTrigger>
-            <TooltipContent>Delete task</TooltipContent>
+            <TooltipContent>Copy task as prompt — paste into Claude or any AI assistant</TooltipContent>
           </Tooltip>
-          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete task?</AlertDialogTitle>
-              <AlertDialogDescription>
-                "{task.title}" will be permanently deleted. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleEdit}>
+                <Pencil className="h-3 w-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Edit task</TooltipContent>
+          </Tooltip>
+          <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={(e) => e.stopPropagation()}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </AlertDialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Delete task</TooltipContent>
+            </Tooltip>
+            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete task?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  "{task.title}" will be permanently deleted. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
+
+      {columnDate && (
+        <div className="text-[10px] text-muted-foreground/40 mt-1 text-right">
+          {formatDistanceToNow(columnDate, { addSuffix: true })}
+        </div>
+      )}
     </div>
   )
 }

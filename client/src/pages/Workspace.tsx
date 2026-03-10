@@ -3,6 +3,7 @@ import { TaskBoard } from '@/components/tasks/TaskBoard'
 import { GitPanel } from '@/components/git/GitPanel'
 import { TerminalLauncher } from '@/components/terminals/TerminalLauncher'
 import { useProjects, useUpdateProject } from '@/hooks/useProjects'
+import { ExternalLinkEditor } from '@/components/projects/ExternalLinkEditor'
 import { Badge } from '@/components/ui/badge'
 import { GitBranch, Star, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -57,6 +58,7 @@ export function Workspace() {
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
           )}
+          <ExternalLinkEditor project={project} />
         </div>
         <TaskBoard projectId={project.id} projectName={project.name} projectPath={project.path} />
       </div>

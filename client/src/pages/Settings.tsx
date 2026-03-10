@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { FolderBrowser } from '@/components/ui/folder-browser'
-import { Search, Plus, FolderOpen, Check, Loader2, GitBranch, X, FolderSearch } from 'lucide-react'
+import { Search, Plus, FolderOpen, Check, Loader2, GitBranch, X, FolderSearch, Download, Upload } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useProjects } from '@/hooks/useProjects'
+import { useAllTasks, useImportAllTasks } from '@/hooks/useTasks'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 interface ScannedProject {
   path: string
@@ -17,15 +19,112 @@ interface ScannedProject {
   isGitRepo: boolean
 }
 
+type ExportOption = 'settings' | 'tasks'
+
 export function Settings() {
   const queryClient = useQueryClient()
   const { data: projects } = useProjects()
+  const { data: allTasks } = useAllTasks()
+  const importAllTasks = useImportAllTasks()
 
   const [scanBrowserOpen, setScanBrowserOpen] = useState(false)
   const [addBrowserOpen, setAddBrowserOpen] = useState(false)
   const [scannedProjects, setScannedProjects] = useState<ScannedProject[]>([])
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set())
   const [scannedDir, setScannedDir] = useState('')
+
+  const [exportOptions, setExportOptions] = useState<Set<ExportOption>>(new Set(['settings', 'tasks']))
+  const [importing, setImporting] = useState(false)
+
+  const toggleExportOption = (opt: ExportOption) => {
+    setExportOptions(prev => {
+      const next = new Set(prev)
+      if (next.has(opt)) next.delete(opt)
+      else next.add(opt)
+      return next
+    })
+  }
+
+  const handleExport = async () => {
+    if (exportOptions.size === 0) { toast.info('Select at least one option'); return }
+
+    const data: Record<string, any> = {
+      exportedAt: new Date().toISOString(),
+      source: 'devdash',
+      version: 1,
+    }
+
+    if (exportOptions.has('settings')) {
+      const settings = await api.getSettings()
+      data.settings = settings
+      data.projects = projects || []
+    }
+
+    if (exportOptions.has('tasks')) {
+      data.tasks = allTasks || []
+    }
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `devdash-backup-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+
+    const parts = []
+    if (exportOptions.has('settings')) parts.push('settings')
+    if (exportOptions.has('tasks')) parts.push(`${(allTasks || []).length} tasks`)
+    toast.success(`Exported: ${parts.join(', ')}`)
+  }
+
+  const handleImport = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+      setImporting(true)
+      try {
+        const text = await file.text()
+        const data = JSON.parse(text)
+        const results: string[] = []
+
+        // Import settings (project paths)
+        if (data.settings?.selectedProjects?.length) {
+          const existingSet = new Set(projects?.map(p => p.path) || [])
+          const newPaths = (data.settings.selectedProjects as string[]).filter(p => !existingSet.has(p))
+          if (newPaths.length > 0) {
+            await api.addProjects(newPaths)
+            queryClient.invalidateQueries({ queryKey: ['projects'] })
+            results.push(`${newPaths.length} projects`)
+          }
+        }
+
+        // Import tasks
+        if (data.tasks?.length) {
+          const taskList = data.tasks.filter((t: any) => t.projectId)
+          if (taskList.length > 0) {
+            const res = await api.importAllTasks(taskList)
+            queryClient.invalidateQueries({ queryKey: ['tasks'] })
+            results.push(`${res.imported} tasks`)
+          }
+        }
+
+        if (results.length > 0) {
+          toast.success(`Imported: ${results.join(', ')}`)
+        } else {
+          toast.info('No data to import found in file')
+        }
+      } catch {
+        toast.error('Failed to read or import file')
+      } finally {
+        setImporting(false)
+      }
+    }
+    input.click()
+  }
 
   const existingPaths = new Set(projects?.map(p => p.path) || [])
 
@@ -252,6 +351,76 @@ export function Settings() {
                   No projects yet. Use the buttons above to add some.
                 </p>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Export / Import */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Export / Import</CardTitle>
+              <CardDescription>
+                Backup your data or restore from a previous export. Select what to include.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Export */}
+              <div className="space-y-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Export</p>
+                <div className="flex flex-col gap-2">
+                  {([
+                    { key: 'settings' as ExportOption, label: 'Settings & Projects', desc: `${projects?.length || 0} projects` },
+                    { key: 'tasks' as ExportOption, label: 'Tasks', desc: `${allTasks?.length || 0} tasks` },
+                  ]).map(opt => (
+                    <button
+                      key={opt.key}
+                      onClick={() => toggleExportOption(opt.key)}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors',
+                        exportOptions.has(opt.key) ? 'border-primary/50 bg-primary/5' : 'hover:bg-accent/50'
+                      )}
+                    >
+                      <div className={cn(
+                        'h-4 w-4 rounded border flex items-center justify-center shrink-0',
+                        exportOptions.has(opt.key) ? 'bg-primary border-primary' : 'border-input'
+                      )}>
+                        {exportOptions.has(opt.key) && <Check className="h-3 w-3 text-primary-foreground" />}
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-sm font-medium">{opt.label}</span>
+                        <span className="text-xs text-muted-foreground ml-2">({opt.desc})</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <Button
+                  onClick={handleExport}
+                  disabled={exportOptions.size === 0}
+                  className="gap-2"
+                  variant="outline"
+                >
+                  <Download className="h-4 w-4" />
+                  Export selected
+                </Button>
+              </div>
+
+              <div className="border-t" />
+
+              {/* Import */}
+              <div className="space-y-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Import</p>
+                <p className="text-xs text-muted-foreground">
+                  Upload a DevDash backup file. Settings and tasks will be merged with existing data.
+                </p>
+                <Button
+                  onClick={handleImport}
+                  disabled={importing}
+                  className="gap-2"
+                  variant="outline"
+                >
+                  {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {importing ? 'Importing...' : 'Import from file'}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

@@ -2,6 +2,23 @@ import type { Task } from '@/hooks/useTasks'
 
 const priorityLabel: Record<string, string> = { urgent: 'URGENT', high: 'HIGH', medium: 'MEDIUM', low: 'LOW' }
 
+function formatTaskBlock(t: Task, index?: number): string[] {
+  const lines: string[] = []
+  const prefix = index != null ? `## ${index + 1}. ` : '## '
+  lines.push(`${prefix}${t.title} [${priorityLabel[t.priority]}]`)
+  if (t.description) {
+    lines.push('')
+    lines.push(t.description)
+  }
+  if (t.prompt) {
+    lines.push('')
+    lines.push('### Detalhes')
+    lines.push(t.prompt)
+  }
+  lines.push('')
+  return lines
+}
+
 export function buildInProgressPrompt(
   tasks: Task[],
   projectName: string,
@@ -32,13 +49,7 @@ export function buildInProgressPrompt(
   lines.push('')
 
   for (let i = 0; i < inProgress.length; i++) {
-    const t = inProgress[i]
-    lines.push(`## ${i + 1}. ${t.title} [${priorityLabel[t.priority]}]`)
-    if (t.description) {
-      lines.push('')
-      lines.push(t.description)
-    }
-    lines.push('')
+    lines.push(...formatTaskBlock(inProgress[i], i))
   }
 
   lines.push('## Instructions')
@@ -88,6 +99,7 @@ export function buildColumnPrompt(
     lines.push('')
     for (const t of sorted) {
       lines.push(`- [${t.status === 'backlog' ? 'BACKLOG' : 'TODO'}] ${t.title} (${priorityLabel[t.priority]})${t.description ? ` — ${t.description}` : ''}`)
+      if (t.prompt) lines.push(`  Detalhes: ${t.prompt.split('\n')[0]}...`)
     }
     lines.push('')
     lines.push('## Instructions')
@@ -106,10 +118,7 @@ export function buildColumnPrompt(
     lines.push(`You have ${sorted.length} task${sorted.length > 1 ? 's' : ''} to resolve:`)
     lines.push('')
     for (let i = 0; i < sorted.length; i++) {
-      const t = sorted[i]
-      lines.push(`## ${i + 1}. ${t.title} [${priorityLabel[t.priority]}]`)
-      if (t.description) { lines.push(''); lines.push(t.description) }
-      lines.push('')
+      lines.push(...formatTaskBlock(sorted[i], i))
     }
     lines.push('## Instructions')
     lines.push('Resolve each task in order of priority listed above.')
@@ -132,10 +141,7 @@ export function buildColumnPrompt(
     lines.push(`${sorted.length} task${sorted.length > 1 ? 's' : ''} marked as done:`)
     lines.push('')
     for (let i = 0; i < sorted.length; i++) {
-      const t = sorted[i]
-      lines.push(`## ${i + 1}. ${t.title}`)
-      if (t.description) { lines.push(''); lines.push(t.description) }
-      lines.push('')
+      lines.push(...formatTaskBlock(sorted[i], i))
     }
     lines.push('## Instructions')
     lines.push('Verify that each task above is truly complete:')
@@ -156,8 +162,6 @@ export function buildTaskPrompt(
   projectPath: string | undefined,
   tasksDir: string | undefined,
 ): string {
-  if (task.promptTemplate) return task.promptTemplate
-
   const sep = tasksDir?.includes('\\') ? '\\' : '/'
   const tasksFilePath = tasksDir ? `${tasksDir}${sep}${task.projectId}.json` : null
 
@@ -168,6 +172,11 @@ export function buildTaskPrompt(
   lines.push('')
   if (task.description) {
     lines.push(task.description)
+    lines.push('')
+  }
+  if (task.prompt) {
+    lines.push('## Detalhes')
+    lines.push(task.prompt)
     lines.push('')
   }
   lines.push(`Priority: ${priorityLabel[task.priority]}`)

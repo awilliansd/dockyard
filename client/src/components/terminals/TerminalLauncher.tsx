@@ -1,12 +1,11 @@
 import { useState } from 'react'
-import { Terminal, Play, Monitor, Code2, FolderOpen, Copy, Sparkles, ClipboardList } from 'lucide-react'
+import { Terminal, Play, Monitor, Code2, FolderOpen, Copy, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useLaunchTerminal, useLaunchVSCode, useOpenFolder } from '@/hooks/useProjects'
 import { useTasks, type Task } from '@/hooks/useTasks'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { buildInProgressPrompt } from '@/lib/promptBuilder'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -37,6 +36,7 @@ function buildClaudeContext(projectName: string, projectPath: string, projectId:
     lines.push(`Active tasks (${active.length}):`)
     for (const t of active) {
       lines.push(`- [${statusLabel[t.status]}] ${t.title} (${priorityLabel[t.priority]})${t.description ? ` — ${t.description}` : ''}`)
+      if (t.prompt) lines.push(`  Detalhes: ${t.prompt.split('\n')[0]}${t.prompt.includes('\n') ? '...' : ''}`)
     }
   }
 
@@ -70,16 +70,6 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
     const context = buildClaudeContext(projectName, projectPath, projectId, tasks || [], settings?.tasksDir || '')
     navigator.clipboard.writeText(context)
     toast.success('Context copied — paste in Claude')
-  }
-
-  const inProgressCount = (tasks || []).filter(t => t.status === 'in_progress').length
-
-  const handleCopyInProgress = () => {
-    if (!projectPath || !projectName) return
-    const prompt = buildInProgressPrompt(tasks || [], projectName, projectPath, projectId, settings?.tasksDir || '')
-    if (!prompt) { toast.info('No in-progress tasks'); return }
-    navigator.clipboard.writeText(prompt)
-    toast.success(`Copied ${inProgressCount} in-progress task${inProgressCount > 1 ? 's' : ''} as prompt`)
   }
 
   const claudeType = skipPermissions ? 'claude-yolo' : 'claude'
@@ -133,23 +123,6 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
                 <p className="max-w-[200px] text-xs">Copies project path + all tasks to clipboard. Paste into any AI assistant or text editor.</p>
               </TooltipContent>
             </Tooltip>
-            {inProgressCount > 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start gap-2 h-8 text-xs"
-                    onClick={handleCopyInProgress}
-                  >
-                    <ClipboardList className="h-3.5 w-3.5" />
-                    Copy In Progress ({inProgressCount})
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="left">
-                  <p className="max-w-[200px] text-xs">Copies only in-progress tasks as a focused prompt. Paste into Claude to continue working.</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
           </div>
           <label className="flex items-center gap-2 px-1 cursor-pointer select-none">
             <input

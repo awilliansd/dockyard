@@ -182,6 +182,7 @@ async function buildProject(projectPath: string): Promise<Project> {
     techStack,
     favorite: existing?.favorite || false,
     lastOpenedAt: existing?.lastOpenedAt,
+    externalLink: existing?.externalLink,
   };
 }
 
@@ -307,7 +308,7 @@ export async function refreshProjects(): Promise<Project[]> {
   return projects;
 }
 
-export async function updateProject(id: string, updates: Partial<Pick<Project, 'name' | 'favorite' | 'lastOpenedAt'>>): Promise<Project | null> {
+export async function updateProject(id: string, updates: Partial<Pick<Project, 'name' | 'favorite' | 'lastOpenedAt' | 'externalLink'>>): Promise<Project | null> {
   const idx = projectsCache.findIndex(p => p.id === id);
   if (idx === -1) return null;
   projectsCache[idx] = { ...projectsCache[idx], ...updates };

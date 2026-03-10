@@ -18,7 +18,7 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<string>('medium')
   const [status, setStatus] = useState<string>('todo')
-  const [promptTemplate, setPromptTemplate] = useState('')
+  const [prompt, setPrompt] = useState('')
 
   const createTask = useCreateTask()
   const updateTask = useUpdateTask()
@@ -29,13 +29,13 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
       setDescription(task.description)
       setPriority(task.priority)
       setStatus(task.status)
-      setPromptTemplate(task.promptTemplate || '')
+      setPrompt(task.prompt || '')
     } else {
       setTitle('')
       setDescription('')
       setPriority('medium')
       setStatus('todo')
-      setPromptTemplate('')
+      setPrompt('')
     }
   }, [task, open])
 
@@ -44,12 +44,12 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
 
     if (task) {
       updateTask.mutate(
-        { projectId, taskId: task.id, title, description, priority, status, promptTemplate: promptTemplate || undefined },
+        { projectId, taskId: task.id, title, description, priority, status, prompt: prompt || undefined },
         { onSuccess: () => onOpenChange(false) }
       )
     } else {
       createTask.mutate(
-        { projectId, title, description, priority, status, promptTemplate: promptTemplate || undefined },
+        { projectId, title, description, priority, status, prompt: prompt || undefined },
         { onSuccess: () => onOpenChange(false) }
       )
     }
@@ -113,11 +113,11 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium">Prompt Template</label>
+            <label className="text-sm font-medium">Detalhes</label>
             <Textarea
-              value={promptTemplate}
-              onChange={e => setPromptTemplate(e.target.value)}
-              placeholder="Custom prompt for Claude (optional)..."
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+              placeholder="Detalhes tecnicos, causas, solucoes, arquivos relevantes..."
               className="mt-1 font-mono text-xs"
               rows={4}
             />
