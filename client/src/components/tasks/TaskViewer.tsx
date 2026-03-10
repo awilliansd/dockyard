@@ -1,9 +1,14 @@
+import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Pencil, Copy, AlertTriangle, ArrowUp, ArrowDown, Minus } from 'lucide-react'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Pencil, Copy, AlertTriangle, ArrowUp, ArrowDown, Minus, Inbox, Loader, CheckCircle2, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { type Task } from '@/hooks/useTasks'
+import { useUpdateTask, useDeleteTask, type Task } from '@/hooks/useTasks'
 import { buildTaskPrompt } from '@/lib/promptBuilder'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -41,6 +46,9 @@ function formatDate(date?: string) {
 
 export function TaskViewer({ task, projectName, projectPath, open, onOpenChange, onEdit }: TaskViewerProps) {
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
+  const updateTask = useUpdateTask()
+  const deleteTask = useDeleteTask()
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   if (!task) return null
 
@@ -58,6 +66,23 @@ export function TaskViewer({ task, projectName, projectPath, open, onOpenChange,
     onOpenChange(false)
     onEdit(task)
   }
+
+  const handleStatusChange = (status: Task['status']) => {
+    updateTask.mutate({ projectId: task.projectId, taskId: task.id, status })
+    onOpenChange(false)
+  }
+
+  const handleDelete = () => {
+    deleteTask.mutate({ projectId: task.projectId, taskId: task.id })
+    setDeleteOpen(false)
+    onOpenChange(false)
+  }
+
+  const statusActions = [
+    { status: 'todo' as const, label: 'Inbox', icon: Inbox, color: 'text-blue-500' },
+    { status: 'in_progress' as const, label: 'In Progress', icon: Loader, color: 'text-yellow-500' },
+    { status: 'done' as const, label: 'Done', icon: CheckCircle2, color: 'text-green-500' },
+  ]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,15 +125,59 @@ export function TaskViewer({ task, projectName, projectPath, open, onOpenChange,
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2">
-          <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={handleCopy}>
-            <Copy className="h-3.5 w-3.5" />
-            Copy as Prompt
-          </Button>
-          <Button variant="default" size="sm" className="gap-1.5 text-xs" onClick={handleEdit}>
-            <Pencil className="h-3.5 w-3.5" />
-            Edit
-          </Button>
+        {/* Status actions */}
+        <div className="flex items-center gap-2 pt-2 border-t">
+          <span className="text-xs text-muted-foreground mr-1">Move to:</span>
+          {statusActions.map(({ status, label, icon: Icon, color }) => {
+            const isCurrent = task.status === status || (status === 'todo' && task.status === 'backlog')
+            return (
+              <Button
+                key={status}
+                variant={isCurrent ? 'secondary' : 'outline'}
+                size="sm"
+                className={cn('gap-1.5 text-xs', isCurrent && 'pointer-events-none opacity-60')}
+                onClick={() => handleStatusChange(status)}
+                disabled={isCurrent}
+              >
+                <Icon className={cn('h-3.5 w-3.5', color)} />
+                {label}
+              </Button>
+            )
+          })}
+        </div>
+
+        <div className="flex items-center justify-between pt-2">
+          <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)}>
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </Button>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete task?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  "{task.title}" will be permanently deleted. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={handleCopy}>
+              <Copy className="h-3.5 w-3.5" />
+              Copy as Prompt
+            </Button>
+            <Button variant="default" size="sm" className="gap-1.5 text-xs" onClick={handleEdit}>
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
