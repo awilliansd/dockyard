@@ -12,9 +12,9 @@
         "notificacoes"
       ],
       "order": 0,
-      "updatedAt": "2026-03-09T23:59:59.524Z",
-      "inProgressAt": "2026-03-09T23:59:58.156Z",
-      "inboxAt": "2026-03-09T23:59:59.524Z"
+      "updatedAt": "2026-03-10T00:04:10.024Z",
+      "inProgressAt": "2026-03-10T00:04:07.262Z",
+      "inboxAt": "2026-03-10T00:04:10.024Z"
     },
     {
       "id": "19",
@@ -60,7 +60,7 @@
     {
       "id": "10",
       "title": "QR Scanner: selecao de embarcacao + confirmar/cancelar passeio",
-      "description": "Progresso parcial: DashboardQRScanner.tsx JA tem validacao de dia (linhas 174-180) — se QR date != hoje, mostra AlertDialog pedindo confirmacao. O que FALTA: (1) Selecao de embarcacao — nao ha dropdown/lista de vessels do operador antes de escanear. DashboardQRScanner recebe vesselId como prop, precisa adicionar seletor. (2) Botao Confirmar Passeio que muda status booking para completed — so existe check-in. (3) Botao Cancelar Passeio com campo motivo e opcoes (Reagendar via date_change ou Reembolso via process-stripe-refund). Arquivos: DashboardQRScanner.tsx, QRCodeScanner.tsx, HostCheckIn.tsx.",
+      "description": "Progresso parcial: DashboardQRScanner.tsx JA tem validacao de dia (linhas 174-180) — se QR date != hoje, mostra AlertDialog pedindo confirmacao. O que FALTA: (1) Selecao de embarcacao — nao ha dropdown/lista de vessels do operador antes de escanear. DashboardQRScanner recebe vesselId como prop, precisa adicionar seletor. (2) Botao Confirmar Passeio que muda status booking para completed — so existe check-in. Apos confirmacao, BLOQUEAR novos passageiros (plataforma e manual). (3) Botao Cancelar Passeio com campo motivo e opcoes: Reagendar (mesmo vessel preferencial, mas opcao de escolher outro vessel) ou Reembolso imediato (process-stripe-refund). Arquivos: DashboardQRScanner.tsx, QRCodeScanner.tsx, HostCheckIn.tsx.",
       "status": "todo",
       "priority": "high",
       "tags": [
@@ -109,33 +109,35 @@
       "id": "12",
       "title": "Melhorar fonte - mais clara de ler",
       "description": "Fontes atuais: DM Serif Display (titulos h1-h6, bold, tracking-wider) e DM Sans (corpo, peso 500). Configuradas em tailwind.config.ts e importadas via Google Fonts em index.css. Opcoes: (1) Trocar DM Sans por Inter (mais legivel em telas). (2) Reduzir peso padrao DM Sans de 500 para 400/regular. (3) Aumentar font-size base. Decidir com o cliente.",
-      "status": "inbox",
+      "status": "todo",
       "priority": "medium",
       "tags": [
         "ui",
         "fonte"
       ],
       "order": 7,
-      "updatedAt": "2026-03-10T00:00:00.000Z"
+      "updatedAt": "2026-03-10T00:10:27.410Z",
+      "inboxAt": "2026-03-10T00:10:27.410Z"
     },
     {
       "id": "14",
       "title": "Botao Denunciar abaixo de Falar com operador",
       "description": "Nenhuma funcionalidade de denuncia existe no codebase. Implementar: (1) Botao Denunciar em VesselDetail.tsx abaixo do botao Falar com operador (linhas 545-569). (2) Dialog com selecao de motivo (conteudo inadequado, fraude, assedio, outro) + campo descricao. (3) Tabela reports no Supabase (reporter_id, vessel_id, reason, description, status, created_at). (4) Secao no AdminDashboard para listar/moderar denuncias. (5) RLS: usuario logado pode criar, admin pode ler/atualizar.",
-      "status": "inbox",
+      "status": "todo",
       "priority": "medium",
       "tags": [
         "moderacao",
         "vessel-detail"
       ],
       "order": 8,
-      "updatedAt": "2026-03-10T00:00:00.000Z"
+      "updatedAt": "2026-03-10T00:10:27.410Z",
+      "inboxAt": "2026-03-10T00:10:27.410Z"
     },
     {
       "id": "15",
       "title": "Melhorar layout fotos web + swipe",
       "description": "Galeria atual usa MosaicGallery (VesselDetail.tsx:533). No desktop, fotos ocupam muito espaco vertical. Sem suporte a swipe no mobile. Implementar: (1) Layout mosaico mais compacto no desktop (2 colunas, estilo Airbnb). (2) Swipe touch com framer-motion ou embla-carousel (framer-motion ja esta no projeto). (3) Indicador de posicao (dots/counter) no mobile. Arquivo principal: src/components/vessel/MosaicGallery.tsx.",
-      "status": "inbox",
+      "status": "todo",
       "priority": "medium",
       "tags": [
         "ui",
@@ -143,13 +145,14 @@
         "mobile"
       ],
       "order": 9,
-      "updatedAt": "2026-03-10T00:00:00.000Z"
+      "updatedAt": "2026-03-10T00:10:27.410Z",
+      "inboxAt": "2026-03-10T00:10:27.410Z"
     },
     {
       "id": "16",
       "title": "Descricao da taxa em Datas e Precos",
       "description": "Fee mode selector existe em CreateVessel.tsx:708-784 na secao de precos. Labels atuais sao curtos: 'Taxa visivel' / 'Taxa embutida'. Preview dinamico JA existe (linhas 749-783). Falta: (1) Mover seletor para pagina de Datas e Precos (HostAvailability) em vez de ficar no CreateVessel. (2) Adicionar texto explicativo completo sobre taxa da plataforma (12%, sem taxa em manuais, etc). (3) Exemplos numericos dinamicos baseados no preco atual.",
-      "status": "inbox",
+      "status": "todo",
       "priority": "medium",
       "tags": [
         "ux",
@@ -157,26 +160,28 @@
         "datas-precos"
       ],
       "order": 10,
-      "updatedAt": "2026-03-10T00:00:00.000Z"
+      "updatedAt": "2026-03-10T00:10:27.410Z",
+      "inboxAt": "2026-03-10T00:10:27.410Z"
     },
     {
       "id": "18",
       "title": "Arredondar valores pro real de cima (sem centavos)",
       "description": "Math.ceil JA usado em: BookingTypeToggle.tsx:177/219, VesselDetail.tsx:664/701, CreateVessel.tsx:761. Porem maioria dos precos usa toLocaleString com minimumFractionDigits:2 mostrando centavos. Falta aplicar Math.ceil em: (1) VesselCard nos cards do Navegar. (2) Resumo de preco no VesselDetail checkout (subtotal, taxa, total). (3) Trips.tsx (detalhes da reserva). (4) HostBookingDetail. (5) BookingCalendar (valores nos eventos). Aplicar Math.ceil antes de formatar e remover minimumFractionDigits:2.",
-      "status": "inbox",
+      "status": "todo",
       "priority": "medium",
       "tags": [
         "ui",
         "precos"
       ],
       "order": 11,
-      "updatedAt": "2026-03-10T00:00:00.000Z"
+      "updatedAt": "2026-03-10T00:10:27.410Z",
+      "inboxAt": "2026-03-10T00:10:27.410Z"
     },
     {
       "id": "22",
       "title": "Perfil do operador no checkout/pagina de reserva",
       "description": "Confirmado: VesselDetail.tsx NAO exibe perfil do operador na secao de booking. Botao Reservar agora vai direto pro Stripe checkout. TripDetail.tsx tem secao de operador mas e para trips compartilhadas. Implementar: (1) Buscar owner profile (foto, nome, bio) via vessel.owner_id. (2) Buscar colaboradores aceitos via vessel_collaborators. (3) Exibir card Operadores acima do botao Reservar com avatar + nome, clicavel para /host/:id. (4) SEM telefone (so apos reserva). Arquivos: VesselDetail.tsx, criar OperatorCard.tsx.",
-      "status": "inbox",
+      "status": "todo",
       "priority": "medium",
       "tags": [
         "ux",
@@ -184,20 +189,22 @@
         "checkout"
       ],
       "order": 12,
-      "updatedAt": "2026-03-10T00:00:00.000Z"
+      "updatedAt": "2026-03-10T00:10:27.410Z",
+      "inboxAt": "2026-03-10T00:10:27.410Z"
     },
     {
       "id": "13",
       "title": "Mover icones voltar/favoritar/compartilhar pro card principal",
       "description": "Icones atualmente em header fixo separado (VesselDetail.tsx:428-490): div z-50 bg-card/80 backdrop-blur-lg com ArrowLeft e Heart+Share2. Galeria MosaicGallery fica abaixo (linha 533). Mover icones para overlay sobre a primeira foto (position absolute, z-10, fundo semi-transparente). Similar ao Airbnb mobile.",
-      "status": "inbox",
+      "status": "todo",
       "priority": "low",
       "tags": [
         "ui",
         "vessel-detail"
       ],
       "order": 13,
-      "updatedAt": "2026-03-10T00:00:00.000Z"
+      "updatedAt": "2026-03-10T00:10:27.410Z",
+      "inboxAt": "2026-03-10T00:10:27.410Z"
     },
     {
       "id": "11",

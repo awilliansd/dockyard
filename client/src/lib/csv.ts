@@ -36,6 +36,31 @@ export function tasksToCSV(tasks: Task[]): string {
 const VALID_PRIORITIES = ['urgent', 'high', 'medium', 'low']
 const VALID_STATUSES = ['backlog', 'todo', 'in_progress', 'done']
 
+// Map display labels and common variations to raw status values
+const STATUS_ALIASES: Record<string, string> = {
+  'inbox': 'todo',
+  'to do': 'todo',
+  'to_do': 'todo',
+  'in progress': 'in_progress',
+  'inprogress': 'in_progress',
+}
+
+function normalizeStatus(raw: string): string {
+  const s = raw.toLowerCase().trim()
+  if (VALID_STATUSES.includes(s)) return s
+  if (STATUS_ALIASES[s]) return STATUS_ALIASES[s]
+  // Handle underscores replaced by spaces (e.g. "in progress" from spreadsheets)
+  const underscored = s.replace(/\s+/g, '_')
+  if (VALID_STATUSES.includes(underscored)) return underscored
+  return 'todo'
+}
+
+function normalizePriority(raw: string): string {
+  const p = raw.toLowerCase().trim()
+  if (VALID_PRIORITIES.includes(p)) return p
+  return 'medium'
+}
+
 export function parseCSV(text: string): CsvRow[] {
   const clean = text.replace(/^\uFEFF/, '').trim()
   if (!clean) return []
@@ -54,8 +79,8 @@ export function parseCSV(text: string): CsvRow[] {
         id: obj.id || '',
         title: obj.title || '',
         description: obj.description || '',
-        priority: VALID_PRIORITIES.includes(obj.priority) ? obj.priority : 'medium',
-        status: VALID_STATUSES.includes(obj.status) ? obj.status : 'todo',
+        priority: normalizePriority(obj.priority || ''),
+        status: normalizeStatus(obj.status || ''),
       }
     })
     .filter(row => row.title)
