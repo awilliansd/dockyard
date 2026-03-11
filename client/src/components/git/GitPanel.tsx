@@ -22,7 +22,7 @@ export function GitPanel({ projectId }: GitPanelProps) {
   const gitPush = useGitPush()
   const gitPull = useGitPull()
   const [stagedOpen, setStagedOpen] = useState(false)
-  const [unstagedOpen, setUnstagedOpen] = useState(true)
+  const [unstagedOpen, setUnstagedOpen] = useState(false)
 
   if (isLoading || !status) {
     return <div className="text-sm text-muted-foreground p-4">Loading git status...</div>

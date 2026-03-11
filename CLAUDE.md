@@ -65,6 +65,10 @@ shipyard/
 │   │   │   ├── sync/
 │   │   │   │   ├── SyncSettingsCard.tsx  # Card de integrações na pagina Settings
 │   │   │   │   └── SyncPanel.tsx         # Botoes de export (JSON, Markdown) no toolbar
+│   │   │   ├── files/
+│   │   │   │   ├── FileExplorer.tsx       # Tree view na sidebar do Workspace (lazy-loading)
+│   │   │   │   ├── FilePreviewDialog.tsx  # Dialog preview: markdown, code, imagens
+│   │   │   │   └── FileIcon.tsx           # Icone colorido por extensao (lucide)
 │   │   │   ├── git/
 │   │   │   │   ├── GitPanel.tsx       # Staged/unstaged/untracked + commit + log
 │   │   │   │   ├── FileChange.tsx     # Arquivo individual com diff
@@ -89,7 +93,8 @@ shipyard/
 │   │   │   ├── useSheetSync.ts    # Google Sheets sync hooks (config em localStorage)
 │   │   │   ├── useTerminal.ts     # Hook para sessoes de terminal integrado
 │   │   │   ├── useClaude.ts       # Claude API hooks + SSE streaming chat
-│   │   │   └── useMcp.ts          # MCP server status/config hooks
+│   │   │   ├── useMcp.ts          # MCP server status/config hooks
+│   │   │   └── useFiles.ts        # File tree, content, delete, open-folder hooks
 │   │   ├── lib/
 │   │   │   ├── api.ts             # Fetch wrapper para todas as rotas do backend
 │   │   │   ├── sheetsAdapter.ts   # Converte Task[] <-> formato Google Sheets
@@ -126,7 +131,8 @@ shipyard/
 │   │   │   ├── sync.ts           # Proxy stateless para Google Sheets via Apps Script
 │   │   │   ├── claude.ts         # Claude API: status, config, chat (SSE), analyze, summarize
 │   │   │   ├── mcp.ts            # MCP JSON-RPC endpoint + OAuth 2.1 (register, authorize, token)
-│   │   │   └── terminalWs.ts    # WebSocket route para terminal integrado (xterm ↔ pty)
+│   │   │   ├── terminalWs.ts    # WebSocket route para terminal integrado (xterm ↔ pty)
+│   │   │   └── files.ts         # File tree, content, delete, open-folder
 │   │   ├── services/
 │   │   │   ├── projectDiscovery.ts  # Selecao manual de projetos (scan + add/remove)
 │   │   │   ├── gitService.ts        # Wrapper simple-git, GIT_TERMINAL_PROMPT=0
@@ -300,11 +306,37 @@ interface McpConfig {
 - `POST /authorize` - Processa aprovacao/negacao
 - `POST /token` - Token exchange (authorization_code, refresh_token)
 
+### Files
+- `GET /api/projects/:id/files/tree?path=<relpath>` - Lista arquivos/pastas (depth=1, lazy)
+- `GET /api/projects/:id/files/content?path=<relpath>` - Conteudo do arquivo (JSON ou raw binary)
+- `DELETE /api/projects/:id/files?path=<relpath>` - Deleta arquivo ou pasta (recursivo)
+- `POST /api/projects/:id/files/open-folder` - Abre pasta no explorer do sistema { path }
+
 ### Sistema
 - `GET /api/settings` - Configuracoes
 - `POST /api/browse` - Navega filesystem { path } → { directories[] }
 
 ## Funcionalidades Implementadas
+
+### File Explorer (browser de arquivos)
+- Tree view na sidebar direita do Workspace, colapsavel (fechado por padrao)
+- **Lazy loading**: carrega apenas filhos imediatos ao expandir pasta (nao recursivo)
+- **Preview em Dialog**: abre arquivos em dialog full-screen (max-w-5xl, 80vh)
+  - Markdown: renderizado com react-markdown + remark-gfm (mesma lib do ChatPanel)
+  - Codigo/texto: monospace com numeros de linha
+  - Imagens: preview inline (PNG, JPG, GIF, SVG, WebP, ICO)
+  - Binarios: placeholder "cannot preview"
+  - Arquivos > 2MB: bloqueados no servidor ("too large")
+- **Delete**: confirmacao via AlertDialog, suporta arquivos e pastas (recursivo)
+- **Open in Explorer**: abre pasta no file manager do sistema (reusa openFolder existente)
+- **Copy Path**: copia caminho relativo do arquivo
+- **Icones coloridos** por extensao/tipo (FileIcon component)
+- **Filtro automatico**: esconde .git, node_modules, dist, build, __pycache__, .cache, etc.
+- **Seguranca**: validatePath() com path.resolve + startsWith previne path traversal (403)
+- Menu de contexto via Popover (tres pontos, aparece no hover)
+- Max height 288px (max-h-72) com scroll interno para nao empurrar GitPanel
+- Arquivos server: `routes/files.ts`
+- Arquivos client: `FileExplorer.tsx`, `FilePreviewDialog.tsx`, `FileIcon.tsx`, `useFiles.ts`
 
 ### Google Sheets Sync
 - Sincroniza tarefas com Google Sheets via Google Apps Script (sem API do Google)

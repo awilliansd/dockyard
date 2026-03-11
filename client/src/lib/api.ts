@@ -109,4 +109,25 @@ export const api = {
     request<{ ok: boolean; enabled: boolean; requireAuth: boolean }>('/mcp/config', { method: 'POST', body: JSON.stringify(data) }),
   revokeMcpClient: (clientId: string) =>
     request<{ ok: boolean }>(`/mcp/clients/${clientId}`, { method: 'DELETE' }),
+
+  // Files
+  getFileTree: (projectId: string, relPath: string) =>
+    request<{ entries: Array<{ name: string; path: string; type: 'file' | 'dir'; size?: number; extension?: string; mimeHint?: string }> }>(
+      `/projects/${projectId}/files/tree?path=${encodeURIComponent(relPath)}`
+    ),
+  getFileContent: (projectId: string, relPath: string) =>
+    request<{ content: string; encoding: string; mimeHint: string; size: number }>(
+      `/projects/${projectId}/files/content?path=${encodeURIComponent(relPath)}`,
+      { headers: { 'Accept': 'application/json' } }
+    ),
+  deleteFile: (projectId: string, relPath: string) =>
+    request<{ success: boolean }>(
+      `/projects/${projectId}/files?path=${encodeURIComponent(relPath)}`,
+      { method: 'DELETE' }
+    ),
+  openFileFolder: (projectId: string, relPath: string) =>
+    request<{ success: boolean }>(
+      `/projects/${projectId}/files/open-folder`,
+      { method: 'POST', body: JSON.stringify({ path: relPath }) }
+    ),
 };

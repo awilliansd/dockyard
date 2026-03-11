@@ -9,6 +9,7 @@ import { ExternalLinkEditor } from '@/components/projects/ExternalLinkEditor'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { GitBranch, Star, ExternalLink, Pencil, Check, X } from 'lucide-react'
+import { FileExplorer } from '@/components/files/FileExplorer'
 import { cn } from '@/lib/utils'
 
 export function Workspace() {
@@ -128,6 +129,7 @@ export function Workspace() {
         <div className="w-72 xl:w-80 border-l overflow-y-auto p-4 space-y-6 shrink-0 bg-card/50 scrollbar-dark">
           <TerminalLauncher projectId={project.id} projectPath={project.path} projectName={project.name} />
           <ChatPanel projectId={project.id} />
+          <FileExplorer projectId={project.id} projectPath={project.path} />
           {project.isGitRepo && (
             <GitPanel projectId={project.id} />
           )}
