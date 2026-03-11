@@ -1,5 +1,9 @@
 import type { Task } from '@/hooks/useTasks'
 
+export interface SheetSyncOptions {
+  includePrompt?: boolean // default true
+}
+
 // Columns synced with Google Sheets
 const SHEET_COLUMNS = ['id', 'title', 'description', 'priority', 'status', 'prompt', 'updatedAt'] as const
 
@@ -40,7 +44,8 @@ export interface SheetRow {
 }
 
 /** Convert Apps Script response rows to partial tasks for import */
-export function sheetRowsToTasks(rows: Array<Record<string, string>>): SheetRow[] {
+export function sheetRowsToTasks(rows: Array<Record<string, string>>, options?: SheetSyncOptions): SheetRow[] {
+  const includePrompt = options?.includePrompt !== false
   return rows
     .filter(row => row.title?.trim())
     .map(row => ({
@@ -49,13 +54,14 @@ export function sheetRowsToTasks(rows: Array<Record<string, string>>): SheetRow[
       description: row.description?.trim() || '',
       priority: normalizePriority(row.priority || ''),
       status: normalizeStatus(row.status || ''),
-      prompt: row.prompt?.trim() || '',
+      prompt: includePrompt ? (row.prompt?.trim() || '') : '',
       updatedAt: row.updatedat || row.updatedAt || '',
     }))
 }
 
 /** Convert local tasks to payload for pushing to sheet */
-export function tasksToSheetPayload(tasks: Task[]): { action: string; tasks: SheetRow[] } {
+export function tasksToSheetPayload(tasks: Task[], options?: SheetSyncOptions): { action: string; tasks: SheetRow[] } {
+  const includePrompt = options?.includePrompt !== false
   return {
     action: 'write',
     tasks: tasks.map(t => ({
@@ -64,7 +70,7 @@ export function tasksToSheetPayload(tasks: Task[]): { action: string; tasks: She
       description: t.description || '',
       priority: t.priority,
       status: t.status,
-      prompt: t.prompt || '',
+      prompt: includePrompt ? (t.prompt || '') : '',
       updatedAt: t.updatedAt || '',
     })),
   }
@@ -82,12 +88,13 @@ function taskToRow(t: Task): SheetRow {
   }
 }
 
-function contentEquals(local: Task, sheet: SheetRow): boolean {
+function contentEquals(local: Task, sheet: SheetRow, options?: SheetSyncOptions): boolean {
+  const includePrompt = options?.includePrompt !== false
   return local.title === sheet.title
     && (local.description || '') === sheet.description
     && local.priority === sheet.priority
     && local.status === sheet.status
-    && (local.prompt || '') === sheet.prompt
+    && (includePrompt ? (local.prompt || '') === sheet.prompt : true)
 }
 
 /**
@@ -99,7 +106,7 @@ function contentEquals(local: Task, sheet: SheetRow): boolean {
  * - Only in sheet: keep (new from sheet)
  * No data is lost from either side.
  */
-export function mergeTasks(localTasks: Task[], sheetRows: SheetRow[]): {
+export function mergeTasks(localTasks: Task[], sheetRows: SheetRow[], options?: SheetSyncOptions): {
   merged: SheetRow[]
   localChanged: boolean
   sheetChanged: boolean
@@ -117,7 +124,7 @@ export function mergeTasks(localTasks: Task[], sheetRows: SheetRow[]): {
     const sheet = sheetMap.get(id)
 
     if (local && sheet) {
-      if (contentEquals(local, sheet)) {
+      if (contentEquals(local, sheet, options)) {
         // Content identical — no conflict, keep local (canonical)
         merged.push(taskToRow(local))
       } else {
@@ -160,7 +167,8 @@ export interface SheetDiff {
   unchanged: number
 }
 
-export function diffSheetWithLocal(sheetRows: SheetRow[], localTasks: Task[]): SheetDiff {
+export function diffSheetWithLocal(sheetRows: SheetRow[], localTasks: Task[], options?: SheetSyncOptions): SheetDiff {
+  const includePrompt = options?.includePrompt !== false
   const localMap = new Map(localTasks.map(t => [t.id, t]))
   const sheetIds = new Set(sheetRows.filter(r => r.id).map(r => r.id))
 
@@ -176,7 +184,7 @@ export function diffSheetWithLocal(sheetRows: SheetRow[], localTasks: Task[]): S
       if (row.description !== (local.description || '')) changes.push('description')
       if (row.priority !== local.priority) changes.push('priority')
       if (row.status !== local.status) changes.push('status')
-      if (row.prompt !== (local.prompt || '')) changes.push('prompt')
+      if (includePrompt && row.prompt !== (local.prompt || '')) changes.push('prompt')
 
       if (changes.length > 0) {
         toUpdate.push({ id: row.id, sheet: row, local, changes })

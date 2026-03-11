@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { sheetRowsToTasks, tasksToSheetPayload, mergeTasks, diffSheetWithLocal, type SheetDiff } from '@/lib/sheetsAdapter'
+import { sheetRowsToTasks, tasksToSheetPayload, mergeTasks, diffSheetWithLocal, type SheetDiff, type SheetSyncOptions } from '@/lib/sheetsAdapter'
 import type { Task } from './useTasks'
 import { toast } from 'sonner'
 
@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 export interface SyncConfig {
   url: string
   autoSync: boolean
+  syncPrompt: boolean // whether to include the prompt/details column
   lastSyncAt: string | null
   lastSyncStatus: 'ok' | 'error' | null
   lastSyncError: string | null
@@ -77,7 +78,9 @@ export function useSyncPush(projectId: string) {
 
   return useMutation({
     mutationFn: async ({ url, tasks }: { url: string; tasks: Task[] }) => {
-      const payload = tasksToSheetPayload(tasks)
+      const config = readConfig(projectId)
+      const syncOpts: SheetSyncOptions = { includePrompt: config?.syncPrompt !== false }
+      const payload = tasksToSheetPayload(tasks, syncOpts)
       const result = await api.syncProxy(url, 'POST', payload)
       if (result.error) throw new Error(result.error)
       return result.data as { success: boolean; updated: number }
@@ -116,11 +119,22 @@ export function useSyncPull(projectId: string) {
 
   return useMutation({
     mutationFn: async ({ url }: { url: string }) => {
+      const config = readConfig(projectId)
+      const syncOpts: SheetSyncOptions = { includePrompt: config?.syncPrompt !== false }
       const result = await api.syncProxy(url, 'GET')
       if (result.error) throw new Error(result.error)
       const data = result.data as { tasks: Array<Record<string, string>> }
       if (!data.tasks) throw new Error('No tasks data in response')
-      const rows = sheetRowsToTasks(data.tasks)
+      const rows = sheetRowsToTasks(data.tasks, syncOpts)
+      // If not syncing prompt, preserve local prompt values
+      if (!syncOpts.includePrompt) {
+        const { tasks: localTasks } = await api.getTasks(projectId)
+        const localMap = new Map(localTasks.map((t: Task) => [t.id, t]))
+        for (const row of rows) {
+          const local = localMap.get(row.id)
+          if (local) row.prompt = local.prompt || ''
+        }
+      }
       return rows
     },
     onSuccess: async (rows) => {
@@ -161,15 +175,17 @@ export function useSyncPreview(projectId: string) {
 
   return useMutation({
     mutationFn: async ({ url }: { url: string }): Promise<SheetDiff> => {
+      const config = readConfig(projectId)
+      const syncOpts: SheetSyncOptions = { includePrompt: config?.syncPrompt !== false }
       const result = await api.syncProxy(url, 'GET')
       if (result.error) throw new Error(result.error)
       const data = result.data as { tasks: Array<Record<string, string>> }
       if (!data.tasks) throw new Error('No tasks data in response')
 
-      const sheetRows = sheetRowsToTasks(data.tasks)
+      const sheetRows = sheetRowsToTasks(data.tasks, syncOpts)
       const localTasks = (queryClient.getQueryData(['tasks', projectId]) as Task[]) || []
 
-      return diffSheetWithLocal(sheetRows, localTasks)
+      return diffSheetWithLocal(sheetRows, localTasks, syncOpts)
     },
   })
 }
@@ -199,6 +215,8 @@ export function useAutoSync(projectId: string) {
     const config = readConfig(projectId)
     if (!config?.url) return
 
+    const syncOpts: SheetSyncOptions = { includePrompt: config.syncPrompt !== false }
+
     const silentMerge = async () => {
       // Guard: skip if a push just happened (prevent loop)
       if (Date.now() - lastPushAt < PUSH_GUARD_MS) return
@@ -211,11 +229,20 @@ export function useAutoSync(projectId: string) {
         const data = result.data as { tasks: Array<Record<string, string>> }
         if (!data.tasks) return
 
-        const sheetRows = sheetRowsToTasks(data.tasks)
+        const sheetRows = sheetRowsToTasks(data.tasks, syncOpts)
         const localTasks = (queryClient.getQueryData(['tasks', projectId]) as Task[]) || []
 
+        // If not syncing prompt, preserve local prompts in sheet rows
+        if (!syncOpts.includePrompt) {
+          const localMap = new Map(localTasks.map((t: Task) => [t.id, t]))
+          for (const row of sheetRows) {
+            const local = localMap.get(row.id)
+            if (local) row.prompt = local.prompt || ''
+          }
+        }
+
         // Merge: per-task last-write-wins, preserves both sides
-        const { merged, localChanged, sheetChanged } = mergeTasks(localTasks, sheetRows)
+        const { merged, localChanged, sheetChanged } = mergeTasks(localTasks, sheetRows, syncOpts)
 
         if (!localChanged && !sheetChanged) return // nothing to do
 
@@ -229,7 +256,7 @@ export function useAutoSync(projectId: string) {
         // Update sheet if local had newer data or new tasks
         if (sheetChanged) {
           lastPushAt = Date.now()
-          const payload = tasksToSheetPayload(merged as any)
+          const payload = tasksToSheetPayload(merged as any, syncOpts)
           await api.syncProxy(config.url, 'POST', payload)
         }
 
@@ -268,6 +295,8 @@ export function scheduleAutoSyncPush(projectId: string) {
   const config = readConfig(projectId)
   if (!config?.url) return
 
+  const syncOpts: SheetSyncOptions = { includePrompt: config.syncPrompt !== false }
+
   clearTimeout(pushTimers.get(projectId))
   pushTimers.set(projectId, setTimeout(async () => {
     try {
@@ -278,14 +307,23 @@ export function scheduleAutoSyncPush(projectId: string) {
       let sheetRows: import('@/lib/sheetsAdapter').SheetRow[] = []
       if (!sheetResult.error) {
         const data = sheetResult.data as { tasks?: Array<Record<string, string>> }
-        if (data.tasks) sheetRows = sheetRowsToTasks(data.tasks)
+        if (data.tasks) sheetRows = sheetRowsToTasks(data.tasks, syncOpts)
+      }
+
+      // If not syncing prompt, preserve local prompts
+      if (!syncOpts.includePrompt) {
+        const localMap = new Map((localTasks as Task[]).map(t => [t.id, t]))
+        for (const row of sheetRows) {
+          const local = localMap.get(row.id)
+          if (local) row.prompt = local.prompt || ''
+        }
       }
 
       // Merge: preserves changes from both sides
-      const { merged, localChanged, sheetChanged } = mergeTasks(localTasks as Task[], sheetRows)
+      const { merged, localChanged, sheetChanged } = mergeTasks(localTasks as Task[], sheetRows, syncOpts)
 
       // Always push merged to sheet (local just changed, so sheet needs at least that)
-      const payload = tasksToSheetPayload(merged as any)
+      const payload = tasksToSheetPayload(merged as any, syncOpts)
       const result = await api.syncProxy(config.url, 'POST', payload)
       if (result.error) throw new Error(result.error)
 

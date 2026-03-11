@@ -91,6 +91,7 @@ export function SheetSyncPanel({ projectId, tasks }: SheetSyncPanelProps) {
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [urlInput, setUrlInput] = useState('')
   const [autoSync, setAutoSync] = useState(false)
+  const [syncPrompt, setSyncPrompt] = useState(true)
   const [showScript, setShowScript] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -99,6 +100,7 @@ export function SheetSyncPanel({ projectId, tasks }: SheetSyncPanelProps) {
   const handleOpenPopover = useCallback(() => {
     setUrlInput(config?.url || '')
     setAutoSync(config?.autoSync || false)
+    setSyncPrompt(config?.syncPrompt !== false)
     setShowScript(false)
     setCopied(false)
   }, [config])
@@ -116,6 +118,7 @@ export function SheetSyncPanel({ projectId, tasks }: SheetSyncPanelProps) {
     save({
       url,
       autoSync,
+      syncPrompt,
       lastSyncAt: config?.lastSyncAt || null,
       lastSyncStatus: config?.lastSyncStatus || null,
       lastSyncError: config?.lastSyncError || null,
@@ -185,6 +188,8 @@ export function SheetSyncPanel({ projectId, tasks }: SheetSyncPanelProps) {
             setUrlInput={setUrlInput}
             autoSync={autoSync}
             setAutoSync={setAutoSync}
+            syncPrompt={syncPrompt}
+            setSyncPrompt={setSyncPrompt}
             showScript={showScript}
             setShowScript={setShowScript}
             copied={copied}
@@ -259,6 +264,8 @@ export function SheetSyncPanel({ projectId, tasks }: SheetSyncPanelProps) {
             setUrlInput={setUrlInput}
             autoSync={autoSync}
             setAutoSync={setAutoSync}
+            syncPrompt={syncPrompt}
+            setSyncPrompt={setSyncPrompt}
             showScript={showScript}
             setShowScript={setShowScript}
             copied={copied}
@@ -283,6 +290,8 @@ interface SetupContentProps {
   setUrlInput: (v: string) => void
   autoSync: boolean
   setAutoSync: (v: boolean) => void
+  syncPrompt: boolean
+  setSyncPrompt: (v: boolean) => void
   showScript: boolean
   setShowScript: (v: boolean) => void
   copied: boolean
@@ -297,6 +306,7 @@ interface SetupContentProps {
 
 function SetupContent({
   urlInput, setUrlInput, autoSync, setAutoSync,
+  syncPrompt, setSyncPrompt,
   showScript, setShowScript, copied, onCopyScript,
   onTest, onSave, onDisconnect, isTesting,
   isConfigured, lastSyncLabel,
@@ -367,6 +377,17 @@ function SetupContent({
           className="rounded border-muted-foreground/30"
         />
         Auto-pull on workspace open
+      </label>
+
+      {/* Sync prompt toggle */}
+      <label className="flex items-center gap-2 text-xs cursor-pointer">
+        <input
+          type="checkbox"
+          checked={syncPrompt}
+          onChange={(e) => setSyncPrompt(e.target.checked)}
+          className="rounded border-muted-foreground/30"
+        />
+        Include details/prompt column
       </label>
 
       {/* Last sync info */}
