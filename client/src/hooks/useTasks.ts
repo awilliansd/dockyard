@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { scheduleAutoSyncPush } from './useSheetSync'
+import { scheduleAutoSync as scheduleAutoSyncPush } from '@/lib/sync/autoSync'
 
 export interface Task {
   id: string

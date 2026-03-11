@@ -22,6 +22,7 @@ import { TaskEditor } from './TaskEditor'
 import { TaskViewer } from './TaskViewer'
 import { CsvReviewDialog } from './CsvReviewDialog'
 import { SheetSyncPanel } from './SheetSyncPanel'
+import { SyncPanelExports } from '@/components/sync/SyncPanel'
 import { useTasks, useUpdateTask, useReorderTasks, type Task } from '@/hooks/useTasks'
 import { tasksToCSV, parseCSV, diffTasks, type CsvDiff } from '@/lib/csv'
 import { buildColumnPrompt } from '@/lib/promptBuilder'
@@ -356,6 +357,8 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
             </TooltipTrigger>
             <TooltipContent>Import CSV with diff review — compare and merge changes</TooltipContent>
           </Tooltip>
+          <div className="w-px h-4 bg-border mx-0.5" />
+          <SyncPanelExports projectId={projectId} tasks={tasks || []} />
           <div className="w-px h-4 bg-border mx-0.5" />
           <SheetSyncPanel projectId={projectId} tasks={tasks || []} />
           <div className="w-px h-4 bg-border mx-0.5" />

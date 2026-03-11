@@ -61,6 +61,9 @@ vibedash/
 │   │   │   │   │   ├── TaskEditor.tsx     # Dialog criar/editar tarefa
 │   │   │   │   ├── TaskSummary.tsx    # Resumo global na Dashboard (counters + listas)
 │   │   │   │   └── SheetSyncPanel.tsx # Google Sheets sync: config, push, pull (localStorage)
+│   │   │   ├── sync/
+│   │   │   │   ├── SyncSettingsCard.tsx  # Card de integrações na pagina Settings
+│   │   │   │   └── SyncPanel.tsx         # Botoes de export (JSON, Markdown) no toolbar
 │   │   │   ├── git/
 │   │   │   │   ├── GitPanel.tsx       # Staged/unstaged/untracked + commit + log
 │   │   │   │   ├── FileChange.tsx     # Arquivo individual com diff
@@ -79,6 +82,17 @@ vibedash/
 │   │   ├── lib/
 │   │   │   ├── api.ts             # Fetch wrapper para todas as rotas do backend
 │   │   │   ├── sheetsAdapter.ts   # Converte Task[] <-> formato Google Sheets
+│   │   │   ├── sync/              # Sistema de sync com provider pattern
+│   │   │   │   ├── types.ts       # Interfaces: SyncProvider, ProviderConfig, etc.
+│   │   │   │   ├── configStore.ts # localStorage config (com backward compat Sheets)
+│   │   │   │   ├── registry.ts    # Registro de providers
+│   │   │   │   ├── autoSync.ts    # Auto-sync debounced por projeto
+│   │   │   │   ├── index.ts       # Re-exports
+│   │   │   │   └── providers/     # Implementacoes por provider
+│   │   │   │       ├── index.ts       # Registra todos os providers
+│   │   │   │       ├── googleSheets.ts
+│   │   │   │       ├── jsonExport.ts
+│   │   │   │       └── markdownExport.ts
 │   │   │   └── utils.ts           # cn() do shadcn
 │   │   └── pages/
 │   │       ├── Dashboard.tsx      # TaskSummary + ProjectList
@@ -241,6 +255,22 @@ interface Settings {
 - Arquivos: `SheetSyncPanel.tsx`, `useSheetSync.ts`, `sheetsAdapter.ts`, `server/routes/sync.ts`
 - Colunas sincronizadas: id, title, description, priority, status, prompt, updatedAt
 - Protecao anti-loop: `lastPushAt` guard impede pull nos 10s apos um push
+
+### Sync Provider System (extensivel)
+- Arquitetura de **provider pattern** para sync de tarefas com servicos externos
+- Cada provider implementa interface `SyncProvider` (push, pull, merge, export, notify)
+- Config em localStorage por projeto+provider (`devdash:sync:{projectId}:{providerId}`)
+- Backward compat: migra config legado do Google Sheets automaticamente
+- `autoSync.ts`: scheduler debounced que dispara sync para todos providers habilitados
+- **Providers disponiveis (Fase 1):**
+  - Google Sheets (bidirecional, via Apps Script)
+  - JSON Export (backup completo com timestamps)
+  - Markdown Export (checklist, tabela, ou detalhado — clipboard ou download)
+- **Providers planejados (Fase 2):** GitHub Issues, Webhooks (Discord/Slack/n8n)
+- **Providers planejados (Fase 3):** Linear, Trello, Notion
+- Card "Integrations" na pagina Settings mostra todos os providers com status
+- Botoes JSON e Markdown no toolbar do TaskBoard
+- Registro central em `registry.ts` — basta chamar `registerProvider()` para adicionar novo
 
 ### Terminal Integrado (browser)
 - Terminal real dentro do browser usando **xterm.js** + **node-pty** + **WebSocket**

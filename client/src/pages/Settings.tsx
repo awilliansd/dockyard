@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { FolderBrowser } from '@/components/ui/folder-browser'
+import { SyncSettingsCard } from '@/components/sync/SyncSettingsCard'
 import { Search, Plus, FolderOpen, Check, Loader2, GitBranch, X, FolderSearch, Download, Upload } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useProjects } from '@/hooks/useProjects'
@@ -353,6 +354,9 @@ export function Settings() {
               )}
             </CardContent>
           </Card>
+
+          {/* Integrations / Sync */}
+          <SyncSettingsCard projects={projects || []} />
 
           {/* Export / Import */}
           <Card>
