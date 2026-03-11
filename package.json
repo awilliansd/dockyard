@@ -8,7 +8,7 @@
     "start": "pnpm --filter devdash-server start"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@swc/core", "esbuild"]
+    "onlyBuiltDependencies": ["@swc/core", "esbuild", "node-pty"]
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

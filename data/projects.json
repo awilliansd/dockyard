@@ -73,11 +73,11 @@
       "gitDirty": true,
       "gitAhead": 0,
       "gitBehind": 0,
-      "gitStaged": 12,
-      "gitUnstaged": 10,
-      "gitUntracked": 1,
-      "lastCommitDate": "2026-03-09T16:32:42-03:00",
-      "lastCommitMessage": "chore(release): 1.79.3",
+      "gitStaged": 0,
+      "gitUnstaged": 0,
+      "gitUntracked": 21,
+      "lastCommitDate": "2026-03-10T17:35:00-03:00",
+      "lastCommitMessage": "chore(release): 1.83.2",
       "gitRemoteUrl": "https://github.com/Xifix-Tecnologia/redes-locais-marketplace",
       "techStack": [],
       "favorite": true,
@@ -101,7 +101,7 @@
       "lastCommitMessage": "refactor(tiktok): simplify session UI with env-aware panels and improve video API fallback",
       "gitRemoteUrl": "https://github.com/Xifix-Tecnologia/rede-influencers",
       "techStack": [],
-      "favorite": false
+      "favorite": true
     },
     {
       "id": "scraptwitter",
@@ -115,15 +115,15 @@
       "gitBehind": 0,
       "gitStaged": 0,
       "gitUnstaged": 0,
-      "gitUntracked": 3,
+      "gitUntracked": 9,
       "lastCommitDate": "2026-03-09T10:30:25-03:00",
       "lastCommitMessage": "chore(results): updated posts with refined filters",
       "gitRemoteUrl": "https://github.com/defremont/xcrapper",
       "techStack": [
         "python"
       ],
-      "favorite": false,
-      "lastOpenedAt": "2026-03-10T12:20:09.901Z"
+      "favorite": true,
+      "lastOpenedAt": "2026-03-10T21:49:47.101Z"
     },
     {
       "id": "smartlca",
@@ -132,11 +132,11 @@
       "category": "2026",
       "isGitRepo": true,
       "gitBranch": "main",
-      "gitDirty": false,
+      "gitDirty": true,
       "gitAhead": 0,
       "gitBehind": 0,
       "gitStaged": 0,
-      "gitUnstaged": 0,
+      "gitUnstaged": 8,
       "gitUntracked": 0,
       "lastCommitDate": "2026-03-05T21:06:30-03:00",
       "lastCommitMessage": "feat(admin): added admin dashboard with user management",
@@ -146,7 +146,8 @@
         "tailwind",
         "express"
       ],
-      "favorite": false
+      "favorite": true,
+      "lastOpenedAt": "2026-03-11T01:29:43.100Z"
     },
     {
       "id": "silas-n8n",
@@ -165,7 +166,7 @@
       "lastCommitMessage": "feat(candidato): added personal and document info mappings",
       "gitRemoteUrl": "https://github.com/defremont/n8n-enge10",
       "techStack": [],
-      "favorite": false
+      "favorite": true
     },
     {
       "id": "fernando-mikrotik",
@@ -184,7 +185,7 @@
       "lastCommitMessage": "docs(hotspot): corrected paths and DNS configuration",
       "gitRemoteUrl": "https://github.com/defremont/hotspot-quinta-do-sol",
       "techStack": [],
-      "favorite": false
+      "favorite": true
     },
     {
       "id": "instrucoes-propostas-freelas",
@@ -239,14 +240,14 @@
       "category": "Code",
       "isGitRepo": true,
       "gitBranch": "main",
-      "gitDirty": false,
-      "gitAhead": 0,
+      "gitDirty": true,
+      "gitAhead": 1,
       "gitBehind": 0,
-      "gitStaged": 0,
-      "gitUnstaged": 0,
-      "gitUntracked": 0,
-      "lastCommitDate": "2026-03-10T01:35:37-03:00",
-      "lastCommitMessage": "Fix projects.json being modified on every saveCache call",
+      "gitStaged": 15,
+      "gitUnstaged": 19,
+      "gitUntracked": 2,
+      "lastCommitDate": "2026-03-10T14:25:45-03:00",
+      "lastCommitMessage": "Update project cache timestamps",
       "gitRemoteUrl": "https://github.com/defremont/vibedash",
       "techStack": [
         "react",
@@ -256,8 +257,17 @@
         "fastify"
       ],
       "favorite": true,
-      "lastOpenedAt": "2026-03-10T04:46:02.771Z"
+      "lastOpenedAt": "2026-03-10T23:38:28.085Z"
+    },
+    {
+      "id": "financeiro",
+      "name": "financeiro",
+      "path": "C:\\Code\\2026\\financeiro",
+      "category": "2026",
+      "isGitRepo": false,
+      "techStack": [],
+      "favorite": false
     }
   ],
-  "lastScannedAt": "2026-03-10T04:37:06.267Z"
+  "lastScannedAt": "2026-03-11T01:56:36.852Z"
 }

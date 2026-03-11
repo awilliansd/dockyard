@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { scheduleAutoSyncPush } from './useSheetSync'
 
 export interface Task {
   id: string
@@ -48,6 +49,7 @@ export function useCreateTask() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', variables.projectId] })
       queryClient.invalidateQueries({ queryKey: ['tasks', 'all'] })
+      scheduleAutoSyncPush(variables.projectId)
     },
   })
 }
@@ -60,6 +62,7 @@ export function useUpdateTask() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', variables.projectId] })
       queryClient.invalidateQueries({ queryKey: ['tasks', 'all'] })
+      scheduleAutoSyncPush(variables.projectId)
     },
   })
 }
@@ -72,6 +75,7 @@ export function useDeleteTask() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', variables.projectId] })
       queryClient.invalidateQueries({ queryKey: ['tasks', 'all'] })
+      scheduleAutoSyncPush(variables.projectId)
     },
   })
 }
@@ -84,6 +88,7 @@ export function useImportTasks() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', variables.projectId] })
       queryClient.invalidateQueries({ queryKey: ['tasks', 'all'] })
+      scheduleAutoSyncPush(variables.projectId)
     },
   })
 }
@@ -106,6 +111,7 @@ export function useApplyCsvChanges() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', variables.projectId] })
       queryClient.invalidateQueries({ queryKey: ['tasks', 'all'] })
+      scheduleAutoSyncPush(variables.projectId)
     },
   })
 }
@@ -118,6 +124,7 @@ export function useReorderTasks() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', variables.projectId] })
       queryClient.invalidateQueries({ queryKey: ['tasks', 'all'] })
+      scheduleAutoSyncPush(variables.projectId)
     },
   })
 }

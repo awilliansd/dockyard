@@ -231,6 +231,28 @@ export async function applyCsvChanges(
   return { updated: updatedCount, created: changes.create.length, removed: removedCount };
 }
 
+export async function replaceTasks(projectId: string, incoming: Partial<Task>[]): Promise<Task[]> {
+  const now = new Date().toISOString();
+  const tasks: Task[] = incoming.map((t, i) => {
+    const status = (t.status as Task['status']) || 'todo';
+    return {
+      title: t.title || 'Untitled',
+      description: t.description || '',
+      priority: (t.priority as Task['priority']) || 'medium',
+      status,
+      prompt: t.prompt,
+      id: t.id || nanoid(10),
+      projectId,
+      createdAt: t.createdAt || now,
+      updatedAt: t.updatedAt || now,
+      order: t.order ?? i,
+      ...buildCascadingTimestamps(status, now, { inboxAt: t.inboxAt, inProgressAt: t.inProgressAt, doneAt: t.doneAt }),
+    };
+  });
+  await writeTasks(projectId, tasks);
+  return tasks;
+}
+
 export async function reorderTasks(projectId: string, taskIds: string[]): Promise<Task[]> {
   const tasks = await readTasks(projectId);
   const reordered: Task[] = [];

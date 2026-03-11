@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom'
 import { TaskBoard } from '@/components/tasks/TaskBoard'
 import { GitPanel } from '@/components/git/GitPanel'
 import { TerminalLauncher } from '@/components/terminals/TerminalLauncher'
+import { TerminalPanel } from '@/components/terminals/TerminalPanel'
 import { useProjects, useUpdateProject } from '@/hooks/useProjects'
 import { ExternalLinkEditor } from '@/components/projects/ExternalLinkEditor'
 import { Badge } from '@/components/ui/badge'
@@ -23,53 +24,62 @@ export function Workspace() {
   }
 
   return (
-    <div className="flex-1 overflow-hidden flex">
-      {/* Tasks - main area */}
-      <div className="flex-1 overflow-y-auto p-6 min-w-0 scrollbar-dark">
-        {/* Compact project info bar */}
-        <div className="flex items-center gap-3 mb-4">
-          <button
-            onClick={() => updateProject.mutate({ id: project.id, favorite: !project.favorite })}
-            className="shrink-0"
-          >
-            <Star className={cn(
-              'h-4 w-4 transition-colors',
-              project.favorite
-                ? 'fill-yellow-500 text-yellow-500'
-                : 'text-muted-foreground/30 hover:text-yellow-500'
-            )} />
-          </button>
-          <p className="text-xs text-muted-foreground truncate">{project.path}</p>
-          {project.isGitRepo && project.gitBranch && (
-            <Badge variant="outline" className="text-[10px] shrink-0 gap-1">
-              <GitBranch className="h-2.5 w-2.5" />
-              {project.gitBranch}
-              {project.gitDirty && ' *'}
-            </Badge>
-          )}
-          {project.gitRemoteUrl && (
-            <a
-              href={project.gitRemoteUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="shrink-0 text-muted-foreground/40 hover:text-foreground transition-colors"
-              title="Open repository"
+    <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-hidden flex min-h-0">
+        {/* Tasks - main area */}
+        <div className="flex-1 overflow-y-auto p-6 min-w-0 scrollbar-dark">
+          {/* Compact project info bar */}
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => updateProject.mutate({ id: project.id, favorite: !project.favorite })}
+              className="shrink-0"
             >
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          )}
-          <ExternalLinkEditor project={project} />
+              <Star className={cn(
+                'h-4 w-4 transition-colors',
+                project.favorite
+                  ? 'fill-yellow-500 text-yellow-500'
+                  : 'text-muted-foreground/30 hover:text-yellow-500'
+              )} />
+            </button>
+            <p className="text-xs text-muted-foreground truncate">{project.path}</p>
+            {project.isGitRepo && project.gitBranch && (
+              <Badge variant="outline" className="text-[10px] shrink-0 gap-1">
+                <GitBranch className="h-2.5 w-2.5" />
+                {project.gitBranch}
+                {project.gitDirty && ' *'}
+              </Badge>
+            )}
+            {project.gitRemoteUrl && (
+              <a
+                href={project.gitRemoteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 text-muted-foreground/40 hover:text-foreground transition-colors"
+                title="Open repository"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
+            <ExternalLinkEditor project={project} />
+          </div>
+          <TaskBoard projectId={project.id} projectName={project.name} projectPath={project.path} />
         </div>
-        <TaskBoard projectId={project.id} projectName={project.name} projectPath={project.path} />
+
+        {/* Sidebar - 1/4 width */}
+        <div className="w-72 xl:w-80 border-l overflow-y-auto p-4 space-y-6 shrink-0 bg-card/50 scrollbar-dark">
+          <TerminalLauncher projectId={project.id} projectPath={project.path} projectName={project.name} />
+          {project.isGitRepo && (
+            <GitPanel projectId={project.id} />
+          )}
+        </div>
       </div>
 
-      {/* Sidebar - 1/4 width */}
-      <div className="w-72 xl:w-80 border-l overflow-y-auto p-4 space-y-6 shrink-0 bg-card/50 scrollbar-dark">
-        <TerminalLauncher projectId={project.id} projectPath={project.path} projectName={project.name} />
-        {project.isGitRepo && (
-          <GitPanel projectId={project.id} />
-        )}
-      </div>
+      {/* Integrated terminal panel (bottom) */}
+      <TerminalPanel
+        projectId={project.id}
+        projectPath={project.path}
+        projectName={project.name}
+      />
     </div>
   )
 }

@@ -21,9 +21,11 @@ import { TaskItem } from './TaskItem'
 import { TaskEditor } from './TaskEditor'
 import { TaskViewer } from './TaskViewer'
 import { CsvReviewDialog } from './CsvReviewDialog'
+import { SheetSyncPanel } from './SheetSyncPanel'
 import { useTasks, useUpdateTask, useReorderTasks, type Task } from '@/hooks/useTasks'
 import { tasksToCSV, parseCSV, diffTasks, type CsvDiff } from '@/lib/csv'
 import { buildColumnPrompt } from '@/lib/promptBuilder'
+import { useAutoSync } from '@/hooks/useSheetSync'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
@@ -169,6 +171,7 @@ function SortableTaskItem({ task, projectName, projectPath, onEdit, onView }: { 
 
 export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProps) {
   const { data: tasks, isLoading } = useTasks(projectId)
+  const { isSyncing } = useAutoSync(projectId)
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
   const updateTask = useUpdateTask()
   const reorderTasks = useReorderTasks()
@@ -330,7 +333,10 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Tasks ({tasks?.length || 0})</h2>
+        <h2 className="text-sm font-semibold flex items-center gap-1.5">
+          Tasks ({tasks?.length || 0})
+          {isSyncing && <Loader className="h-3 w-3 animate-spin text-muted-foreground" />}
+        </h2>
         <div className="flex items-center gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -350,6 +356,8 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
             </TooltipTrigger>
             <TooltipContent>Import CSV with diff review — compare and merge changes</TooltipContent>
           </Tooltip>
+          <div className="w-px h-4 bg-border mx-0.5" />
+          <SheetSyncPanel projectId={projectId} tasks={tasks || []} />
           <div className="w-px h-4 bg-border mx-0.5" />
           <Button size="sm" className="h-7 gap-1 text-xs" onClick={handleNew}>
             <Plus className="h-3.5 w-3.5" />

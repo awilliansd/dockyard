@@ -1,6 +1,6 @@
 # DevDash - Local Development Dashboard
 
-Dashboard web local (localhost) para centralizar gerenciamento de projetos, tarefas, git e launchers de terminal. Complementa o VS Code, nao substitui.
+Dashboard web local (localhost) para centralizar gerenciamento de projetos, tarefas, git, terminais integrados e launchers. Complementa o VS Code, nao substitui.
 
 ## Quick Start
 
@@ -58,21 +58,27 @@ vibedash/
 │   │   │   ├── tasks/
 │   │   │   │   ├── TaskBoard.tsx      # Kanban 3 colunas com drag-and-drop (@dnd-kit)
 │   │   │   │   ├── TaskItem.tsx       # Card de tarefa com prioridade, status, acoes
-│   │   │   │   ├── TaskEditor.tsx     # Dialog criar/editar tarefa
-│   │   │   │   └── TaskSummary.tsx    # Resumo global na Dashboard (counters + listas)
+│   │   │   │   │   ├── TaskEditor.tsx     # Dialog criar/editar tarefa
+│   │   │   │   ├── TaskSummary.tsx    # Resumo global na Dashboard (counters + listas)
+│   │   │   │   └── SheetSyncPanel.tsx # Google Sheets sync: config, push, pull (localStorage)
 │   │   │   ├── git/
 │   │   │   │   ├── GitPanel.tsx       # Staged/unstaged/untracked + commit + log
 │   │   │   │   ├── FileChange.tsx     # Arquivo individual com diff
 │   │   │   │   ├── CommitForm.tsx     # Input de mensagem + commit
 │   │   │   │   └── GitLog.tsx         # Ultimos commits
 │   │   │   └── terminals/
-│   │   │       └── TerminalLauncher.tsx  # Botoes: Claude, Dev Server, Shell, Open Folder
+│   │   │       ├── TerminalLauncher.tsx    # Botoes: Claude, Dev, Shell (integrado ou nativo)
+│   │   │       ├── IntegratedTerminal.tsx # Componente xterm.js com WebSocket
+│   │   │       └── TerminalPanel.tsx      # Painel inferior resizavel com abas
 │   │   ├── hooks/
 │   │   │   ├── useProjects.ts     # CRUD projetos + launchers
 │   │   │   ├── useTasks.ts        # CRUD tarefas + reorder (invalida cache global e por projeto)
-│   │   │   └── useGit.ts          # Git operations com 5s refetch
+│   │   │   ├── useGit.ts          # Git operations com 5s refetch
+│   │   │   ├── useSheetSync.ts    # Google Sheets sync hooks (config em localStorage)
+│   │   │   └── useTerminal.ts    # Hook para sessoes de terminal integrado
 │   │   ├── lib/
 │   │   │   ├── api.ts             # Fetch wrapper para todas as rotas do backend
+│   │   │   ├── sheetsAdapter.ts   # Converte Task[] <-> formato Google Sheets
 │   │   │   └── utils.ts           # cn() do shadcn
 │   │   └── pages/
 │   │       ├── Dashboard.tsx      # TaskSummary + ProjectList
@@ -90,12 +96,15 @@ vibedash/
 │   │   │   ├── tasks.ts           # CRUD + GET /api/tasks/all + POST reorder
 │   │   │   ├── git.ts             # status, diff, stage, unstage, commit, push, pull, log, branches
 │   │   │   ├── terminals.ts       # POST launch (gnome-terminal/wt.exe/Terminal.app), folder
-│   │   │   └── settings.ts       # GET settings + POST /api/browse (filesystem navigation)
+│   │   │   ├── settings.ts       # GET settings + POST /api/browse (filesystem navigation)
+│   │   │   ├── sync.ts           # Proxy stateless para Google Sheets via Apps Script
+│   │   │   └── terminalWs.ts    # WebSocket route para terminal integrado (xterm ↔ pty)
 │   │   ├── services/
 │   │   │   ├── projectDiscovery.ts  # Selecao manual de projetos (scan + add/remove)
 │   │   │   ├── gitService.ts        # Wrapper simple-git, GIT_TERMINAL_PROMPT=0
 │   │   │   ├── taskStore.ts         # CRUD JSON com timestamps de status
 │   │   │   ├── terminalLauncher.ts  # Multiplataforma: gnome-terminal (Linux) / Terminal.app (macOS) / wt.exe (Windows)
+│   │   │   ├── terminalService.ts   # Gerencia sessoes PTY (node-pty) para terminal integrado
 │   │   │   └── settingsStore.ts     # data/settings.json com selectedProjects[]
 │   │   └── types/
 │   │       └── index.ts           # Project, Task, Settings, ProjectsCache, TasksFile
@@ -180,6 +189,11 @@ interface Settings {
 - `PUT /api/projects/:id/tasks/:taskId` - Atualizar tarefa
 - `DELETE /api/projects/:id/tasks/:taskId` - Deletar tarefa
 - `POST /api/projects/:id/tasks/reorder` - Reordenar { taskIds: string[] }
+- `POST /api/projects/:id/tasks/replace` - Substituir todas as tarefas (usado pelo sync pull)
+
+### Google Sheets Sync (proxy stateless)
+- `POST /api/sync/proxy` - Proxy para Apps Script { url, method, payload? } — valida URL Google
+- `POST /api/sync/test` - Testa conexao { url } → { ok, data }
 
 ### Git
 - `GET /api/projects/:id/git/status` - Status (staged, unstaged, untracked, branch, etc)
@@ -193,15 +207,57 @@ interface Settings {
 - `GET /api/projects/:id/git/log` - Ultimos commits
 - `GET /api/projects/:id/git/branches` - Branches
 
-### Terminais
+### Terminais (nativos)
 - `POST /api/terminals/launch` - Abre terminal nativo { projectId, type } com titulo `[project] Type`
 - `POST /api/terminals/folder` - Abre file manager { projectId }
+
+### Terminal Integrado (WebSocket)
+- `GET /api/terminal/status` - Retorna { available: boolean } (node-pty instalado?)
+- `GET /api/terminal/sessions` - Lista sessoes ativas { sessions[] } (?projectId= opcional)
+- `POST /api/terminal/sessions` - Cria sessao { projectId, type?, cols?, rows? } → { id, title, ... }
+- `DELETE /api/terminal/sessions/:sessionId` - Mata sessao PTY
+- `WS /ws/terminal/:sessionId` - WebSocket: input/output/resize/exit
 
 ### Sistema
 - `GET /api/settings` - Configuracoes
 - `POST /api/browse` - Navega filesystem { path } → { directories[] }
 
 ## Funcionalidades Implementadas
+
+### Google Sheets Sync
+- Sincroniza tarefas com Google Sheets via Google Apps Script (sem API do Google)
+- **Config armazenado APENAS no localStorage** (`devdash:sync:{projectId}`) — nada salvo no servidor
+- Backend e um **proxy stateless**: recebe URL no body, faz fetch ao Apps Script, retorna resultado
+- Validacao de URL: so permite `https://script.google.com/macros/s/...` (previne SSRF)
+- **Auto-push**: cada mutation de task dispara push com merge (debounce 2s)
+- **Auto-pull**: polling a cada 30s faz merge bidirecional (silencioso)
+- **Merge inteligente**: por task (via `updatedAt`), vence a versao mais recente. Tasks novas de ambos os lados sao preservadas. Nenhum dado e perdido.
+- **Push manual**: botao envia merge local+sheet → planilha
+- **Pull manual**: botao sobrescreve cache local com dados da planilha
+- **Test connection**: testa ping ao Apps Script antes de salvar
+- UI no header do TaskBoard: badge "Sheets" (verde) quando configurado, botoes Pull/Push, Settings
+- Popover de setup com guia passo-a-passo + template Apps Script copiavel
+- Portabilidade: qualquer pessoa instala DevDash, cola a mesma URL, faz Pull e tem as tasks
+- Arquivos: `SheetSyncPanel.tsx`, `useSheetSync.ts`, `sheetsAdapter.ts`, `server/routes/sync.ts`
+- Colunas sincronizadas: id, title, description, priority, status, prompt, updatedAt
+- Protecao anti-loop: `lastPushAt` guard impede pull nos 10s apos um push
+
+### Terminal Integrado (browser)
+- Terminal real dentro do browser usando **xterm.js** + **node-pty** + **WebSocket**
+- `node-pty` e **optional dependency**: se nao instalar, launchers nativos continuam funcionando
+- Deteccao dinamica no boot: server loga "Terminal integration: available/disabled"
+- **Painel inferior** no Workspace, estilo VS Code, com resize por drag
+- **Multiplas abas**: cada aba e uma sessao PTY independente
+- Tipos de sessao: Shell, Dev (roda `pnpm dev`), Claude, Claude YOLO
+- Atalho **Ctrl+`** para toggle do painel
+- Botoes do Quick Launch abrem no terminal integrado (se disponivel) ou nativo (fallback)
+- Botao "Open Native Terminal" aparece quando integrado esta disponivel
+- Sessoes sobrevivem navegacao entre abas (PTY no server, reconecta via WebSocket)
+- Altura do painel persistida em localStorage (`devdash:terminal-height`)
+- Shell default: `powershell.exe` (Windows), `$SHELL` ou `/bin/bash` (Linux/macOS)
+- Tema do terminal combina com dark theme do DevDash
+- Fontes: Cascadia Code, Fira Code, JetBrains Mono, Consolas (fallback)
+- Arquivos: `IntegratedTerminal.tsx`, `TerminalPanel.tsx`, `useTerminal.ts`, `terminalService.ts`, `terminalWs.ts`
 
 ### Onboarding (first-run)
 - WelcomeWizard exibido na primeira visita (se nao ha projetos adicionados)
@@ -315,11 +371,11 @@ O `terminalLauncher.ts` detecta o OS via `os.platform()` e usa comandos nativos:
 
 ## Dependencias Principais
 
-**Frontend**: react, react-dom, vite, @vitejs/plugin-react-swc, tailwindcss, @tanstack/react-query, react-router-dom, @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, lucide-react, sonner, date-fns, cmdk
+**Frontend**: react, react-dom, vite, @vitejs/plugin-react-swc, tailwindcss, @tanstack/react-query, react-router-dom, @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, lucide-react, sonner, date-fns, cmdk, @xterm/xterm, @xterm/addon-fit, @xterm/addon-web-links
 
-**Backend**: fastify, @fastify/cors, simple-git, tsx, nanoid
+**Backend**: fastify, @fastify/cors, @fastify/websocket, simple-git, tsx, nanoid, node-pty (optional)
 
-**Zero modulos nativos** - nenhum node-pty ou binding C++.
+**Um modulo nativo opcional**: `node-pty` (optionalDependencies) para terminal integrado. Se nao instalar, tudo funciona exceto terminal no browser.
 
 ## Padrao de Tarefas (description vs prompt)
 

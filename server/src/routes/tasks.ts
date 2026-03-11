@@ -88,6 +88,15 @@ export async function taskRoutes(app: FastifyInstance) {
     }
   );
 
+  // Replace all tasks (used by Google Sheets sync pull)
+  app.post<{ Params: { projectId: string }; Body: { tasks: any[] } }>(
+    '/api/projects/:projectId/tasks/replace',
+    async (request) => {
+      const tasks = await taskStore.replaceTasks(request.params.projectId, request.body.tasks);
+      return { tasks };
+    }
+  );
+
   app.post<{ Params: { projectId: string }; Body: { taskIds: string[] } }>(
     '/api/projects/:projectId/tasks/reorder',
     async (request) => {

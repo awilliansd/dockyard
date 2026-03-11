@@ -35,6 +35,14 @@ export const api = {
   importAllTasks: (tasks: any[]) => request<{ imported: number }>('/tasks/import', { method: 'POST', body: JSON.stringify({ tasks }) }),
   applyCsvChanges: (projectId: string, changes: { update: any[]; create: any[]; remove: string[] }) =>
     request<{ updated: number; created: number; removed: number }>(`/projects/${projectId}/tasks/csv-apply`, { method: 'POST', body: JSON.stringify(changes) }),
+  replaceTasks: (projectId: string, tasks: any[]) =>
+    request<{ tasks: any[] }>(`/projects/${projectId}/tasks/replace`, { method: 'POST', body: JSON.stringify({ tasks }) }),
+
+  // Sync (stateless proxy)
+  syncProxy: (url: string, method: 'GET' | 'POST', payload?: unknown) =>
+    request<{ data: any; error?: string }>('/sync/proxy', { method: 'POST', body: JSON.stringify({ url, method, payload }) }),
+  syncTest: (url: string) =>
+    request<{ ok: boolean; error?: string; data?: any }>('/sync/test', { method: 'POST', body: JSON.stringify({ url }) }),
 
   // Git
   getGitStatus: (projectId: string) => request<any>(`/projects/${projectId}/git/status`),
@@ -50,9 +58,23 @@ export const api = {
   getGitBranches: (projectId: string) => request<any>(`/projects/${projectId}/git/branches`),
   getGitMainCommit: (projectId: string) => request<{ commit: { hash: string; message: string; date: string; author_name: string; isMerged: boolean } | null }>(`/projects/${projectId}/git/main-commit`),
 
-  // Terminals
+  // Terminals (native launchers)
   launchTerminal: (projectId: string, type: string) => request('/terminals/launch', { method: 'POST', body: JSON.stringify({ projectId, type }) }),
   openFolder: (projectId: string) => request('/terminals/folder', { method: 'POST', body: JSON.stringify({ projectId }) }),
+
+  // Integrated terminal
+  getTerminalStatus: () => request<{ available: boolean }>('/terminal/status'),
+  getTerminalSessions: (projectId?: string) =>
+    request<{ sessions: { id: string; projectId: string; type: string; title: string; createdAt: string }[] }>(
+      `/terminal/sessions${projectId ? `?projectId=${projectId}` : ''}`
+    ),
+  createTerminalSession: (projectId: string, type = 'shell', cols = 80, rows = 24) =>
+    request<{ id: string; projectId: string; type: string; title: string; createdAt: string }>(
+      '/terminal/sessions',
+      { method: 'POST', body: JSON.stringify({ projectId, type, cols, rows }) }
+    ),
+  killTerminalSession: (sessionId: string) =>
+    request('/terminal/sessions/' + sessionId, { method: 'DELETE' }),
 
   // Project management
   scanDirectory: (directory: string) => request<{ projects: { path: string; name: string; techStack: string[]; isGitRepo: boolean }[] }>('/projects/scan', { method: 'POST', body: JSON.stringify({ directory }) }),

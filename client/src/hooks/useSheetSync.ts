@@ -1,0 +1,319 @@
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { api } from '@/lib/api'
+import { sheetRowsToTasks, tasksToSheetPayload, mergeTasks, diffSheetWithLocal, type SheetDiff } from '@/lib/sheetsAdapter'
+import type { Task } from './useTasks'
+import { toast } from 'sonner'
+
+// --- localStorage config ---
+
+export interface SyncConfig {
+  url: string
+  autoSync: boolean
+  lastSyncAt: string | null
+  lastSyncStatus: 'ok' | 'error' | null
+  lastSyncError: string | null
+}
+
+const SYNC_KEY = (projectId: string) => `devdash:sync:${projectId}`
+
+function readConfig(projectId: string): SyncConfig | null {
+  try {
+    const raw = localStorage.getItem(SYNC_KEY(projectId))
+    if (!raw) return null
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+function writeConfig(projectId: string, config: SyncConfig) {
+  localStorage.setItem(SYNC_KEY(projectId), JSON.stringify(config))
+}
+
+function removeConfig(projectId: string) {
+  localStorage.removeItem(SYNC_KEY(projectId))
+}
+
+/** Check if a project has sheet sync configured (lightweight, no hook) */
+export function hasSyncConfig(projectId: string): boolean {
+  try {
+    const raw = localStorage.getItem(SYNC_KEY(projectId))
+    if (!raw) return false
+    const c = JSON.parse(raw)
+    return !!c.url
+  } catch {
+    return false
+  }
+}
+
+// --- Hook: sync config ---
+
+export function useSyncConfig(projectId: string) {
+  const [config, setConfig] = useState<SyncConfig | null>(() => readConfig(projectId))
+
+  // Re-read when projectId changes
+  useEffect(() => {
+    setConfig(readConfig(projectId))
+  }, [projectId])
+
+  const save = useCallback((newConfig: SyncConfig) => {
+    writeConfig(projectId, newConfig)
+    setConfig(newConfig)
+  }, [projectId])
+
+  const clear = useCallback(() => {
+    removeConfig(projectId)
+    setConfig(null)
+  }, [projectId])
+
+  return { config, save, clear }
+}
+
+// --- Hook: push to sheet ---
+
+export function useSyncPush(projectId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ url, tasks }: { url: string; tasks: Task[] }) => {
+      const payload = tasksToSheetPayload(tasks)
+      const result = await api.syncProxy(url, 'POST', payload)
+      if (result.error) throw new Error(result.error)
+      return result.data as { success: boolean; updated: number }
+    },
+    onSuccess: (data) => {
+      // Update config with success status
+      const config = readConfig(projectId)
+      if (config) {
+        writeConfig(projectId, {
+          ...config,
+          lastSyncAt: new Date().toISOString(),
+          lastSyncStatus: 'ok',
+          lastSyncError: null,
+        })
+      }
+      toast.success(`Pushed ${data.updated} tasks to Google Sheet`)
+    },
+    onError: (err: Error) => {
+      const config = readConfig(projectId)
+      if (config) {
+        writeConfig(projectId, {
+          ...config,
+          lastSyncStatus: 'error',
+          lastSyncError: err.message,
+        })
+      }
+      toast.error(`Push failed: ${err.message}`)
+    },
+  })
+}
+
+// --- Hook: pull from sheet ---
+
+export function useSyncPull(projectId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ url }: { url: string }) => {
+      const result = await api.syncProxy(url, 'GET')
+      if (result.error) throw new Error(result.error)
+      const data = result.data as { tasks: Array<Record<string, string>> }
+      if (!data.tasks) throw new Error('No tasks data in response')
+      const rows = sheetRowsToTasks(data.tasks)
+      return rows
+    },
+    onSuccess: async (rows) => {
+      // Replace local tasks with sheet data
+      await api.replaceTasks(projectId, rows)
+      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['tasks', 'all'] })
+
+      const config = readConfig(projectId)
+      if (config) {
+        writeConfig(projectId, {
+          ...config,
+          lastSyncAt: new Date().toISOString(),
+          lastSyncStatus: 'ok',
+          lastSyncError: null,
+        })
+      }
+      toast.success(`Pulled ${rows.length} tasks from Google Sheet`)
+    },
+    onError: (err: Error) => {
+      const config = readConfig(projectId)
+      if (config) {
+        writeConfig(projectId, {
+          ...config,
+          lastSyncStatus: 'error',
+          lastSyncError: err.message,
+        })
+      }
+      toast.error(`Pull failed: ${err.message}`)
+    },
+  })
+}
+
+// --- Hook: preview pull diff (without applying) ---
+
+export function useSyncPreview(projectId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ url }: { url: string }): Promise<SheetDiff> => {
+      const result = await api.syncProxy(url, 'GET')
+      if (result.error) throw new Error(result.error)
+      const data = result.data as { tasks: Array<Record<string, string>> }
+      if (!data.tasks) throw new Error('No tasks data in response')
+
+      const sheetRows = sheetRowsToTasks(data.tasks)
+      const localTasks = (queryClient.getQueryData(['tasks', projectId]) as Task[]) || []
+
+      return diffSheetWithLocal(sheetRows, localTasks)
+    },
+  })
+}
+
+// --- Hook: test connection ---
+
+export function useSyncTest() {
+  return useMutation({
+    mutationFn: async (url: string) => {
+      const result = await api.syncTest(url)
+      if (!result.ok) throw new Error(result.error || 'Connection failed')
+      return result
+    },
+  })
+}
+
+// --- Hook: auto-sync (pull on mount + periodic polling every 30s) ---
+
+const POLL_INTERVAL = 30_000 // 30 seconds
+const PUSH_GUARD_MS = 10_000 // skip pull if push happened in last 10s
+
+export function useAutoSync(projectId: string) {
+  const queryClient = useQueryClient()
+  const pullingRef = useRef(false)
+
+  useEffect(() => {
+    const config = readConfig(projectId)
+    if (!config?.url) return
+
+    const silentMerge = async () => {
+      // Guard: skip if a push just happened (prevent loop)
+      if (Date.now() - lastPushAt < PUSH_GUARD_MS) return
+      if (pullingRef.current) return
+
+      pullingRef.current = true
+      try {
+        const result = await api.syncProxy(config.url, 'GET')
+        if (result.error) return
+        const data = result.data as { tasks: Array<Record<string, string>> }
+        if (!data.tasks) return
+
+        const sheetRows = sheetRowsToTasks(data.tasks)
+        const localTasks = (queryClient.getQueryData(['tasks', projectId]) as Task[]) || []
+
+        // Merge: per-task last-write-wins, preserves both sides
+        const { merged, localChanged, sheetChanged } = mergeTasks(localTasks, sheetRows)
+
+        if (!localChanged && !sheetChanged) return // nothing to do
+
+        // Update local if sheet had newer data or new tasks
+        if (localChanged) {
+          await api.replaceTasks(projectId, merged)
+          queryClient.invalidateQueries({ queryKey: ['tasks', projectId] })
+          queryClient.invalidateQueries({ queryKey: ['tasks', 'all'] })
+        }
+
+        // Update sheet if local had newer data or new tasks
+        if (sheetChanged) {
+          lastPushAt = Date.now()
+          const payload = tasksToSheetPayload(merged as any)
+          await api.syncProxy(config.url, 'POST', payload)
+        }
+
+        writeConfig(projectId, {
+          ...config,
+          lastSyncAt: new Date().toISOString(),
+          lastSyncStatus: 'ok',
+          lastSyncError: null,
+        })
+      } catch {
+        // Silent fail — don't spam errors on polling
+      } finally {
+        pullingRef.current = false
+      }
+    }
+
+    // Merge immediately on mount
+    silentMerge()
+
+    // Then poll every 30s
+    const interval = setInterval(silentMerge, POLL_INTERVAL)
+    return () => clearInterval(interval)
+  }, [projectId, queryClient])
+
+  return { isSyncing: pullingRef.current }
+}
+
+// --- Auto-push: module-level debounced function ---
+// Called from useTasks.ts mutation onSuccess callbacks.
+// Works from any page (Workspace, TasksPage, Dashboard).
+
+let lastPushAt = 0 // timestamp of last push, used by auto-pull guard
+const pushTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+export function scheduleAutoSyncPush(projectId: string) {
+  const config = readConfig(projectId)
+  if (!config?.url) return
+
+  clearTimeout(pushTimers.get(projectId))
+  pushTimers.set(projectId, setTimeout(async () => {
+    try {
+      // Read both sides
+      const { tasks: localTasks } = await api.getTasks(projectId)
+      const sheetResult = await api.syncProxy(config.url, 'GET')
+
+      let sheetRows: import('@/lib/sheetsAdapter').SheetRow[] = []
+      if (!sheetResult.error) {
+        const data = sheetResult.data as { tasks?: Array<Record<string, string>> }
+        if (data.tasks) sheetRows = sheetRowsToTasks(data.tasks)
+      }
+
+      // Merge: preserves changes from both sides
+      const { merged, localChanged, sheetChanged } = mergeTasks(localTasks as Task[], sheetRows)
+
+      // Always push merged to sheet (local just changed, so sheet needs at least that)
+      const payload = tasksToSheetPayload(merged as any)
+      const result = await api.syncProxy(config.url, 'POST', payload)
+      if (result.error) throw new Error(result.error)
+
+      // If sheet had newer data, update local too
+      if (localChanged) {
+        await api.replaceTasks(projectId, merged)
+      }
+
+      lastPushAt = Date.now()
+      const freshConfig = readConfig(projectId)
+      if (freshConfig) {
+        writeConfig(projectId, {
+          ...freshConfig,
+          lastSyncAt: new Date().toISOString(),
+          lastSyncStatus: 'ok',
+          lastSyncError: null,
+        })
+      }
+    } catch (err: any) {
+      const freshConfig = readConfig(projectId)
+      if (freshConfig) {
+        writeConfig(projectId, {
+          ...freshConfig,
+          lastSyncStatus: 'error',
+          lastSyncError: err.message,
+        })
+      }
+      toast.error(`Auto-sync failed: ${err.message}`)
+    }
+  }, 2000))
+}

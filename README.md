@@ -25,6 +25,7 @@
 - **Git panel** — stage, commit, push, pull, view diffs — all from the browser
 - **Terminal launchers** — open Claude Code, dev server, shell, VS Code, or file manager with one click
 - **Claude integration** — copies project context + tasks to clipboard, then opens Claude Code ready to paste
+- **Google Sheets sync** — sync tasks with a Google Sheet via Apps Script (no API keys needed)
 - **Export/Import** — JSON for backups, CSV for sharing with clients or teams
 
 ## Quick Start
@@ -114,6 +115,7 @@ Every action button has a tooltip explaining what it does. Hover to learn more. 
 | **Import JSON** | Loads tasks from a JSON file |
 | **Export CSV** | Downloads tasks as spreadsheet (for sharing with clients) |
 | **Import CSV** | Imports CSV with a diff review dialog to merge changes safely |
+| **Sheets** | Connect to a Google Sheet — push/pull tasks between DevDash and the spreadsheet |
 | **Copy as prompt** (on task) | Copies a single task as an AI-ready prompt |
 
 ## Data & Sync
@@ -161,7 +163,103 @@ git remote add origin https://github.com/you/devdash-data.git
 git add -A && git commit -m "sync" && git push
 ```
 
-> **Recommendation:** For solo use, cloud folder sync (Option 2) is the easiest — set it once and forget. For teams or if you want history, use a private Git repo (Option 3).
+> **Recommendation:** For solo use, Google Sheets sync (Option 4) is the easiest per-project solution. For syncing everything at once, cloud folder sync (Option 2) works well.
+
+**Option 4: Google Sheets sync** (per-project, collaborative)
+
+Sync a project's tasks with a Google Sheet — anyone with the sheet URL can pull tasks into their own DevDash.
+
+#### Setup
+
+1. Create a Google Sheet (any name)
+2. Open **Extensions > Apps Script**
+3. Delete the default code, paste the script below:
+
+```javascript
+const HEADERS = ['id', 'title', 'description', 'priority', 'status', 'prompt', 'updatedAt'];
+
+function doGet(e) {
+  const action = (e && e.parameter && e.parameter.action) || 'read';
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+
+  if (action === 'ping') {
+    return jsonResp({ ok: true, rows: Math.max(0, sheet.getLastRow() - 1) });
+  }
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return jsonResp({ tasks: [] });
+
+  var headers = data[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var tasks = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (!row.some(function(c) { return String(c).trim(); })) continue;
+    var task = {};
+    headers.forEach(function(h, idx) { task[h] = String(row[idx] || ''); });
+    if (task.title) tasks.push(task);
+  }
+  return jsonResp({ tasks: tasks });
+}
+
+function doPost(e) {
+  try {
+    var payload = JSON.parse(e.postData.contents);
+    var tasks = payload.tasks || [];
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    sheet.clear();
+    sheet.appendRow(HEADERS);
+    for (var i = 0; i < tasks.length; i++) {
+      var t = tasks[i];
+      sheet.appendRow(HEADERS.map(function(h) { return t[h] || ''; }));
+    }
+    if (HEADERS.length > 0) sheet.autoResizeColumns(1, HEADERS.length);
+    return jsonResp({ success: true, updated: tasks.length });
+  } catch (err) {
+    return jsonResp({ error: err.message });
+  }
+}
+
+function jsonResp(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Auto-update updatedAt when editing cells manually
+function onEdit(e) {
+  var sheet = e.source.getActiveSheet();
+  var row = e.range.getRow();
+  if (row < 2) return;
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var col = headers.indexOf('updatedAt');
+  if (col === -1) return;
+  if (e.range.getColumn() === col + 1) return;
+  sheet.getRange(row, col + 1).setValue(new Date().toISOString());
+}
+```
+
+4. Click **Deploy > New deployment > Web App**
+5. Set **Execute as:** Me, **Access:** Anyone
+6. Copy the deployment URL
+7. In DevDash, open a project and click the **Sheets** button in the task board header
+8. Paste the URL, click **Test**, then **Save**
+
+#### How it works
+
+- **Auto-sync**: every task change in DevDash auto-pushes to the sheet (2s debounce). Every 30s, DevDash polls the sheet and merges changes.
+- **Merge (not overwrite)**: sync uses per-task `updatedAt` timestamps. The newest version of each task wins. New tasks from either side are preserved. No data is lost.
+- **Push** button: manually merges local → sheet
+- **Pull** button: manually replaces local with sheet data
+- Config is stored **only in your browser** (localStorage) — not on the server
+- The backend acts as a stateless proxy: it receives the Apps Script URL in each request, fetches it, and returns the result
+
+#### Multi-machine workflow
+
+1. Machine A: configure the sheet URL, push tasks
+2. Machine B: install DevDash, add the same project, configure the same sheet URL, pull tasks
+3. Both machines now have the same tasks — push/pull to stay in sync
+
+> The Google Sheet becomes the shared source of truth. Each person configures the URL in their own browser.
 
 ## Terminal Launchers
 
