@@ -8,6 +8,13 @@ data/projects.json
 data/settings.json
 data/tasks/*
 !data/tasks/.gitkeep
+data/claude.json
+data/.claude-key
+data/mcp-config.json
+data/mcp-auth.json
+
+# Build artifacts
+client/tsconfig.tsbuildinfo
 
 # OS files
 .DS_Store
