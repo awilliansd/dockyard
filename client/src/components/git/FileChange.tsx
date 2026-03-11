@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { Plus, Minus, FileText, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Minus, Eye, ChevronDown, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useStageFile, useUnstageFile, useGitDiff } from '@/hooks/useGit'
+import { FileIcon } from '@/components/files/FileIcon'
+import { FilePreviewDialog } from '@/components/files/FilePreviewDialog'
 
 interface FileChangeProps {
   projectId: string
@@ -13,6 +15,7 @@ interface FileChangeProps {
 
 export function FileChange({ projectId, file, status, staged }: FileChangeProps) {
   const [showDiff, setShowDiff] = useState(false)
+  const [previewPath, setPreviewPath] = useState<string | null>(null)
   const stageFile = useStageFile()
   const unstageFile = useUnstageFile()
   const { data: diffData } = useGitDiff(showDiff ? projectId : undefined, file)
@@ -25,6 +28,8 @@ export function FileChange({ projectId, file, status, staged }: FileChangeProps)
   }
 
   const statusLabel = status === '?' ? 'U' : status
+  const fileName = file.split(/[/\\]/).pop() || file
+  const ext = fileName.lastIndexOf('.') > 0 ? fileName.slice(fileName.lastIndexOf('.')) : ''
 
   return (
     <div className="border rounded-md overflow-hidden">
@@ -32,11 +37,28 @@ export function FileChange({ projectId, file, status, staged }: FileChangeProps)
         <button onClick={() => setShowDiff(!showDiff)} className="shrink-0">
           {showDiff ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
         </button>
-        <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="text-xs flex-1 truncate font-mono">{file}</span>
+        <FileIcon name={fileName} extension={ext} type="file" className="h-3.5 w-3.5 shrink-0" />
+        <button
+          className="text-xs flex-1 truncate font-mono text-left hover:text-primary transition-colors"
+          onClick={() => status !== 'D' && setPreviewPath(file)}
+          title={status === 'D' ? 'File deleted' : 'Click to preview'}
+        >
+          {file}
+        </button>
         <span className={cn('text-xs font-bold shrink-0', statusColors[status] || 'text-muted-foreground')}>
           {statusLabel}
         </span>
+        {status !== 'D' && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0"
+            onClick={() => setPreviewPath(file)}
+            title="Preview file"
+          >
+            <Eye className="h-3 w-3" />
+          </Button>
+        )}
         {staged ? (
           <Button
             variant="ghost"
@@ -59,6 +81,7 @@ export function FileChange({ projectId, file, status, staged }: FileChangeProps)
           </Button>
         )}
       </div>
+      <FilePreviewDialog projectId={projectId} filePath={previewPath} onClose={() => setPreviewPath(null)} />
       {showDiff && diffData?.diff && (
         <pre className="text-[11px] leading-relaxed p-3 bg-muted/50 overflow-x-auto border-t max-h-64 overflow-y-auto">
           {diffData.diff.split('\n').map((line, i) => (
