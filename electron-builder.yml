@@ -20,11 +20,8 @@ extraResources:
   - from: assets/icon.png
     to: icon.png
 
-# Don't use asar for easier debugging and native module compat
-asar: true
-asarUnpack:
-  - "**/*.node"
-  - "**/node-pty/**"
+# Asar disabled: server runs as child process (plain Node) and can't read from asar archives
+asar: false
 
 compression: maximum
 

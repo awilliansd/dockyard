@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FolderSearch, Plus, ArrowRight, ArrowLeft, CheckCircle2, Terminal, ClipboardList, GitBranch, Download, Upload, Cloud } from 'lucide-react'
+import { FolderSearch, Plus, ArrowRight, ArrowLeft, CheckCircle2, Terminal, ClipboardList, GitBranch, Download, Upload, Cloud, Layers, Keyboard, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FolderBrowser } from '@/components/ui/folder-browser'
 import { Badge } from '@/components/ui/badge'
@@ -125,7 +125,7 @@ export function WelcomeWizard({ onComplete }: WelcomeWizardProps) {
             />
           )}
           {step === 2 && (
-            <StepDataInfo />
+            <StepFeatures />
           )}
           {step === 3 && (
             <StepReady />
@@ -182,14 +182,15 @@ function StepWelcome() {
       <div>
         <h1 className="text-2xl font-bold mb-2">Welcome to Shipyard</h1>
         <p className="text-muted-foreground max-w-md">
-          Your local development dashboard for managing projects, tasks, git, and terminal launchers — all in one place.
+          Your local development dashboard for managing projects, tasks, git, and terminals — all in one place.
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 w-full max-w-md pt-4">
+      <div className="grid grid-cols-4 gap-3 w-full max-w-lg pt-4">
         <Feature icon={<ClipboardList className="h-5 w-5" />} label="Task Kanban" />
-        <Feature icon={<GitBranch className="h-5 w-5" />} label="Git Status" />
-        <Feature icon={<Terminal className="h-5 w-5" />} label="Quick Launch" />
+        <Feature icon={<GitBranch className="h-5 w-5" />} label="Git Panel" />
+        <Feature icon={<Terminal className="h-5 w-5" />} label="Terminal" />
+        <Feature icon={<Layers className="h-5 w-5" />} label="Multi-tab" />
       </div>
     </div>
   )
@@ -330,38 +331,41 @@ function StepAddProjects({
   )
 }
 
-function StepDataInfo() {
+function StepFeatures() {
   return (
-    <div className="flex-1 space-y-6">
+    <div className="flex-1 space-y-5">
       <div>
-        <h2 className="text-xl font-bold mb-1">Your Data is Local</h2>
+        <h2 className="text-xl font-bold mb-1">What You Can Do</h2>
         <p className="text-sm text-muted-foreground">
-          All tasks and settings are stored as JSON files on your machine — no cloud, no accounts.
+          Shipyard brings everything together so you don't need to leave your dashboard.
         </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <InfoCard
-          icon={<Download className="h-5 w-5" />}
-          title="Export & Import"
-          description="Export tasks as JSON or CSV from any project. Import them on another machine to transfer your work."
+          icon={<ClipboardList className="h-5 w-5" />}
+          title="Kanban Board"
+          description="Organize tasks in Inbox, In Progress, and Done. Drag-and-drop between columns. View all tasks across projects in one board."
         />
         <InfoCard
-          icon={<Upload className="h-5 w-5" />}
-          title="CSV for Collaboration"
-          description="Export as CSV to share with clients or team members. Import CSVs back with a diff review to merge changes safely."
+          icon={<Terminal className="h-5 w-5" />}
+          title="Integrated Terminal"
+          description="Run shells, dev servers, and Claude Code directly inside the dashboard. Multiple tabs, resizable panel. Ctrl+` to toggle."
+        />
+        <InfoCard
+          icon={<GitBranch className="h-5 w-5" />}
+          title="Git Panel"
+          description="Stage, commit, push, and pull without leaving the browser. See diffs, file changes, and commit history at a glance."
         />
         <InfoCard
           icon={<Cloud className="h-5 w-5" />}
-          title="Sync Across Machines"
-          description="For cross-machine sync, keep your data/ folder in a synced location (Dropbox, Google Drive, OneDrive) or version it with a private Git repo. Set the data path in Settings."
+          title="Sync & Export"
+          description="Sync tasks with Google Sheets. Export as JSON or Markdown. Import/export backups in Settings."
         />
       </div>
 
-      <div className="p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground space-y-1">
-        <p><strong>Data location:</strong> <code className="bg-muted px-1 rounded">./data/</code> inside the Shipyard folder</p>
-        <p><strong>Tasks:</strong> <code className="bg-muted px-1 rounded">data/tasks/&lt;project-id&gt;.json</code></p>
-        <p><strong>Settings:</strong> <code className="bg-muted px-1 rounded">data/settings.json</code></p>
+      <div className="p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
+        All data is stored locally as JSON files. No cloud, no accounts, no tracking.
       </div>
     </div>
   )
@@ -394,11 +398,12 @@ function StepReady() {
       </div>
 
       <div className="w-full max-w-sm space-y-2 text-left">
-        <Tip label="Click any project" description="to open it as a tab with kanban, git, and launchers" />
+        <Tip label="Click any project" description="to open it as a tab with kanban, git, and terminals" />
         <Tip label="Drag tasks" description="between Inbox, In Progress, and Done columns" />
-        <Tip label="Claude buttons" description="copy project context to clipboard, then open Claude Code in a terminal" />
-        <Tip label="Export/Import" description="use JSON for backups, CSV for sharing with others" />
-        <Tip label="Settings" description="to add or remove projects at any time" />
+        <Tip label="Ctrl + `" description="to toggle the integrated terminal panel" />
+        <Tip label="Quick Launch buttons" description="open Claude Code, dev server, or shell for any project" />
+        <Tip label="Git indicators" description="in the sidebar show uncommitted, unpushed, and to-pull counts" />
+        <Tip label="Help page" description="has a full manual — find it in Settings or sidebar" />
       </div>
     </div>
   )

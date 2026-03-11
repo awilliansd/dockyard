@@ -5,6 +5,7 @@ import { Dashboard } from '@/pages/Dashboard'
 import { Workspace } from '@/pages/Workspace'
 import { TasksPage } from '@/pages/TasksPage'
 import { Settings } from '@/pages/Settings'
+import { Help } from '@/pages/Help'
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/project/:projectId" element={<Workspace />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/help" element={<Help />} />
         </Route>
       </Routes>
     </TooltipProvider>

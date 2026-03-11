@@ -38,7 +38,7 @@ Atalho desktop: `~/.local/share/applications/shipyard.desktop`
 shipyard/
 ├── client/                        # Frontend (porta 5421)
 │   ├── src/
-│   │   ├── App.tsx                # Rotas: /, /tasks, /project/:id, /settings
+│   │   ├── App.tsx                # Rotas: /, /tasks, /project/:id, /settings, /help
 │   │   ├── main.tsx               # Entry point com QueryClientProvider
 │   │   ├── index.css              # Tema dark/light (CSS variables shadcn)
 │   │   ├── components/
@@ -98,7 +98,8 @@ shipyard/
 │   │       ├── Dashboard.tsx      # TaskSummary + ProjectList
 │   │       ├── Workspace.tsx      # TaskBoard (kanban) + TerminalLauncher + GitPanel
 │   │       ├── TasksPage.tsx      # Kanban global: todas tarefas de todos projetos
-│   │       └── Settings.tsx       # Scan/add/remove projetos com folder browser
+│   │       ├── Settings.tsx       # Scan/add/remove projetos com folder browser
+│   │       └── Help.tsx           # Manual completo do sistema com navegacao lateral
 │   ├── vite.config.ts             # Proxy /api -> localhost:5420, alias @
 │   └── tailwind.config.ts         # Tema shadcn com CSS variables
 │
@@ -317,12 +318,22 @@ interface Settings {
 
 ### Onboarding (first-run)
 - WelcomeWizard exibido na primeira visita (se nao ha projetos adicionados)
-- 4 steps: Welcome → Add Projects → Data Info → Ready
+- 4 steps: Welcome → Add Projects → Features → Ready
+- Step Features: apresenta Kanban, Terminal Integrado, Git Panel, Sync & Export
+- Step Ready: quick reference com atalhos e dicas (Ctrl+`, Quick Launch, git indicators, Help)
 - Permite scan/add projetos direto no wizard
-- Explica sobre dados locais, export/import, sync
 - Skip disponivel em qualquer passo
 - Controlado via localStorage (`shipyard:onboarding-complete`)
 - Arquivo: `components/onboarding/WelcomeWizard.tsx`
+
+### Help Page (/help)
+- Manual completo do sistema acessivel via sidebar (icone ?) e rota /help
+- Navegacao lateral com 11 secoes: Overview, Dashboard, Workspace, Tasks, Terminal, Git, Sync, Settings, Shortcuts, Data, Electron
+- Cada secao documenta funcionalidades, fluxos, atalhos e detalhes tecnicos
+- Inclui indicadores visuais de git (icones coloridos com explicacao)
+- Secao Desktop App documenta Electron, build, tray, portas
+- Secao Data & Storage explica localizacao dos arquivos, portabilidade, privacidade
+- Arquivo: `pages/Help.tsx`
 
 ### Git Status Indicators
 - ProjectCard exibe: ahead (unpushed), behind (to pull), staged, unstaged+untracked
@@ -422,8 +433,22 @@ O `terminalLauncher.ts` detecta o OS via `os.platform()` e usa comandos nativos:
 - Projetos salvos em `data/settings.json` (paths) e `data/projects.json` (cache)
 
 ## Portas
-- Backend Fastify: **5420**
+- Backend Fastify (dev): **5420**
 - Frontend Vite dev: **5421** (proxy /api → 5420)
+- Electron produção: **5430** (evita conflito com dev server)
+
+## Electron (Desktop App)
+- Wrapper Electron para distribuir como app desktop instalavel
+- Main process: `electron/main.ts` → compila para CJS em `electron/dist/main.js`
+- Server roda como child process via `spawn()` com `ELECTRON_RUN_AS_NODE=1`
+- Dados em produção: `%APPDATA%/shipyard/data/` (Windows), `~/Library/Application Support/shipyard/data/` (macOS)
+- Dados em dev: `./data/` (como sempre)
+- Tray icon: minimiza para bandeja ao fechar, double-click restaura, single instance lock
+- Static files: Fastify serve `client/dist/` via `@fastify/static` em produção
+- Build: `pnpm dist:win`, `pnpm dist:mac`, `pnpm dist:linux`
+- afterPack hook: instala deps do server via npm (pnpm symlinks nao sobrevivem packaging)
+- asar: desabilitado (server roda como Node puro, nao consegue ler de dentro do asar)
+- Arquivos: `electron/main.ts`, `electron/preload.ts`, `electron/tsconfig.json`, `electron/afterPack.js`, `electron-builder.yml`
 
 ## Dependencias Principais
 

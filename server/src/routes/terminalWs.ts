@@ -9,6 +9,9 @@ import {
 } from '../services/terminalService.js';
 import { getProjects, updateProject } from '../services/projectDiscovery.js';
 
+// Track active WebSocket connections per session to prevent duplicate listeners
+const activeConnections = new Map<string, { socket: any; cleanup: () => void }>();
+
 export async function terminalWsRoutes(app: FastifyInstance) {
   // REST: Check if integrated terminal is available
   app.get('/api/terminal/status', async () => {
@@ -56,7 +59,14 @@ export async function terminalWsRoutes(app: FastifyInstance) {
   app.delete<{ Params: { sessionId: string } }>(
     '/api/terminal/sessions/:sessionId',
     async (request, reply) => {
-      const killed = killSession(request.params.sessionId);
+      const { sessionId } = request.params;
+      // Clean up active connection tracking
+      const conn = activeConnections.get(sessionId);
+      if (conn) {
+        conn.cleanup();
+        activeConnections.delete(sessionId);
+      }
+      const killed = killSession(sessionId);
       if (!killed) return reply.status(404).send({ error: 'Session not found' });
       return { success: true };
     }
@@ -67,27 +77,43 @@ export async function terminalWsRoutes(app: FastifyInstance) {
     '/ws/terminal/:sessionId',
     { websocket: true },
     (socket, request) => {
-      const session = getSession(request.params.sessionId);
+      const { sessionId } = request.params;
+      const session = getSession(sessionId);
       if (!session) {
         socket.send(JSON.stringify({ type: 'error', data: 'Session not found' }));
         socket.close();
         return;
       }
 
-      // Send pty output to WebSocket client
+      // Close any existing connection for this session (prevents duplicate onData listeners)
+      const existing = activeConnections.get(sessionId);
+      if (existing) {
+        existing.cleanup();
+        try { existing.socket.close(1000, 'Replaced by new connection'); } catch {}
+      }
+
+      // Register PTY listeners for this connection
       const onData = session.pty.onData((data: string) => {
-        if (socket.readyState === 1) { // WebSocket.OPEN
+        if (socket.readyState === 1) {
           socket.send(JSON.stringify({ type: 'output', data }));
         }
       });
 
-      // Handle pty exit
       const onExit = session.pty.onExit(({ exitCode }) => {
         if (socket.readyState === 1) {
           socket.send(JSON.stringify({ type: 'exit', code: exitCode }));
         }
-        killSession(session.id);
+        activeConnections.delete(sessionId);
+        killSession(sessionId);
       });
+
+      const cleanup = () => {
+        onData.dispose();
+        onExit.dispose();
+      };
+
+      // Track this as the active connection
+      activeConnections.set(sessionId, { socket, cleanup });
 
       // Handle messages from WebSocket client
       socket.on('message', (raw: Buffer | string) => {
@@ -99,7 +125,7 @@ export async function terminalWsRoutes(app: FastifyInstance) {
               break;
             case 'resize':
               if (msg.cols && msg.rows) {
-                resizeSession(session.id, msg.cols, msg.rows);
+                resizeSession(sessionId, msg.cols, msg.rows);
               }
               break;
           }
@@ -108,8 +134,15 @@ export async function terminalWsRoutes(app: FastifyInstance) {
 
       // Clean up on WebSocket close
       socket.on('close', () => {
-        onData.dispose();
-        onExit.dispose();
+        // Only clean up if this is still the active connection
+        const current = activeConnections.get(sessionId);
+        if (current && current.socket === socket) {
+          current.cleanup();
+          activeConnections.delete(sessionId);
+        } else {
+          // This was an old replaced connection, just dispose listeners
+          cleanup();
+        }
         // Don't kill the session on disconnect — allow reconnection
       });
     }

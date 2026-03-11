@@ -8,10 +8,9 @@ import '@xterm/xterm/css/xterm.css'
 interface IntegratedTerminalProps {
   sessionId: string
   isActive: boolean
-  onExit?: (code: number) => void
+  onExit?: (sessionId: string, code: number) => void
 }
 
-// Theme matching Shipyard dark theme (shadcn/ui)
 const TERMINAL_THEME = {
   background: '#0a0a0f',
   foreground: '#e4e4e7',
@@ -37,20 +36,36 @@ const TERMINAL_THEME = {
   brightWhite: '#fafafa',
 }
 
+const MAX_RECONNECT_ATTEMPTS = 5
+
 export function IntegratedTerminal({ sessionId, isActive, onExit }: IntegratedTerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const disposedRef = useRef(false)
+  const reconnectCountRef = useRef(0)
+  // Use ref for onExit to avoid re-creating WS on every render
+  const onExitRef = useRef(onExit)
+  onExitRef.current = onExit
 
   const connectWs = useCallback(() => {
-    if (!termRef.current) return
+    if (disposedRef.current || !termRef.current) return
+
+    // Close any existing connection first
+    if (wsRef.current) {
+      const old = wsRef.current
+      wsRef.current = null
+      old.onclose = null // prevent reconnect from old close
+      old.close()
+    }
 
     const ws = new WebSocket(getWebSocketUrl(sessionId))
     wsRef.current = ws
 
     ws.onopen = () => {
+      reconnectCountRef.current = 0
       // Send initial resize
       if (fitAddonRef.current && termRef.current) {
         const dims = fitAddonRef.current.proposeDimensions()
@@ -69,7 +84,7 @@ export function IntegratedTerminal({ sessionId, isActive, onExit }: IntegratedTe
             break
           case 'exit':
             termRef.current?.write(`\r\n\x1b[90m[Process exited with code ${msg.code}]\x1b[0m\r\n`)
-            onExit?.(msg.code)
+            onExitRef.current?.(sessionId, msg.code)
             break
           case 'error':
             termRef.current?.write(`\r\n\x1b[31m[Error: ${msg.data}]\x1b[0m\r\n`)
@@ -79,22 +94,30 @@ export function IntegratedTerminal({ sessionId, isActive, onExit }: IntegratedTe
     }
 
     ws.onclose = () => {
-      // Attempt reconnect after 2s (session may still be alive on server)
-      reconnectTimerRef.current = setTimeout(() => {
-        if (termRef.current && !termRef.current.element?.closest('[data-disposed]')) {
-          connectWs()
-        }
-      }, 2000)
+      if (disposedRef.current) return
+      // Reconnect with limit
+      if (reconnectCountRef.current < MAX_RECONNECT_ATTEMPTS) {
+        reconnectCountRef.current++
+        const delay = Math.min(2000 * reconnectCountRef.current, 8000)
+        reconnectTimerRef.current = setTimeout(() => {
+          if (!disposedRef.current && termRef.current) {
+            connectWs()
+          }
+        }, delay)
+      }
     }
 
     ws.onerror = () => {
-      ws.close()
+      // onclose will fire after this
     }
-  }, [sessionId, onExit])
+  }, [sessionId]) // no onExit dep — uses ref
 
-  // Initialize terminal
+  // Initialize terminal (only when sessionId changes)
   useEffect(() => {
     if (!containerRef.current) return
+
+    disposedRef.current = false
+    reconnectCountRef.current = 0
 
     const term = new Terminal({
       theme: TERMINAL_THEME,
@@ -118,12 +141,44 @@ export function IntegratedTerminal({ sessionId, isActive, onExit }: IntegratedTe
     fitAddonRef.current = fitAddon
 
     // Fit to container
-    requestAnimationFrame(() => {
+    const rafId = requestAnimationFrame(() => {
       try { fitAddon.fit() } catch {}
     })
 
+    // Clipboard: Ctrl+C (copy if selection), Ctrl+Shift+C (always copy), Ctrl+V / Ctrl+Shift+V (paste)
+    term.attachCustomKeyEventHandler((ev) => {
+      // Ctrl+C: copy if there's a selection, otherwise let terminal handle (SIGINT)
+      if (ev.ctrlKey && !ev.shiftKey && ev.key === 'c' && ev.type === 'keydown') {
+        const sel = term.getSelection()
+        if (sel) {
+          navigator.clipboard.writeText(sel)
+          term.clearSelection()
+          return false // prevent terminal from processing
+        }
+      }
+      // Ctrl+Shift+C: always copy selection
+      if (ev.ctrlKey && ev.shiftKey && ev.key === 'C' && ev.type === 'keydown') {
+        const sel = term.getSelection()
+        if (sel) {
+          navigator.clipboard.writeText(sel)
+          term.clearSelection()
+        }
+        return false
+      }
+      // Ctrl+V or Ctrl+Shift+V: paste from clipboard
+      if (ev.ctrlKey && (ev.key === 'v' || ev.key === 'V') && ev.type === 'keydown') {
+        navigator.clipboard.readText().then((text) => {
+          if (text && wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: 'input', data: text }))
+          }
+        }).catch(() => {})
+        return false
+      }
+      return true
+    })
+
     // Send keystrokes to server
-    term.onData((data) => {
+    const dataDisposable = term.onData((data) => {
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({ type: 'input', data }))
       }
@@ -133,9 +188,16 @@ export function IntegratedTerminal({ sessionId, isActive, onExit }: IntegratedTe
     connectWs()
 
     return () => {
+      disposedRef.current = true
+      cancelAnimationFrame(rafId)
       clearTimeout(reconnectTimerRef.current)
-      wsRef.current?.close()
-      wsRef.current = null
+      dataDisposable.dispose()
+      if (wsRef.current) {
+        const ws = wsRef.current
+        wsRef.current = null
+        ws.onclose = null // prevent reconnect
+        ws.close()
+      }
       term.dispose()
       termRef.current = null
       fitAddonRef.current = null
@@ -145,6 +207,8 @@ export function IntegratedTerminal({ sessionId, isActive, onExit }: IntegratedTe
   // Fit on resize
   useEffect(() => {
     if (!isActive) return
+
+    let rafId: number
 
     const handleResize = () => {
       if (fitAddonRef.current && termRef.current) {
@@ -158,7 +222,6 @@ export function IntegratedTerminal({ sessionId, isActive, onExit }: IntegratedTe
       }
     }
 
-    // ResizeObserver on the container for panel resize detection
     const observer = new ResizeObserver(handleResize)
     if (containerRef.current) {
       observer.observe(containerRef.current)
@@ -167,9 +230,10 @@ export function IntegratedTerminal({ sessionId, isActive, onExit }: IntegratedTe
     window.addEventListener('resize', handleResize)
 
     // Initial fit when tab becomes active
-    requestAnimationFrame(handleResize)
+    rafId = requestAnimationFrame(handleResize)
 
     return () => {
+      cancelAnimationFrame(rafId)
       observer.disconnect()
       window.removeEventListener('resize', handleResize)
     }

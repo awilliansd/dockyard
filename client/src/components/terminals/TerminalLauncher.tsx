@@ -37,7 +37,7 @@ function buildClaudeContext(projectName: string, projectPath: string, projectId:
     lines.push(`Active tasks (${active.length}):`)
     for (const t of active) {
       lines.push(`- [${statusLabel[t.status]}] ${t.title} (${priorityLabel[t.priority]})${t.description ? ` — ${t.description}` : ''}`)
-      if (t.prompt) lines.push(`  Detalhes: ${t.prompt.split('\n')[0]}${t.prompt.includes('\n') ? '...' : ''}`)
+      if (t.prompt) lines.push(`  Details: ${t.prompt.split('\n')[0]}${t.prompt.includes('\n') ? '...' : ''}`)
     }
   }
 

@@ -1,7 +1,7 @@
 import { app, BrowserWindow, Tray, Menu, nativeImage, shell, dialog } from 'electron';
 import { join, resolve } from 'path';
 import { existsSync, mkdirSync } from 'fs';
-import { fork, type ChildProcess } from 'child_process';
+import { spawn, type ChildProcess } from 'child_process';
 
 // ── Paths ──────────────────────────────────────────────────────────
 
@@ -34,13 +34,14 @@ mkdirSync(join(DATA_DIR, 'tasks'), { recursive: true });
 
 // ── Server process ─────────────────────────────────────────────────
 
-const PORT = 5420;
+// Use different port than dev server (5420) to avoid conflicts
+const PORT = isDev ? 5420 : 5430;
 let serverProcess: ChildProcess | null = null;
 
 function startServer(): Promise<void> {
   return new Promise((res, reject) => {
-    const env = {
-      ...process.env,
+    const env: Record<string, string> = {
+      ...process.env as Record<string, string>,
       SHIPYARD_ELECTRON: '1',
       SHIPYARD_DATA_DIR: DATA_DIR,
       SHIPYARD_STATIC_DIR: CLIENT_DIST,
@@ -48,9 +49,18 @@ function startServer(): Promise<void> {
       SHIPYARD_HOST: '127.0.0.1',
     };
 
+    console.log('[Electron] Paths:');
+    console.log('  SERVER_ENTRY:', SERVER_ENTRY);
+    console.log('  CLIENT_DIST:', CLIENT_DIST);
+    console.log('  DATA_DIR:', DATA_DIR);
+    console.log('  isDev:', isDev);
+    console.log('  exists(SERVER_ENTRY):', existsSync(SERVER_ENTRY));
+    console.log('  exists(CLIENT_DIST):', existsSync(CLIENT_DIST));
+
     if (isDev) {
       // In dev, use tsx to run TypeScript directly
       const tsxBin = resolve(ROOT_DIR, 'node_modules', '.bin', 'tsx');
+      const { fork } = require('child_process');
       serverProcess = fork(SERVER_ENTRY, [], {
         env,
         execArgv: [],
@@ -58,37 +68,43 @@ function startServer(): Promise<void> {
         stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
       });
     } else {
-      // In production, run compiled JS with Node
-      serverProcess = fork(SERVER_ENTRY, [], {
+      // In production, use spawn with ELECTRON_RUN_AS_NODE to run as plain Node.js
+      // fork() in packaged Electron can be unreliable
+      env.ELECTRON_RUN_AS_NODE = '1';
+      serverProcess = spawn(process.execPath, [SERVER_ENTRY], {
         env,
-        stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
+        stdio: ['pipe', 'pipe', 'pipe'],
+        windowsHide: true,
       });
     }
 
+    const proc = serverProcess!;
     let started = false;
     const timeout = setTimeout(() => {
       if (!started) {
         started = true;
-        // Even without confirmation, try to connect after 3s
+        console.log('[Electron] Server ready detection timed out, proceeding anyway');
         res();
       }
-    }, 3000);
+    }, 5000);
 
-    serverProcess.stdout?.on('data', (data: Buffer) => {
+    proc.stdout?.on('data', (data: Buffer) => {
       const msg = data.toString();
       console.log('[Server]', msg.trim());
-      if (!started && msg.includes('listening')) {
+      // Match our console.log: "Shipyard server running on http://..."
+      if (!started && (msg.includes('running on') || msg.includes(`${PORT}`))) {
         started = true;
         clearTimeout(timeout);
         res();
       }
     });
 
-    serverProcess.stderr?.on('data', (data: Buffer) => {
-      console.error('[Server]', data.toString().trim());
+    proc.stderr?.on('data', (data: Buffer) => {
+      console.error('[Server:err]', data.toString().trim());
     });
 
-    serverProcess.on('error', (err) => {
+    proc.on('error', (err) => {
+      console.error('[Electron] Server spawn error:', err);
       if (!started) {
         started = true;
         clearTimeout(timeout);
@@ -96,18 +112,13 @@ function startServer(): Promise<void> {
       }
     });
 
-    serverProcess.on('exit', (code) => {
+    proc.on('exit', (code) => {
       console.log(`[Server] Process exited with code ${code}`);
       serverProcess = null;
-    });
-
-    // Also listen for Fastify's log format (JSON with msg field)
-    serverProcess.stdout?.on('data', (data: Buffer) => {
-      const msg = data.toString();
-      if (!started && (msg.includes(`${PORT}`) || msg.includes('Server listening'))) {
+      if (!started) {
         started = true;
         clearTimeout(timeout);
-        res();
+        reject(new Error(`Server exited with code ${code}`));
       }
     });
   });

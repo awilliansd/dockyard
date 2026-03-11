@@ -1,26 +1,21 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { Plus, X, ChevronDown, ChevronUp, Terminal, Trash2, ExternalLink } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   useTerminalStatus,
   useCreateTerminalSession,
   useKillTerminalSession,
-  type TerminalSessionInfo,
 } from '@/hooks/useTerminal'
 import { useLaunchTerminal } from '@/hooks/useProjects'
+import { useTabs } from '@/hooks/useTabs'
+import { api } from '@/lib/api'
 import { IntegratedTerminal } from './IntegratedTerminal'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
-interface TerminalPanelProps {
-  projectId: string
-  projectPath: string
-  projectName: string
-}
-
-interface LocalTab {
+interface GlobalTab {
   sessionId: string
+  projectId: string
   title: string
   type: string
   exited: boolean
@@ -28,18 +23,36 @@ interface LocalTab {
 
 const PANEL_HEIGHT_KEY = 'shipyard:terminal-height'
 const PANEL_VISIBLE_KEY = 'shipyard:terminal-visible'
+const TABS_STORAGE_KEY = 'shipyard:terminal-tabs'
+const ACTIVE_TAB_KEY = 'shipyard:terminal-active-tab'
 const MIN_HEIGHT = 150
 const MAX_HEIGHT_RATIO = 0.7
 const DEFAULT_HEIGHT = 300
 
-export function TerminalPanel({ projectId, projectPath, projectName }: TerminalPanelProps) {
+function loadTerminalTabs(): GlobalTab[] {
+  try {
+    const raw = localStorage.getItem(TABS_STORAGE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return []
+}
+
+function loadActiveTabId(): string | null {
+  try {
+    return localStorage.getItem(ACTIVE_TAB_KEY) || null
+  } catch {}
+  return null
+}
+
+export function TerminalPanel() {
   const { data: status } = useTerminalStatus()
   const createSession = useCreateTerminalSession()
   const killSession = useKillTerminalSession()
   const launchNative = useLaunchTerminal()
+  const { activeTabId: activeProjectId, openTab: openProjectTab } = useTabs()
 
-  const [tabs, setTabs] = useState<LocalTab[]>([])
-  const [activeTabId, setActiveTabId] = useState<string | null>(null)
+  const [tabs, setTabs] = useState<GlobalTab[]>(loadTerminalTabs)
+  const [activeTabId, setActiveTabId] = useState<string | null>(loadActiveTabId)
   const [panelHeight, setPanelHeight] = useState(() => {
     const saved = localStorage.getItem(PANEL_HEIGHT_KEY)
     return saved ? Math.max(MIN_HEIGHT, parseInt(saved, 10)) : DEFAULT_HEIGHT
@@ -53,6 +66,14 @@ export function TerminalPanel({ projectId, projectPath, projectName }: TerminalP
   const dragStartY = useRef(0)
   const dragStartHeight = useRef(0)
 
+  // Refs for reading current state in callbacks without stale closures
+  const tabsRef = useRef(tabs)
+  tabsRef.current = tabs
+  const activeTabIdRef = useRef(activeTabId)
+  activeTabIdRef.current = activeTabId
+  const activeProjectIdRef = useRef(activeProjectId)
+  activeProjectIdRef.current = activeProjectId
+
   // Persist panel state
   useEffect(() => {
     localStorage.setItem(PANEL_HEIGHT_KEY, String(panelHeight))
@@ -61,6 +82,63 @@ export function TerminalPanel({ projectId, projectPath, projectName }: TerminalP
   useEffect(() => {
     localStorage.setItem(PANEL_VISIBLE_KEY, String(isVisible))
   }, [isVisible])
+
+  // Persist terminal tabs
+  useEffect(() => {
+    localStorage.setItem(TABS_STORAGE_KEY, JSON.stringify(tabs))
+  }, [tabs])
+
+  // Persist active terminal tab
+  useEffect(() => {
+    if (activeTabId) {
+      localStorage.setItem(ACTIVE_TAB_KEY, activeTabId)
+    } else {
+      localStorage.removeItem(ACTIVE_TAB_KEY)
+    }
+  }, [activeTabId])
+
+  // On mount: validate persisted tabs against server sessions (recovery from refresh)
+  const initializedRef = useRef(false)
+  useEffect(() => {
+    if (initializedRef.current) return
+    initializedRef.current = true
+
+    api.getTerminalSessions().then(({ sessions }) => {
+      const serverIds = new Set(sessions.map((s: any) => s.id))
+      setTabs(prev => {
+        const valid: GlobalTab[] = []
+        // Keep existing persisted tabs that still have server sessions
+        for (const t of prev) {
+          if (serverIds.has(t.sessionId)) {
+            valid.push({ ...t, exited: false }) // Reset exited since server still has it
+          }
+        }
+        // Add any server sessions not in our persisted tabs (recovery)
+        for (const s of sessions) {
+          if (!valid.some(t => t.sessionId === s.id)) {
+            valid.push({
+              sessionId: s.id,
+              projectId: s.projectId,
+              title: s.title,
+              type: s.type,
+              exited: false,
+            })
+          }
+        }
+        return valid
+      })
+      // Fix active tab if it no longer exists
+      setActiveTabId(prev => {
+        if (prev && serverIds.has(prev)) return prev
+        if (sessions.length > 0) return sessions[sessions.length - 1].id
+        return null
+      })
+      // If recovered sessions exist, show the panel
+      if (sessions.length > 0) {
+        setIsVisible(true)
+      }
+    }).catch(() => {})
+  }, [])
 
   // Drag resize
   const handleDragStart = useCallback((e: React.MouseEvent) => {
@@ -91,33 +169,47 @@ export function TerminalPanel({ projectId, projectPath, projectName }: TerminalP
     document.addEventListener('mouseup', handleDragEnd)
   }, [panelHeight])
 
-  const handleNewTab = useCallback(async (type = 'shell') => {
+  // Create a new terminal tab for a given project (or active project)
+  const handleNewTab = useCallback(async (type = 'shell', forProjectId?: string) => {
     if (!status?.available) {
       toast.error('Integrated terminal not available')
       return
     }
 
+    const targetProject = forProjectId
+      || activeProjectIdRef.current
+      || tabsRef.current.find(t => t.sessionId === activeTabIdRef.current)?.projectId
+
+    if (!targetProject) {
+      toast.error('No project selected')
+      return
+    }
+
     try {
-      const session = await createSession.mutateAsync({ projectId, type, cols: 80, rows: 24 })
-      const tab: LocalTab = {
+      const session = await createSession.mutateAsync({ projectId: targetProject, type, cols: 80, rows: 24 })
+      const tab: GlobalTab = {
         sessionId: session.id,
+        projectId: targetProject,
         title: session.title,
         type: session.type,
         exited: false,
       }
       setTabs(prev => [...prev, tab])
       setActiveTabId(session.id)
-      if (!isVisible) setIsVisible(true)
+      setIsVisible(true)
     } catch (err: any) {
       toast.error(err.message || 'Failed to create terminal')
     }
-  }, [projectId, status, createSession, isVisible])
+  }, [status, createSession])
 
   const togglePanel = useCallback(() => {
     if (!isVisible && tabs.length === 0) {
-      // Open and create a shell tab
-      setIsVisible(true)
-      handleNewTab('shell')
+      if (activeProjectIdRef.current) {
+        setIsVisible(true)
+        handleNewTab('shell')
+      } else {
+        setIsVisible(prev => !prev)
+      }
     } else {
       setIsVisible(prev => !prev)
     }
@@ -139,46 +231,78 @@ export function TerminalPanel({ projectId, projectPath, projectName }: TerminalP
     killSession.mutate(sessionId)
     setTabs(prev => {
       const next = prev.filter(t => t.sessionId !== sessionId)
-      if (activeTabId === sessionId) {
+      if (activeTabIdRef.current === sessionId) {
         setActiveTabId(next.length > 0 ? next[next.length - 1].sessionId : null)
       }
       if (next.length === 0) setIsVisible(false)
       return next
     })
-  }, [activeTabId, killSession])
+  }, [killSession])
 
   const handleCloseAll = useCallback(() => {
-    for (const tab of tabs) {
+    for (const tab of tabsRef.current) {
       killSession.mutate(tab.sessionId)
     }
     setTabs([])
     setActiveTabId(null)
     setIsVisible(false)
-  }, [tabs, killSession])
+  }, [killSession])
 
-  const handleTabExit = useCallback((sessionId: string, code: number) => {
+  const handleTabExit = useCallback((sessionId: string, _code: number) => {
     setTabs(prev => prev.map(t =>
-      t.sessionId === sessionId ? { ...t, exited: true, title: `${t.title} [exited]` } : t
+      t.sessionId === sessionId
+        ? { ...t, exited: true, title: t.title.includes('[exited]') ? t.title : `${t.title} [exited]` }
+        : t
     ))
   }, [])
 
+  // Stable ref so IntegratedTerminal doesn't re-create on every render
+  const handleTabExitRef = useRef(handleTabExit)
+  handleTabExitRef.current = handleTabExit
+
+  // --- Bidirectional sync: terminal tabs <-> project tabs ---
+
+  // Terminal tab click → also switch to that project's tab
+  const handleTerminalTabClick = useCallback((sessionId: string) => {
+    setActiveTabId(sessionId)
+    const tab = tabsRef.current.find(t => t.sessionId === sessionId)
+    if (tab) {
+      openProjectTab(tab.projectId)
+    }
+  }, [openProjectTab])
+
+  // Project tab change → find and activate a terminal for that project
+  useEffect(() => {
+    if (!activeProjectId) return
+    // Check if active terminal already belongs to this project
+    const activeTab = tabsRef.current.find(t => t.sessionId === activeTabIdRef.current)
+    if (activeTab && activeTab.projectId === activeProjectId) return
+    // Find a non-exited terminal for this project
+    const match = tabsRef.current.find(t => t.projectId === activeProjectId && !t.exited)
+    if (match) {
+      setActiveTabId(match.sessionId)
+    }
+  }, [activeProjectId])
+
+  // Open native terminal for the active terminal's project
   const handleOpenExternal = useCallback(() => {
+    const projectId = tabsRef.current.find(t => t.sessionId === activeTabIdRef.current)?.projectId
+      || activeProjectIdRef.current
+    if (!projectId) return
     launchNative.mutate(
       { projectId, type: 'shell' },
       { onSuccess: () => toast.success('Opened in native terminal') }
     )
-  }, [projectId, launchNative])
+  }, [launchNative])
 
-  // Expose createTab for TerminalLauncher
+  // Listen for shipyard:open-terminal events (from TerminalLauncher) for ANY project
   useEffect(() => {
     const handler = (e: CustomEvent<{ projectId: string; type: string }>) => {
-      if (e.detail.projectId === projectId) {
-        handleNewTab(e.detail.type)
-      }
+      handleNewTab(e.detail.type, e.detail.projectId)
     }
     window.addEventListener('shipyard:open-terminal' as any, handler as any)
     return () => window.removeEventListener('shipyard:open-terminal' as any, handler as any)
-  }, [projectId, handleNewTab])
+  }, [handleNewTab])
 
   // Don't render if terminal not available
   if (!status?.available) return null
@@ -193,7 +317,7 @@ export function TerminalPanel({ projectId, projectPath, projectName }: TerminalP
         />
       )}
 
-      {/* Tab bar — always visible when there are tabs or panel is open */}
+      {/* Tab bar — always visible */}
       <div className="flex items-center gap-0.5 px-2 h-8 bg-card/80 border-b border-border/50 select-none">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -218,16 +342,16 @@ export function TerminalPanel({ projectId, projectPath, projectName }: TerminalP
             {tabs.map(tab => (
               <button
                 key={tab.sessionId}
-                onClick={() => setActiveTabId(tab.sessionId)}
+                onClick={() => handleTerminalTabClick(tab.sessionId)}
                 className={cn(
-                  'flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-sm transition-colors max-w-[140px] group',
+                  'flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-sm transition-colors max-w-[200px] group',
                   activeTabId === tab.sessionId
                     ? 'bg-background/60 text-foreground'
                     : 'text-muted-foreground hover:text-foreground hover:bg-background/30',
                   tab.exited && 'opacity-50'
                 )}
               >
-                <span className="truncate">{tab.title.replace(/^\[.*?\]\s*/, '')}</span>
+                <span className="truncate">{tab.title.replace(/^\[(.*?)\]\s*/, '$1 · ')}</span>
                 <X
                   className="h-3 w-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
                   onClick={(e) => { e.stopPropagation(); handleCloseTab(tab.sessionId) }}
@@ -290,7 +414,7 @@ export function TerminalPanel({ projectId, projectPath, projectName }: TerminalP
               <IntegratedTerminal
                 sessionId={tab.sessionId}
                 isActive={activeTabId === tab.sessionId}
-                onExit={(code) => handleTabExit(tab.sessionId, code)}
+                onExit={handleTabExit}
               />
             </div>
           ))}

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, FolderOpen, RefreshCw, Settings, ClipboardList, PanelLeftClose, PanelLeft, ArrowUp, ArrowDown, FileEdit, Search } from 'lucide-react'
+import { LayoutDashboard, FolderOpen, RefreshCw, Settings, ClipboardList, PanelLeftClose, PanelLeft, ArrowUp, ArrowDown, FileEdit, Search, HelpCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -133,6 +133,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   }, [collapsedSearchOpen])
 
   const favorites = projects?.filter(p => p.favorite) || []
+  const favoriteIds = new Set(favorites.map(p => p.id))
+  const nonFavorites = projects?.filter(p => !favoriteIds.has(p.id)) || []
   const filtered = search
     ? projects?.filter(p => p.name.toLowerCase().includes(search.toLowerCase())) || []
     : []
@@ -142,18 +144,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   const inboxCount = tasks?.filter(t => t.status === 'backlog' || t.status === 'todo').length || 0
   const inProgressCount = tasks?.filter(t => t.status === 'in_progress').length || 0
-
-  const activeProjects = projects?.filter(p =>
-    tasks?.some(t => t.projectId === p.id && (t.status === 'backlog' || t.status === 'todo'))
-  ) || []
-
-  // Projects with pending git changes (not already in active or favorites)
-  const activeIds = new Set(activeProjects.map(p => p.id))
-  const favoriteIds = new Set(favorites.map(p => p.id))
-  const gitPendingProjects = projects?.filter(p =>
-    !activeIds.has(p.id) && !favoriteIds.has(p.id) &&
-    (p.gitDirty || (p.gitAhead ?? 0) > 0 || (p.gitBehind ?? 0) > 0)
-  ) || []
 
   // Collapsed sidebar - icons only
   if (collapsed) {
@@ -242,13 +232,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             </PopoverContent>
           </Popover>
 
-          {activeProjects.length > 0 && (
-            <>
-              <div className="w-6 border-t my-1" />
-              {activeProjects.map(p => <CollapsedProjectItem key={p.id} project={p} location={location} openTab={openTab} />)}
-            </>
-          )}
-
           {favorites.length > 0 && (
             <>
               <div className="w-6 border-t my-1" />
@@ -256,15 +239,25 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             </>
           )}
 
-          {gitPendingProjects.length > 0 && (
+          {nonFavorites.length > 0 && (
             <>
               <div className="w-6 border-t my-1" />
-              {gitPendingProjects.map(p => <CollapsedProjectItem key={p.id} project={p} location={location} openTab={openTab} />)}
+              {nonFavorites.map(p => <CollapsedProjectItem key={p.id} project={p} location={location} openTab={openTab} />)}
             </>
           )}
         </nav>
 
-        <div className="p-2 border-t flex justify-center">
+        <div className="p-2 border-t flex flex-col items-center gap-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link to="/help">
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right">Help</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Link to="/settings">
@@ -346,13 +339,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           )}
         </Link>
 
-        {/* Active projects (with in-progress tasks) */}
-        {activeProjects.length > 0 && (
+        {/* Favorites */}
+        {favorites.length > 0 && (
           <>
             <div className="pt-4 pb-1 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Active
+              Favorites
             </div>
-            {activeProjects.map(p => (
+            {favorites.map(p => (
               <button
                 key={p.id}
                 onClick={() => openTab(p.id)}
@@ -371,13 +364,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           </>
         )}
 
-        {/* Favorites */}
-        {favorites.length > 0 && (
+        {/* All other projects (non-favorites) */}
+        {nonFavorites.length > 0 && (
           <>
             <div className="pt-4 pb-1 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Favorites
+              Projects
             </div>
-            {favorites.map(p => (
+            {nonFavorites.map(p => (
               <button
                 key={p.id}
                 onClick={() => openTab(p.id)}
@@ -421,13 +414,25 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       </nav>
 
-      <div className="p-3 border-t flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{projects?.length || 0} projects</span>
-        <Link to="/settings">
-          <Button variant="ghost" size="icon" className="h-7 w-7">
-            <Settings className="h-3.5 w-3.5 text-muted-foreground" />
-          </Button>
-        </Link>
+      <div className="p-3 border-t space-y-1">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">{projects?.length || 0} projects</span>
+          <div className="flex items-center gap-0.5">
+            <Link to="/help">
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            </Link>
+            <Link to="/settings">
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <Settings className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+        <a href="https://dcoder.io/" target="_blank" rel="noopener noreferrer" className="block text-[10px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors">
+          by dcoder.io
+        </a>
       </div>
     </aside>
   )

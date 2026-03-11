@@ -113,7 +113,7 @@ export function TaskViewer({ task, projectName, projectPath, open, onOpenChange,
 
           {task.prompt && (
             <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Detalhes</label>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Details</label>
               <pre className="mt-1.5 text-xs font-mono bg-muted/50 rounded-md p-3 whitespace-pre-wrap max-h-40 overflow-y-auto">{task.prompt}</pre>
             </div>
           )}

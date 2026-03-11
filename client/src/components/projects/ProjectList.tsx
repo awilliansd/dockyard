@@ -26,7 +26,7 @@ export function ProjectList({ projects, taskCounts }: ProjectListProps) {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
-  const [sortBy, setSortBy] = useState<SortOption>('name')
+  const [sortBy, setSortBy] = useState<SortOption>('lastModified')
   const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -65,8 +65,10 @@ export function ProjectList({ projects, taskCounts }: ProjectListProps) {
     }
 
     return [...result].sort((a, b) => {
-      // Favorites always first
-      if (a.favorite !== b.favorite) return a.favorite ? -1 : 1
+      // Favorites first only when not sorting by time
+      if (sortBy !== 'lastModified' && sortBy !== 'lastOpened') {
+        if (a.favorite !== b.favorite) return a.favorite ? -1 : 1
+      }
 
       switch (sortBy) {
         case 'lastModified': {

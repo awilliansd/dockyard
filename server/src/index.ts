@@ -32,11 +32,20 @@ await app.register(websocket);
 
 // In production (Electron), serve the built client as static files
 if (STATIC_DIR) {
-  await app.register(fastifyStatic, {
-    root: resolve(STATIC_DIR),
-    prefix: '/',
-    wildcard: false,
-  });
+  const staticRoot = resolve(STATIC_DIR);
+  console.log(`Registering static files from: ${staticRoot}`);
+  try {
+    await app.register(fastifyStatic, {
+      root: staticRoot,
+      prefix: '/',
+      wildcard: false,
+    });
+    console.log('Static file serving registered successfully');
+  } catch (err) {
+    console.error('Failed to register static files:', err);
+  }
+} else {
+  console.log('No STATIC_DIR set, skipping static file serving');
 }
 
 await app.register(projectRoutes);
@@ -63,7 +72,11 @@ try {
   console.log(`Terminal integration: ${isTerminalAvailable() ? 'available' : 'disabled (node-pty not found)'}`);
   if (IS_ELECTRON) console.log('Mode: Electron embedded');
   if (STATIC_DIR) console.log(`Serving static files from: ${STATIC_DIR}`);
-} catch (err) {
-  app.log.error(err);
+} catch (err: any) {
+  if (err?.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Is another instance running?`);
+  } else {
+    console.error('Failed to start server:', err);
+  }
   process.exit(1);
 }

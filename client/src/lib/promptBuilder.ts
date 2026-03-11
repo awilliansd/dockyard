@@ -12,7 +12,7 @@ function formatTaskBlock(t: Task, index?: number): string[] {
   }
   if (t.prompt) {
     lines.push('')
-    lines.push('### Detalhes')
+    lines.push('### Details')
     lines.push(t.prompt)
   }
   lines.push('')
@@ -100,7 +100,7 @@ export function buildColumnPrompt(
     lines.push('')
     for (const t of sorted) {
       lines.push(`- [${t.status === 'backlog' ? 'BACKLOG' : 'TODO'}] ${t.title} (${priorityLabel[t.priority]})${t.description ? ` — ${t.description}` : ''}`)
-      if (t.prompt) lines.push(`  Detalhes: ${t.prompt.split('\n')[0]}...`)
+      if (t.prompt) lines.push(`  Details: ${t.prompt.split('\n')[0]}...`)
     }
     lines.push('')
     lines.push('## Instructions')
@@ -179,7 +179,7 @@ export function buildTaskPrompt(
     lines.push('')
   }
   if (task.prompt) {
-    lines.push('## Detalhes')
+    lines.push('## Details')
     lines.push(task.prompt)
     lines.push('')
   }

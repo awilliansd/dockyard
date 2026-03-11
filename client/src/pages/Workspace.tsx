@@ -1,12 +1,13 @@
+import { useState, useRef, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { TaskBoard } from '@/components/tasks/TaskBoard'
 import { GitPanel } from '@/components/git/GitPanel'
 import { TerminalLauncher } from '@/components/terminals/TerminalLauncher'
-import { TerminalPanel } from '@/components/terminals/TerminalPanel'
 import { useProjects, useUpdateProject } from '@/hooks/useProjects'
 import { ExternalLinkEditor } from '@/components/projects/ExternalLinkEditor'
 import { Badge } from '@/components/ui/badge'
-import { GitBranch, Star, ExternalLink } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { GitBranch, Star, ExternalLink, Pencil, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function Workspace() {
@@ -14,6 +15,33 @@ export function Workspace() {
   const { data: projects } = useProjects()
   const updateProject = useUpdateProject()
   const project = projects?.find(p => p.id === projectId)
+
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [renameValue, setRenameValue] = useState('')
+  const renameInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isRenaming && renameInputRef.current) {
+      renameInputRef.current.focus()
+      renameInputRef.current.select()
+    }
+  }, [isRenaming])
+
+  const startRename = () => {
+    if (!project) return
+    setRenameValue(project.name)
+    setIsRenaming(true)
+  }
+
+  const confirmRename = () => {
+    if (!project || !renameValue.trim()) return
+    updateProject.mutate({ id: project.id, name: renameValue.trim() })
+    setIsRenaming(false)
+  }
+
+  const cancelRename = () => {
+    setIsRenaming(false)
+  }
 
   if (!project) {
     return (
@@ -41,6 +69,36 @@ export function Workspace() {
                   : 'text-muted-foreground/30 hover:text-yellow-500'
               )} />
             </button>
+            {isRenaming ? (
+              <div className="flex items-center gap-1 shrink-0">
+                <Input
+                  ref={renameInputRef}
+                  value={renameValue}
+                  onChange={e => setRenameValue(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') confirmRename()
+                    if (e.key === 'Escape') cancelRename()
+                  }}
+                  className="h-6 text-xs w-40"
+                />
+                <button onClick={confirmRename} className="text-green-500 hover:text-green-400 p-0.5">
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+                <button onClick={cancelRename} className="text-muted-foreground hover:text-foreground p-0.5">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={startRename}
+                className="flex items-center gap-1 text-xs font-medium text-foreground hover:text-primary transition-colors shrink-0 group"
+                title="Click to rename project"
+              >
+                {project.name}
+                <Pencil className="h-3 w-3 text-muted-foreground/0 group-hover:text-muted-foreground transition-colors" />
+              </button>
+            )}
+            <span className="text-muted-foreground/30">·</span>
             <p className="text-xs text-muted-foreground truncate">{project.path}</p>
             {project.isGitRepo && project.gitBranch && (
               <Badge variant="outline" className="text-[10px] shrink-0 gap-1">
@@ -74,12 +132,6 @@ export function Workspace() {
         </div>
       </div>
 
-      {/* Integrated terminal panel (bottom) */}
-      <TerminalPanel
-        projectId={project.id}
-        projectPath={project.path}
-        projectName={project.name}
-      />
     </div>
   )
 }

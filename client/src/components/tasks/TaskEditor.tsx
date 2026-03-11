@@ -113,11 +113,11 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium">Detalhes</label>
+            <label className="text-sm font-medium">Details</label>
             <Textarea
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
-              placeholder="Detalhes tecnicos, causas, solucoes, arquivos relevantes..."
+              placeholder="Technical details, causes, solutions, relevant files..."
               className="mt-1 font-mono text-xs"
               rows={4}
             />

@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { TabBar } from './TabBar'
 import { TabsProvider } from '@/hooks/useTabs'
+import { TerminalPanel } from '@/components/terminals/TerminalPanel'
 
 const SIDEBAR_KEY = 'shipyard-sidebar-collapsed'
 
@@ -23,7 +24,10 @@ export function Layout() {
         <Sidebar collapsed={collapsed} onToggle={toggle} />
         <main className="flex-1 flex flex-col overflow-hidden">
           <TabBar />
-          <Outlet />
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+            <Outlet />
+          </div>
+          <TerminalPanel />
         </main>
       </div>
     </TabsProvider>

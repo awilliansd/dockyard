@@ -4,7 +4,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useGitCommit, useGitPush } from '@/hooks/useGit'
 import { useLaunchTerminal } from '@/hooks/useProjects'
+import { useTerminalStatus } from '@/hooks/useTerminal'
 import { toast } from 'sonner'
+
+function openIntegratedTerminal(projectId: string, type: string) {
+  window.dispatchEvent(new CustomEvent('shipyard:open-terminal', { detail: { projectId, type } }))
+}
 
 interface CommitFormProps {
   projectId: string
@@ -16,15 +21,23 @@ export function CommitForm({ projectId, hasStagedChanges }: CommitFormProps) {
   const gitCommit = useGitCommit()
   const gitPush = useGitPush()
   const launchTerminal = useLaunchTerminal()
+  const { data: terminalStatus } = useTerminalStatus()
+  const hasIntegrated = terminalStatus?.available ?? false
 
   const handleAICommit = () => {
-    const prompt = 'Veja as mudanças staged com git diff --cached, faça o commit com uma mensagem simples e descritiva. Só commitar, sem push.'
+    const prompt = 'Review the staged changes with git diff --cached, then commit with a simple and descriptive message. Only commit, do not push.'
     navigator.clipboard.writeText(prompt)
     const skipPerm = localStorage.getItem('shipyard:skipPermissions') === 'true'
-    launchTerminal.mutate(
-      { projectId, type: skipPerm ? 'claude-yolo' : 'claude' },
-      { onSuccess: () => toast.success('Claude aberto — cole o prompt') }
-    )
+    const type = skipPerm ? 'claude-yolo' : 'claude'
+    if (hasIntegrated) {
+      openIntegratedTerminal(projectId, type)
+      toast.success('Claude opened — paste the prompt')
+    } else {
+      launchTerminal.mutate(
+        { projectId, type },
+        { onSuccess: () => toast.success('Claude opened — paste the prompt') }
+      )
+    }
   }
 
   const handleCommit = () => {
@@ -74,7 +87,7 @@ export function CommitForm({ projectId, hasStagedChanges }: CommitFormProps) {
           className="h-9 w-9 shrink-0"
           disabled={!hasStagedChanges}
           onClick={handleAICommit}
-          title="Abrir Claude para commitar"
+          title="Open Claude to generate commit"
         >
           <Sparkles className="h-4 w-4" />
         </Button>

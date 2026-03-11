@@ -1,62 +1,44 @@
 const { execSync } = require('child_process');
-const { writeFileSync, readFileSync, existsSync, mkdirSync } = require('fs');
+const { existsSync } = require('fs');
 const path = require('path');
 
 /**
  * After electron-builder creates the unpacked directory,
  * install server production dependencies using npm (flat node_modules).
- * pnpm's symlink-based node_modules doesn't survive asar packaging.
+ * pnpm's symlink-based node_modules doesn't survive packaging.
  */
 exports.default = async function (context) {
-  // The unpacked app directory inside the build output
   const appDir = path.join(context.appOutDir, 'resources', 'app');
 
   if (!existsSync(appDir)) {
-    console.log('[afterPack] No app dir found (asar?), trying asar unpack...');
-    // If asar is enabled, we need to work with the unpacked directory
-    const asarFile = path.join(context.appOutDir, 'resources', 'app.asar');
-    if (existsSync(asarFile)) {
-      // Install deps alongside the asar
-      const depsDir = path.join(context.appOutDir, 'resources', 'app.asar.unpacked');
-      mkdirSync(depsDir, { recursive: true });
-      installDeps(depsDir);
-    }
+    console.log('[afterPack] No app dir found, skipping dependency install');
     return;
   }
 
-  installDeps(appDir);
-};
+  // Install deps inside server/ using its own package.json
+  // (don't install at app root — that would overwrite the root package.json Electron needs)
+  const serverDir = path.join(appDir, 'server');
 
-function installDeps(targetDir) {
-  console.log('[afterPack] Installing production dependencies in:', targetDir);
+  if (!existsSync(path.join(serverDir, 'package.json'))) {
+    console.log('[afterPack] No server/package.json found, skipping');
+    return;
+  }
 
-  const serverPkgPath = path.resolve(__dirname, '..', 'server', 'package.json');
-  const serverPkg = JSON.parse(readFileSync(serverPkgPath, 'utf-8'));
-
-  // Create package.json with server production dependencies
-  const prodPkg = {
-    name: 'shipyard-runtime',
-    version: '1.0.0',
-    dependencies: serverPkg.dependencies || {},
-    optionalDependencies: serverPkg.optionalDependencies || {},
-  };
-
-  const pkgPath = path.join(targetDir, 'package.json');
-  writeFileSync(pkgPath, JSON.stringify(prodPkg, null, 2));
+  console.log('[afterPack] Installing server production dependencies in:', serverDir);
 
   try {
-    execSync('npm install --production --ignore-scripts', {
-      cwd: targetDir,
+    execSync('npm install --omit=dev --ignore-scripts', {
+      cwd: serverDir,
       stdio: 'inherit',
       timeout: 120000,
     });
     console.log('[afterPack] Dependencies installed successfully');
   } catch (err) {
     console.error('[afterPack] npm install failed:', err.message);
-    // Try without optional (node-pty might fail)
+    // Try without optional (node-pty might fail on some systems)
     try {
-      execSync('npm install --production --no-optional --ignore-scripts', {
-        cwd: targetDir,
+      execSync('npm install --omit=dev --no-optional --ignore-scripts', {
+        cwd: serverDir,
         stdio: 'inherit',
         timeout: 120000,
       });
@@ -66,4 +48,4 @@ function installDeps(targetDir) {
       throw err2;
     }
   }
-}
+};
