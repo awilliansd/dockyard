@@ -131,7 +131,9 @@ export function IntegratedTerminal({ sessionId, isActive, onExit }: IntegratedTe
     })
 
     const fitAddon = new FitAddon()
-    const webLinksAddon = new WebLinksAddon()
+    const webLinksAddon = new WebLinksAddon((_event, uri) => {
+      window.open(uri, '_blank', 'noopener,noreferrer')
+    })
 
     term.loadAddon(fitAddon)
     term.loadAddon(webLinksAddon)

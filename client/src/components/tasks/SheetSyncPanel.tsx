@@ -337,38 +337,51 @@ function SetupContent({
         </p>
       </div>
 
-      {/* Setup guide toggle */}
-      <button
-        onClick={() => setShowScript(!showScript)}
-        className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-400 transition-colors"
-      >
-        {showScript ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-        {showScript ? 'Hide' : 'Show'} setup guide
-      </button>
+      {/* Quick actions */}
+      <div className="flex items-center gap-2">
+        <a
+          href="https://sheets.new"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-blue-500 hover:text-blue-400 underline underline-offset-2 transition-colors"
+        >
+          1. Create a Sheet
+        </a>
+        <span className="text-muted-foreground/30">|</span>
+        <button
+          onClick={onCopyScript}
+          className="text-xs text-blue-500 hover:text-blue-400 underline underline-offset-2 transition-colors flex items-center gap-1"
+        >
+          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          2. Copy Script
+        </button>
+        <span className="text-muted-foreground/30">|</span>
+        <button
+          onClick={() => setShowScript(!showScript)}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {showScript ? 'Hide guide' : 'Full guide'}
+        </button>
+      </div>
 
       {showScript && (
         <div className="space-y-2 rounded-md border p-3 bg-muted/50">
           <ol className="text-[11px] text-muted-foreground space-y-1 list-decimal list-inside">
-            <li>Create a Google Sheet (any name)</li>
-            <li>Open <strong>Extensions &gt; Apps Script</strong></li>
-            <li>Delete default code, paste the script below</li>
+            <li>Click <strong>"Create a Sheet"</strong> above to open a new spreadsheet</li>
+            <li>Click <strong>"Copy Script"</strong> above to copy the Apps Script code</li>
+            <li>In the sheet: <strong>Extensions &gt; Apps Script</strong></li>
+            <li>Delete default code, paste the copied script, save</li>
             <li><strong>Deploy &gt; New deployment &gt; Web App</strong></li>
-            <li>Set: Execute as <strong>Me</strong>, Access <strong>Anyone</strong></li>
+            <li>Execute as <strong>Me</strong>, Access <strong>Anyone</strong>, click Deploy</li>
             <li>Copy the deployment URL and paste below</li>
           </ol>
+          <p className="text-[10px] text-muted-foreground/70">
+            The script auto-creates columns (id, title, description, priority, status, prompt, updatedAt) on first sync.
+          </p>
           <div className="relative">
-            <pre className="text-[10px] bg-background rounded p-2 overflow-auto max-h-48 border font-mono">
+            <pre className="text-[10px] bg-background rounded p-2 overflow-auto max-h-36 border font-mono">
               {APPS_SCRIPT_TEMPLATE}
             </pre>
-            <Button
-              variant="outline"
-              size="sm"
-              className="absolute top-1 right-1 h-6 text-[10px] gap-1"
-              onClick={onCopyScript}
-            >
-              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              {copied ? 'Copied' : 'Copy'}
-            </Button>
           </div>
         </div>
       )}

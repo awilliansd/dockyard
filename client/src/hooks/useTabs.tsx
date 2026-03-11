@@ -15,6 +15,7 @@ interface TabsContextType {
 }
 
 const STORAGE_KEY = 'shipyard-tabs'
+const ACTIVE_TAB_KEY = 'shipyard-active-tab'
 
 function loadTabs(): Tab[] {
   try {
@@ -35,6 +36,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   const location = useLocation()
   const navigate = useNavigate()
   const closedRef = useRef(new Set<string>())
+  const restoredRef = useRef(false)
 
   // Persist tabs to localStorage on change
   useEffect(() => {
@@ -45,6 +47,27 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     const match = location.pathname.match(/^\/project\/(.+)$/)
     return match ? match[1] : null
   }, [location.pathname])
+
+  // Persist active tab ID
+  useEffect(() => {
+    if (activeTabId) {
+      localStorage.setItem(ACTIVE_TAB_KEY, activeTabId)
+    }
+  }, [activeTabId])
+
+  // Restore active tab on initial load
+  useEffect(() => {
+    if (restoredRef.current) return
+    restoredRef.current = true
+
+    // Only restore if we're at home page (fresh load)
+    if (location.pathname !== '/') return
+
+    const savedActiveId = localStorage.getItem(ACTIVE_TAB_KEY)
+    if (savedActiveId && tabs.some(t => t.id === savedActiveId)) {
+      navigate(`/project/${savedActiveId}`, { replace: true })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-add tab when navigating to a project URL directly
   // (skip tabs that were just intentionally closed)

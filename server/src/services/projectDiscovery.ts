@@ -184,6 +184,8 @@ async function buildProject(projectPath: string): Promise<Project> {
     favorite: existing?.favorite || false,
     lastOpenedAt: existing?.lastOpenedAt,
     externalLink: existing?.externalLink,
+    notes: existing?.notes,
+    links: existing?.links,
   };
 }
 

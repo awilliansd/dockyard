@@ -18,6 +18,8 @@ export interface Project {
   favorite: boolean;
   lastOpenedAt?: string;
   externalLink?: string;
+  notes?: string;
+  links?: { label: string; url: string }[];
 }
 
 export interface Task {

@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo } from 'react'
-import { Plus, Inbox, Loader, CheckCircle2, FileSpreadsheet, Copy } from 'lucide-react'
+import { useState, useCallback, useMemo, useRef } from 'react'
+import { Plus, Inbox, Loader, CheckCircle2, FileSpreadsheet, Copy, ArrowUpDown } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -23,7 +23,7 @@ import { TaskViewer } from './TaskViewer'
 import { CsvReviewDialog } from './CsvReviewDialog'
 import { SheetSyncPanel } from './SheetSyncPanel'
 import { SyncPanelExports } from '@/components/sync/SyncPanel'
-import { useTasks, useUpdateTask, useReorderTasks, type Task } from '@/hooks/useTasks'
+import { useTasks, useUpdateTask, useReorderTasks, useCreateTask, type Task } from '@/hooks/useTasks'
 import { tasksToCSV, parseCSV, diffTasks, type CsvDiff } from '@/lib/csv'
 import { buildColumnPrompt } from '@/lib/promptBuilder'
 import { useAutoSync } from '@/hooks/useSheetSync'
@@ -31,6 +31,70 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+
+type SortOption = 'priority' | 'newest' | 'oldest' | 'updated'
+const SORT_OPTIONS: { key: SortOption; label: string }[] = [
+  { key: 'priority', label: 'Priority' },
+  { key: 'newest', label: 'Newest' },
+  { key: 'oldest', label: 'Oldest' },
+  { key: 'updated', label: 'Recently updated' },
+]
+
+function sortTasks(tasks: Task[], sort: SortOption): Task[] {
+  const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 }
+  return [...tasks].sort((a, b) => {
+    switch (sort) {
+      case 'priority': {
+        const pd = priorityOrder[a.priority] - priorityOrder[b.priority]
+        return pd !== 0 ? pd : a.order - b.order
+      }
+      case 'newest':
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      case 'oldest':
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      case 'updated':
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      default:
+        return a.order - b.order
+    }
+  })
+}
+
+function InlineTaskInput({ projectId, status, onClose }: { projectId: string; status: Task['status']; onClose: () => void }) {
+  const [value, setValue] = useState('')
+  const createTask = useCreateTask()
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleSubmit = () => {
+    if (!value.trim()) return
+    createTask.mutate(
+      { projectId, title: value.trim(), description: '', priority: 'medium', status },
+      {
+        onSuccess: () => {
+          toast.success(`Task created: ${value.trim()}`)
+          setValue('')
+          inputRef.current?.focus()
+        },
+      }
+    )
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      autoFocus
+      value={value}
+      onChange={e => setValue(e.target.value)}
+      onKeyDown={e => {
+        if (e.key === 'Enter' && value.trim()) handleSubmit()
+        if (e.key === 'Escape') onClose()
+      }}
+      onBlur={() => { if (!value.trim()) onClose() }}
+      placeholder="Task title... (Enter to add, Esc to cancel)"
+      className="w-full text-xs bg-background border rounded px-2 py-1.5 outline-none focus:ring-1 focus:ring-ring"
+    />
+  )
+}
 
 interface TaskBoardProps {
   projectId: string
@@ -98,7 +162,10 @@ const itemsFirstCollision: CollisionDetection = (args) => {
   return closestCenter(args)
 }
 
-function DroppableColumn({ col, children, count, taskIds, onCopy }: { col: ColumnConfig; children: React.ReactNode; count: number; taskIds: string[]; onCopy?: () => void }) {
+function DroppableColumn({ col, children, count, taskIds, onCopy, projectId, onAddingChange, isAdding }: {
+  col: ColumnConfig; children: React.ReactNode; count: number; taskIds: string[]
+  onCopy?: () => void; projectId?: string; onAddingChange?: (adding: boolean) => void; isAdding?: boolean
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: col.key })
   const Icon = col.icon
 
@@ -130,8 +197,31 @@ function DroppableColumn({ col, children, count, taskIds, onCopy }: { col: Colum
             </TooltipContent>
           </Tooltip>
         )}
+        {projectId && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => onAddingChange?.(!isAdding)}
+                className={cn(
+                  'text-muted-foreground/40 hover:text-foreground transition-colors',
+                  !onCopy || count === 0 ? 'ml-auto' : ''
+                )}
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Quick add task</TooltipContent>
+          </Tooltip>
+        )}
       </div>
       <div className="flex-1 p-2 space-y-2">
+        {isAdding && projectId && (
+          <InlineTaskInput
+            projectId={projectId}
+            status={col.dropStatus}
+            onClose={() => onAddingChange?.(false)}
+          />
+        )}
         <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
           {children}
         </SortableContext>
@@ -183,6 +273,10 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [csvReviewOpen, setCsvReviewOpen] = useState(false)
   const [csvDiff, setCsvDiff] = useState<CsvDiff | null>(null)
+  const [sortBy, setSortBy] = useState<SortOption>(() =>
+    (localStorage.getItem(`shipyard:sort:${projectId}`) as SortOption) || 'priority'
+  )
+  const [addingInColumn, setAddingInColumn] = useState<string | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -245,17 +339,12 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
       else result.inbox.push(task)
     }
 
-    const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 }
     for (const key of Object.keys(result)) {
-      result[key].sort((a, b) => {
-        const pd = priorityOrder[a.priority] - priorityOrder[b.priority]
-        if (pd !== 0) return pd
-        return a.order - b.order
-      })
+      result[key] = sortTasks(result[key], sortBy)
     }
 
     return result
-  }, [tasks])
+  }, [tasks, sortBy])
 
   const findColumnForTask = useCallback((taskId: string): string | undefined => {
     for (const [key, colTasks] of Object.entries(grouped)) {
@@ -362,6 +451,24 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
           <div className="w-px h-4 bg-border mx-0.5" />
           <SheetSyncPanel projectId={projectId} tasks={tasks || []} />
           <div className="w-px h-4 bg-border mx-0.5" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <select
+                value={sortBy}
+                onChange={e => {
+                  const v = e.target.value as SortOption
+                  setSortBy(v)
+                  localStorage.setItem(`shipyard:sort:${projectId}`, v)
+                }}
+                className="h-7 text-xs bg-background border rounded px-1.5 cursor-pointer outline-none"
+              >
+                {SORT_OPTIONS.map(o => (
+                  <option key={o.key} value={o.key}>{o.label}</option>
+                ))}
+              </select>
+            </TooltipTrigger>
+            <TooltipContent>Sort tasks within columns</TooltipContent>
+          </Tooltip>
           <Button size="sm" className="h-7 gap-1 text-xs" onClick={handleNew}>
             <Plus className="h-3.5 w-3.5" />
             New Task
@@ -380,7 +487,13 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
             const colTasks = grouped[col.key] || []
             const taskIds = colTasks.map(t => t.id)
             return (
-              <DroppableColumn key={col.key} col={col} count={colTasks.length} taskIds={taskIds} onCopy={() => handleCopyColumn(col.key)}>
+              <DroppableColumn
+                key={col.key} col={col} count={colTasks.length} taskIds={taskIds}
+                onCopy={() => handleCopyColumn(col.key)}
+                projectId={projectId}
+                isAdding={addingInColumn === col.key}
+                onAddingChange={(adding) => setAddingInColumn(adding ? col.key : null)}
+              >
                 {colTasks.length > 0 ? (
                   colTasks.map(task => (
                     <SortableTaskItem

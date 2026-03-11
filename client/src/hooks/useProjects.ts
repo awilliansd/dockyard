@@ -21,6 +21,8 @@ export interface Project {
   favorite: boolean
   lastOpenedAt?: string
   externalLink?: string
+  notes?: string
+  links?: { label: string; url: string }[]
 }
 
 export function useProjects() {
@@ -47,7 +49,7 @@ export function useRefreshProjects() {
 export function useUpdateProject() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string } & Partial<Pick<Project, 'name' | 'favorite' | 'lastOpenedAt' | 'externalLink'>>) =>
+    mutationFn: ({ id, ...data }: { id: string } & Partial<Pick<Project, 'name' | 'favorite' | 'lastOpenedAt' | 'externalLink' | 'notes' | 'links'>>) =>
       api.updateProject(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCreateTask, useUpdateTask, type Task } from '@/hooks/useTasks'
 import { TaskAnalysisButton } from '@/components/claude/TaskAnalysisButton'
+import { toast } from 'sonner'
 
 interface TaskEditorProps {
   projectId: string
@@ -20,6 +21,10 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
   const [priority, setPriority] = useState<string>('medium')
   const [status, setStatus] = useState<string>('todo')
   const [prompt, setPrompt] = useState('')
+  const [quickCreate, setQuickCreate] = useState(() =>
+    localStorage.getItem('shipyard:quick-create') === 'true'
+  )
+  const titleInputRef = useRef<HTMLInputElement>(null)
 
   const createTask = useCreateTask()
   const updateTask = useUpdateTask()
@@ -40,6 +45,15 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
     }
   }, [task, open])
 
+  const resetForm = () => {
+    setTitle('')
+    setDescription('')
+    setPriority('medium')
+    setStatus('todo')
+    setPrompt('')
+    setTimeout(() => titleInputRef.current?.focus(), 50)
+  }
+
   const handleSave = () => {
     if (!title.trim()) return
 
@@ -51,9 +65,31 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
     } else {
       createTask.mutate(
         { projectId, title, description, priority, status, prompt: prompt || undefined },
-        { onSuccess: () => onOpenChange(false) }
+        {
+          onSuccess: () => {
+            if (quickCreate) {
+              toast.success(`Task created: ${title}`)
+              resetForm()
+            } else {
+              onOpenChange(false)
+            }
+          },
+        }
       )
     }
+  }
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey && title.trim()) {
+      e.preventDefault()
+      handleSave()
+    }
+  }
+
+  const toggleQuickCreate = () => {
+    const next = !quickCreate
+    setQuickCreate(next)
+    localStorage.setItem('shipyard:quick-create', String(next))
   }
 
   return (
@@ -77,8 +113,10 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
               />
             </div>
             <Input
+              ref={titleInputRef}
               value={title}
               onChange={e => setTitle(e.target.value)}
+              onKeyDown={handleTitleKeyDown}
               placeholder="Task title..."
               className="mt-1"
               autoFocus
@@ -135,11 +173,24 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
             />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={!title.trim()}>
-            {task ? 'Save' : 'Create'}
-          </Button>
+        <DialogFooter className="flex items-center justify-between sm:justify-between">
+          {!task && (
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={quickCreate}
+                onChange={toggleQuickCreate}
+                className="rounded border-border"
+              />
+              Quick create
+            </label>
+          )}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button onClick={handleSave} disabled={!title.trim()}>
+              {task ? 'Save' : 'Create'}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Inbox, Loader, CheckCircle2, AlertTriangle, ArrowUp, ArrowDown, Minus, Search } from 'lucide-react'
+import { Inbox, Loader, CheckCircle2, AlertTriangle, ArrowUp, ArrowDown, Minus, Search, ArrowUpDown } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -57,6 +57,34 @@ const itemsFirstCollision: CollisionDetection = (args) => {
     return pointerCollisions.filter(c => COLUMN_KEYS.has(c.id as string))
   }
   return closestCenter(args)
+}
+
+type SortOption = 'priority' | 'newest' | 'oldest' | 'updated'
+const SORT_OPTIONS: { key: SortOption; label: string }[] = [
+  { key: 'priority', label: 'Priority' },
+  { key: 'newest', label: 'Newest' },
+  { key: 'oldest', label: 'Oldest' },
+  { key: 'updated', label: 'Recently updated' },
+]
+
+function sortTasks(tasks: Task[], sort: SortOption): Task[] {
+  const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 }
+  return [...tasks].sort((a, b) => {
+    switch (sort) {
+      case 'priority': {
+        const pd = priorityOrder[a.priority] - priorityOrder[b.priority]
+        return pd !== 0 ? pd : a.order - b.order
+      }
+      case 'newest':
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      case 'oldest':
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      case 'updated':
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      default:
+        return a.order - b.order
+    }
+  })
 }
 
 type Priority = Task['priority']
@@ -145,6 +173,9 @@ export function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [viewerOpen, setViewerOpen] = useState(false)
   const [viewingTask, setViewingTask] = useState<Task | null>(null)
+  const [sortBy, setSortBy] = useState<SortOption>(() =>
+    (localStorage.getItem('shipyard:sort:global') as SortOption) || 'priority'
+  )
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -191,17 +222,12 @@ export function TasksPage() {
       else result.inbox.push(task)
     }
 
-    const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 }
     for (const key of Object.keys(result)) {
-      result[key].sort((a, b) => {
-        const pd = priorityOrder[a.priority] - priorityOrder[b.priority]
-        if (pd !== 0) return pd
-        return a.order - b.order
-      })
+      result[key] = sortTasks(result[key], sortBy)
     }
 
     return result
-  }, [filteredTasks])
+  }, [filteredTasks, sortBy])
 
   const findColumnForTask = useCallback((taskId: string): string | undefined => {
     for (const [key, colTasks] of Object.entries(grouped)) {
@@ -289,6 +315,19 @@ export function TasksPage() {
               )
             })}
           </div>
+          <select
+            value={sortBy}
+            onChange={e => {
+              const v = e.target.value as SortOption
+              setSortBy(v)
+              localStorage.setItem('shipyard:sort:global', v)
+            }}
+            className="h-8 text-xs bg-background border rounded px-1.5 cursor-pointer outline-none"
+          >
+            {SORT_OPTIONS.map(o => (
+              <option key={o.key} value={o.key}>{o.label}</option>
+            ))}
+          </select>
           {hasFilters && (
             <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setSearch(''); setPriorityFilters(new Set()) }}>
               Clear

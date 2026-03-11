@@ -12,7 +12,7 @@ export async function projectRoutes(app: FastifyInstance) {
     return { projects };
   });
 
-  app.patch<{ Params: { id: string }; Body: { name?: string; favorite?: boolean; lastOpenedAt?: string; externalLink?: string } }>(
+  app.patch<{ Params: { id: string }; Body: { name?: string; favorite?: boolean; lastOpenedAt?: string; externalLink?: string; notes?: string; links?: { label: string; url: string }[] } }>(
     '/api/projects/:id',
     async (request, reply) => {
       const { id } = request.params;

@@ -63,6 +63,9 @@ export async function createSession(
     ...process.env as Record<string, string>,
     TERM: 'xterm-256color',
     COLORTERM: 'truecolor',
+    HISTSIZE: '10000',
+    HISTFILESIZE: '20000',
+    HISTCONTROL: 'ignoredups:erasedups',
   };
 
   // Build initial command based on type
@@ -82,8 +85,8 @@ export async function createSession(
       initialCommand = await detectDevCommand(projectPath);
     }
   } else {
-    // Linux/macOS: use login shell
-    shellArgs = ['-l'];
+    // Linux/macOS: interactive login shell (enables readline + history)
+    shellArgs = ['-il'];
     if (type === 'claude') {
       initialCommand = 'claude';
     } else if (type === 'claude-yolo') {
