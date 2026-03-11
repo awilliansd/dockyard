@@ -8,9 +8,11 @@ import type { Task } from '@/hooks/useTasks'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 
-const APPS_SCRIPT_TEMPLATE = `// Shipyard Sync — Cole este script no Google Apps Script
+const APPS_SCRIPT_TEMPLATE = `// Shipyard Sync — Paste this script in Google Apps Script
 // Deploy > New deployment > Web App
 // Execute as: Me | Access: Anyone
+//
+// Works with plain sheets AND Google Sheets "Table" format.
 
 const HEADERS = ['id', 'title', 'description', 'priority', 'status', 'prompt', 'updatedAt'];
 
@@ -43,13 +45,28 @@ function doPost(e) {
     var tasks = payload.tasks || [];
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
 
-    sheet.clear();
-    sheet.appendRow(HEADERS);
-
+    // Build all rows: header + data
+    var allRows = [HEADERS];
     for (var i = 0; i < tasks.length; i++) {
       var t = tasks[i];
-      sheet.appendRow(HEADERS.map(function(h) { return t[h] || ''; }));
+      allRows.push(HEADERS.map(function(h) { return t[h] || ''; }));
     }
+
+    // Clear content only (preserves Table formatting and structure)
+    var lastRow = sheet.getLastRow();
+    var lastCol = sheet.getLastColumn();
+    if (lastRow > 0 && lastCol > 0) {
+      sheet.getRange(1, 1, lastRow, Math.max(lastCol, HEADERS.length)).clearContent();
+    }
+
+    // Delete extra rows if sheet has more rows than we need
+    var totalRows = sheet.getMaxRows();
+    if (totalRows > allRows.length + 1) {
+      sheet.deleteRows(allRows.length + 1, totalRows - allRows.length);
+    }
+
+    // Write all data in-place (overwrites header + data without adding rows)
+    sheet.getRange(1, 1, allRows.length, HEADERS.length).setValues(allRows);
 
     if (HEADERS.length > 0) sheet.autoResizeColumns(1, HEADERS.length);
     return jsonResp({ success: true, updated: tasks.length });
