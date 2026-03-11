@@ -22,7 +22,8 @@
         "tailwind",
         "typescript"
       ],
-      "favorite": false
+      "favorite": false,
+      "lastOpenedAt": "2026-03-11T02:00:36.724Z"
     },
     {
       "id": "carbontrack",
@@ -111,11 +112,11 @@
       "isGitRepo": true,
       "gitBranch": "main",
       "gitDirty": true,
-      "gitAhead": 3,
+      "gitAhead": 0,
       "gitBehind": 0,
-      "gitStaged": 0,
+      "gitStaged": 9,
       "gitUnstaged": 0,
-      "gitUntracked": 9,
+      "gitUntracked": 0,
       "lastCommitDate": "2026-03-09T10:30:25-03:00",
       "lastCommitMessage": "chore(results): updated posts with refined filters",
       "gitRemoteUrl": "https://github.com/defremont/xcrapper",
@@ -132,14 +133,14 @@
       "category": "2026",
       "isGitRepo": true,
       "gitBranch": "main",
-      "gitDirty": true,
-      "gitAhead": 0,
+      "gitDirty": false,
+      "gitAhead": 1,
       "gitBehind": 0,
       "gitStaged": 0,
-      "gitUnstaged": 8,
+      "gitUnstaged": 0,
       "gitUntracked": 0,
-      "lastCommitDate": "2026-03-05T21:06:30-03:00",
-      "lastCommitMessage": "feat(admin): added admin dashboard with user management",
+      "lastCommitDate": "2026-03-11T00:30:53-03:00",
+      "lastCommitMessage": "feat: separação sistema vs personalizado no frontend + fatores de impacto dual mode",
       "gitRemoteUrl": "https://github.com/Amachains/smartlca",
       "techStack": [
         "react",
@@ -230,7 +231,7 @@
         "typescript"
       ],
       "favorite": true,
-      "lastOpenedAt": "2026-03-10T03:36:36.444Z",
+      "lastOpenedAt": "2026-03-11T02:40:35.792Z",
       "externalLink": "https://docs.google.com/spreadsheets/d/1PNmq7dU3EjCGd9eovuHc0d3S_URKreg0yCujpmij240/edit?gid=414093864#gid=414093864"
     },
     {
@@ -241,23 +242,24 @@
       "isGitRepo": true,
       "gitBranch": "main",
       "gitDirty": true,
-      "gitAhead": 1,
+      "gitAhead": 4,
       "gitBehind": 0,
-      "gitStaged": 15,
-      "gitUnstaged": 19,
-      "gitUntracked": 2,
-      "lastCommitDate": "2026-03-10T14:25:45-03:00",
-      "lastCommitMessage": "Update project cache timestamps",
+      "gitStaged": 0,
+      "gitUnstaged": 10,
+      "gitUntracked": 3,
+      "lastCommitDate": "2026-03-11T00:01:25-03:00",
+      "lastCommitMessage": "feat: add Electron wrapper for desktop app distribution",
       "gitRemoteUrl": "https://github.com/defremont/vibedash",
       "techStack": [
         "react",
         "vite",
         "tailwind",
         "typescript",
-        "fastify"
+        "fastify",
+        "electron"
       ],
       "favorite": true,
-      "lastOpenedAt": "2026-03-10T23:38:28.085Z"
+      "lastOpenedAt": "2026-03-11T04:06:09.411Z"
     },
     {
       "id": "financeiro",
@@ -269,5 +271,5 @@
       "favorite": false
     }
   ],
-  "lastScannedAt": "2026-03-11T01:56:36.852Z"
+  "lastScannedAt": "2026-03-11T03:47:06.859Z"
 }

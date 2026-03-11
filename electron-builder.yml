@@ -6,23 +6,33 @@ directories:
   output: release
   buildResources: assets
 
+# Include compiled server, built client, and electron main
 files:
   - electron/dist/**/*
-  - server/src/**/*
+  - server/dist/**/*
   - server/package.json
   - client/dist/**/*
-  - data/**/*
-  - "!data/tasks/**"
-  - "!data/projects.json"
-  - node_modules/**/*
   - package.json
+  - "!**/node_modules/**"
 
+# Server deps installed separately via beforePack
 extraResources:
   - from: assets/icon.png
     to: icon.png
 
+# Don't use asar for easier debugging and native module compat
 asar: true
+asarUnpack:
+  - "**/*.node"
+  - "**/node-pty/**"
+
 compression: maximum
+
+# Don't rebuild native modules for Electron (server runs as child process)
+npmRebuild: false
+
+# Install production deps after packaging (pnpm symlinks don't survive asar)
+afterPack: ./electron/afterPack.js
 
 win:
   target:
@@ -67,11 +77,13 @@ linux:
   icon: assets/icon.png
   category: Development
   artifactName: "${productName}-${version}.${ext}"
+  executableName: shipyard
   desktop:
-    Name: Shipyard
-    Comment: Local Development Dashboard
-    Categories: Development;IDE;
-    StartupWMClass: shipyard
+    entry:
+      Name: Shipyard
+      Comment: Local Development Dashboard
+      Categories: Development;IDE;
+      StartupWMClass: shipyard
 
 appImage:
   license: LICENSE

@@ -1,6 +1,8 @@
 {
   "name": "shipyard",
   "version": "1.0.0",
+  "description": "Local development dashboard for managing projects, tasks, git, and terminals",
+  "author": "Shipyard",
   "private": true,
   "main": "electron/dist/main.js",
   "scripts": {
