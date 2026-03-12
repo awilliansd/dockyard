@@ -36,19 +36,33 @@ export interface RunPromptOptions {
   cwd?: string;
 }
 
-export async function runPrompt(prompt: string, options?: RunPromptOptions): Promise<string> {
-  // Always pipe prompt via stdin to avoid Windows command line length limits (~8KB).
-  // claude -p reads from stdin when no prompt argument is given.
+function buildCliArgs(options?: RunPromptOptions): string[] {
   const args = ['-p'];
-
   if (options?.model) args.push('--model', options.model);
   if (options?.maxTurns) args.push('--max-turns', String(options.maxTurns));
   if (options?.outputFormat) args.push('--output-format', options.outputFormat);
   args.push('--no-session-persistence');
+  return args;
+}
 
+function buildCliEnv(): NodeJS.ProcessEnv {
   // Remove ANTHROPIC_API_KEY to force subscription usage
   const env = { ...process.env };
   delete env.ANTHROPIC_API_KEY;
+  return env;
+}
+
+function buildStdinContent(prompt: string, input?: string): string {
+  return input ? `${prompt}\n\n${input}` : prompt;
+}
+
+/**
+ * Run a prompt and return the full response. Uses activity-based timeout
+ * that resets whenever the CLI produces output (stdout or stderr).
+ */
+export async function runPrompt(prompt: string, options?: RunPromptOptions): Promise<string> {
+  const args = buildCliArgs(options);
+  const env = buildCliEnv();
 
   return new Promise<string>((resolve, reject) => {
     const proc = spawn('claude', args, {
@@ -60,14 +74,21 @@ export async function runPrompt(prompt: string, options?: RunPromptOptions): Pro
 
     let stdout = '';
     let stderr = '';
-    const timeout = options?.timeout ?? 30_000;
-    const timer = setTimeout(() => {
-      proc.kill();
-      reject(new Error('Claude CLI timed out'));
-    }, timeout);
+    const timeout = options?.timeout ?? 60_000;
 
-    proc.stdout.on('data', (data: Buffer) => { stdout += data.toString(); });
-    proc.stderr.on('data', (data: Buffer) => { stderr += data.toString(); });
+    // Activity-based timeout: resets on every stdout/stderr chunk
+    let timer: NodeJS.Timeout;
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        proc.kill();
+        reject(new Error(`Claude CLI timed out (no output for ${Math.round(timeout / 1000)}s)`));
+      }, timeout);
+    };
+    resetTimer();
+
+    proc.stdout.on('data', (data: Buffer) => { stdout += data.toString(); resetTimer(); });
+    proc.stderr.on('data', (data: Buffer) => { stderr += data.toString(); resetTimer(); });
     proc.on('close', (code) => {
       clearTimeout(timer);
       if (code === 0) {
@@ -82,10 +103,72 @@ export async function runPrompt(prompt: string, options?: RunPromptOptions): Pro
     });
 
     // Pipe prompt (+ optional input) via stdin
-    const stdinContent = options?.input
-      ? `${prompt}\n\n${options.input}`
-      : prompt;
-    proc.stdin.write(stdinContent);
+    proc.stdin.write(buildStdinContent(prompt, options?.input));
     proc.stdin.end();
   });
+}
+
+/**
+ * Stream a prompt response chunk-by-chunk via async generator.
+ * Each yield is a text fragment from stdout as it arrives.
+ * Uses activity-based timeout that resets on each chunk.
+ */
+export async function* streamPrompt(prompt: string, options?: RunPromptOptions): AsyncGenerator<string> {
+  const args = buildCliArgs(options);
+  const env = buildCliEnv();
+
+  const proc = spawn('claude', args, {
+    env,
+    cwd: options?.cwd,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    windowsHide: true,
+  });
+
+  // Pipe prompt via stdin
+  proc.stdin.write(buildStdinContent(prompt, options?.input));
+  proc.stdin.end();
+
+  const activityTimeout = options?.timeout ?? 120_000;
+  let timedOut = false;
+  let timer: NodeJS.Timeout = null as unknown as NodeJS.Timeout;
+
+  const resetTimer = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      timedOut = true;
+      proc.kill();
+    }, activityTimeout);
+  };
+
+  resetTimer();
+
+  let stderr = '';
+  proc.stderr.on('data', (data: Buffer) => {
+    stderr += data.toString();
+    resetTimer();
+  });
+
+  try {
+    // Node readable streams are async iterable — yields Buffer chunks as they arrive
+    for await (const chunk of proc.stdout) {
+      resetTimer();
+      yield chunk.toString();
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (timedOut) {
+    throw new Error(`Claude CLI timed out (no output for ${Math.round(activityTimeout / 1000)}s)`);
+  }
+
+  // Wait for process to fully close
+  const code = await new Promise<number | null>((resolve) => {
+    if (proc.exitCode !== null) resolve(proc.exitCode);
+    else proc.on('close', resolve);
+  });
+
+  if (code !== 0) {
+    throw new Error(stderr.trim() || `Claude CLI exited with code ${code}`);
+  }
 }

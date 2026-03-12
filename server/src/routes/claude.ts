@@ -121,7 +121,7 @@ export async function claudeRoutes(app: FastifyInstance) {
       return;
     }
 
-    // CLI fallback — single-turn, non-streaming
+    // CLI fallback — streaming via stdout chunks
     if (cliOk) {
       reply.raw.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -145,14 +145,16 @@ export async function claudeRoutes(app: FastifyInstance) {
 
         const fullPrompt = `${systemPrompt}\n\n${conversationParts.join('\n')}`;
         const cwd = projectId ? await getProjectPath(projectId) : undefined;
-        const result = await claudeCliService.runPrompt(fullPrompt, {
+
+        for await (const chunk of claudeCliService.streamPrompt(fullPrompt, {
           model: 'sonnet',
           maxTurns: 1,
           timeout: 120000,
           cwd,
-        });
+        })) {
+          reply.raw.write(`data: ${JSON.stringify({ type: 'text', text: chunk })}\n\n`);
+        }
 
-        reply.raw.write(`data: ${JSON.stringify({ type: 'text', text: result })}\n\n`);
         reply.raw.write(`data: ${JSON.stringify({ type: 'done', source: 'cli' })}\n\n`);
       } catch (err: any) {
         reply.raw.write(`data: ${JSON.stringify({ type: 'error', error: err.message || 'CLI failed' })}\n\n`);
