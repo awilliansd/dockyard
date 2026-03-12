@@ -267,47 +267,4 @@ Respond ONLY with valid JSON array, no markdown fences. Example:
     return { tasks };
   });
 
-  // Summarize project tasks — CLI-first, API fallback
-  app.post<{
-    Body: { projectId: string }
-  }>('/api/claude/summarize', async (request, reply) => {
-    const { projectId } = request.body;
-    const tasks = await taskStore.getTasks(projectId);
-    const projects = await getProjects();
-    const project = projects.find(p => p.id === projectId);
-    const projectName = project?.name || projectId;
-
-    const taskList = tasks.map(t => `- [${t.status}] (${t.priority}) ${t.title}: ${t.description}`).join('\n');
-    const prompt = `Summarize the current state of tasks for project "${projectName}". Be concise and actionable. Highlight priorities and blockers.\n\nTasks:\n${taskList}`;
-
-    // Try CLI first
-    const cliOk = await claudeCliService.getCliStatus();
-    if (cliOk) {
-      try {
-        const result = await claudeCliService.runPrompt(prompt, {
-          model: 'sonnet',
-          maxTurns: 1,
-          timeout: 60000,
-          cwd: project?.path,
-        });
-        return { summary: result };
-      } catch {
-        // Fall through to API
-      }
-    }
-
-    // Fallback to API
-    const config = await claudeService.loadClaudeConfig();
-    if (!config) {
-      return reply.status(400).send({ error: 'No AI available. Install Claude CLI or configure API key.' });
-    }
-
-    const summary = await claudeService.summarizeTasks(
-      config,
-      projectName,
-      tasks.map(t => ({ title: t.title, status: t.status, priority: t.priority, description: t.description })),
-    );
-
-    return { summary };
-  });
 }

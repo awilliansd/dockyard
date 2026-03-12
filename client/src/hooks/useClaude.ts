@@ -43,12 +43,6 @@ export function useAnalyzeTask() {
   })
 }
 
-export function useSummarizeTasks() {
-  return useMutation({
-    mutationFn: (projectId: string) => api.summarizeTasks(projectId),
-  })
-}
-
 // SSE streaming chat
 export interface ChatMessage {
   role: 'user' | 'assistant'

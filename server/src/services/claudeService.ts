@@ -175,21 +175,3 @@ Respond ONLY with valid JSON array, no markdown fences. Example:
   }
 }
 
-export async function summarizeTasks(
-  config: ClaudeConfig,
-  projectName: string,
-  tasks: Array<{ title: string; status: string; priority: string; description: string }>,
-): Promise<string> {
-  const client = createClient(config);
-
-  const taskList = tasks.map(t => `- [${t.status}] (${t.priority}) ${t.title}: ${t.description}`).join('\n');
-
-  const response = await client.messages.create({
-    model: config.model,
-    max_tokens: 1024,
-    system: `Summarize the current state of tasks for project "${projectName}". Be concise and actionable. Highlight priorities and blockers.`,
-    messages: [{ role: 'user', content: `Tasks:\n${taskList}` }],
-  });
-
-  return response.content[0].type === 'text' ? response.content[0].text : '';
-}

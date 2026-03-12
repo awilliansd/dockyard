@@ -1,5 +1,4 @@
-import { readdir, readFile } from 'fs/promises';
-import { join } from 'path';
+import { readdir } from 'fs/promises';
 import { getProjects } from './projectDiscovery.js';
 import * as taskStore from './taskStore.js';
 import * as gitService from './gitService.js';
@@ -32,33 +31,25 @@ export async function buildProjectContext(projectId: string): Promise<string> {
     } catch {}
   }
 
-  // Tasks
+  // Tasks — only active tasks (skip done to save tokens)
   const tasks = await taskStore.getTasks(projectId);
-  if (tasks.length > 0) {
-    parts.push('\nCurrent Tasks:');
-    const grouped = {
-      in_progress: tasks.filter(t => t.status === 'in_progress'),
-      todo: tasks.filter(t => t.status === 'todo' || t.status === 'backlog'),
-      done: tasks.filter(t => t.status === 'done').slice(-5),
-    };
+  const activeTasks = tasks.filter(t => t.status !== 'done');
+  if (activeTasks.length > 0) {
+    parts.push('\nActive Tasks:');
+    const inProgress = activeTasks.filter(t => t.status === 'in_progress');
+    const inbox = activeTasks.filter(t => t.status === 'todo' || t.status === 'backlog');
 
-    if (grouped.in_progress.length > 0) {
+    if (inProgress.length > 0) {
       parts.push('  In Progress:');
-      for (const t of grouped.in_progress) {
+      for (const t of inProgress) {
         parts.push(`    - [${t.priority}] ${t.title}`);
         if (t.description) parts.push(`      ${t.description.slice(0, 200)}`);
       }
     }
-    if (grouped.todo.length > 0) {
+    if (inbox.length > 0) {
       parts.push('  Inbox:');
-      for (const t of grouped.todo.slice(0, 10)) {
+      for (const t of inbox.slice(0, 10)) {
         parts.push(`    - [${t.priority}] ${t.title}`);
-      }
-    }
-    if (grouped.done.length > 0) {
-      parts.push('  Recently Done:');
-      for (const t of grouped.done) {
-        parts.push(`    - ${t.title}`);
       }
     }
   }
