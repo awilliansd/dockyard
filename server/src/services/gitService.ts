@@ -1,4 +1,6 @@
 import { simpleGit, SimpleGit, StatusResult, LogResult } from 'simple-git';
+import path from 'path';
+import { promises as fsp } from 'fs';
 
 function getGit(projectPath: string): SimpleGit {
   return simpleGit(projectPath, {
@@ -77,6 +79,46 @@ export async function getLog(projectPath: string, maxCount = 20): Promise<LogRes
 export async function getBranches(projectPath: string) {
   const git = getGit(projectPath);
   return git.branch();
+}
+
+export async function discardFile(projectPath: string, file: string, type: 'staged' | 'unstaged' | 'untracked'): Promise<void> {
+  const git = getGit(projectPath);
+  if (type === 'staged') {
+    try {
+      await git.checkout(['HEAD', '--', file]);
+    } catch {
+      // New file not in HEAD — just unstage (leaves as untracked)
+      await git.reset(['HEAD', '--', file]);
+    }
+  } else if (type === 'unstaged') {
+    await git.checkout(['--', file]);
+  } else {
+    // untracked — delete the file or directory
+    const fullPath = path.resolve(projectPath, file);
+    if (!fullPath.startsWith(path.resolve(projectPath))) {
+      throw new Error('Invalid path');
+    }
+    const stat = await fsp.stat(fullPath);
+    if (stat.isDirectory()) {
+      await fsp.rm(fullPath, { recursive: true });
+    } else {
+      await fsp.unlink(fullPath);
+    }
+  }
+}
+
+export async function discardAll(projectPath: string, section: 'staged' | 'unstaged'): Promise<void> {
+  const git = getGit(projectPath);
+  if (section === 'staged') {
+    try {
+      await git.checkout(['HEAD', '--', '.']);
+    } catch {
+      // Initial commit (no HEAD) — just unstage
+      try { await git.reset(['HEAD']); } catch { /* ignore */ }
+    }
+  } else {
+    await git.checkout(['--', '.']);
+  }
 }
 
 export async function getMainBranchLastCommit(projectPath: string): Promise<{ hash: string; message: string; date: string; author_name: string; isMerged: boolean } | null> {

@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { GitBranch, RefreshCw, Upload, Download, ChevronDown, ChevronRight, GitCommit, ArrowUp, ArrowDown } from 'lucide-react'
+import { GitBranch, RefreshCw, Upload, Download, ChevronDown, ChevronRight, GitCommit, ArrowUp, ArrowDown, Trash2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { FileChange } from './FileChange'
 import { CommitForm } from './CommitForm'
-import { useGitStatus, useGitLog, useGitMainCommit, useStageAll, useUnstageAll, useGitPush, useGitPull } from '@/hooks/useGit'
+import { useGitStatus, useGitLog, useGitMainCommit, useStageAll, useUnstageAll, useGitPush, useGitPull, useDiscardAll } from '@/hooks/useGit'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -21,8 +21,10 @@ export function GitPanel({ projectId }: GitPanelProps) {
   const unstageAll = useUnstageAll()
   const gitPush = useGitPush()
   const gitPull = useGitPull()
+  const discardAll = useDiscardAll()
   const [stagedOpen, setStagedOpen] = useState(false)
   const [unstagedOpen, setUnstagedOpen] = useState(false)
+  const [confirmDiscard, setConfirmDiscard] = useState<'staged' | 'unstaged' | null>(null)
 
   if (isLoading || !status) {
     return <div className="text-sm text-muted-foreground p-4">Loading git status...</div>
@@ -142,9 +144,31 @@ export function GitPanel({ projectId }: GitPanelProps) {
               {stagedOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
               Staged ({stagedFiles.length})
             </button>
-            <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => unstageAll.mutate(projectId)}>
-              Unstage All
-            </Button>
+            {confirmDiscard === 'staged' ? (
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-red-400">Discard all?</span>
+                <Button variant="ghost" size="sm" className="h-5 text-[9px] text-red-400 hover:text-red-300 px-1.5"
+                  onClick={() => discardAll.mutate({ projectId, section: 'staged' }, {
+                    onSuccess: () => { setConfirmDiscard(null); toast.success('Staged changes discarded') },
+                    onError: (err) => { setConfirmDiscard(null); toast.error(err.message) },
+                  })}>
+                  Yes
+                </Button>
+                <Button variant="ghost" size="sm" className="h-5 text-[9px] px-1.5" onClick={() => setConfirmDiscard(null)}>
+                  No
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => unstageAll.mutate(projectId)}>
+                  Unstage All
+                </Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/50 hover:text-red-400"
+                  title="Discard all staged changes" onClick={() => setConfirmDiscard('staged')}>
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
           </div>
           {stagedOpen && (
             <div className="space-y-1">
@@ -167,9 +191,31 @@ export function GitPanel({ projectId }: GitPanelProps) {
               {unstagedOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
               Changes ({unstagedFiles.length})
             </button>
-            <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => stageAll.mutate(projectId)}>
-              Stage All
-            </Button>
+            {confirmDiscard === 'unstaged' ? (
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-red-400">Discard all?</span>
+                <Button variant="ghost" size="sm" className="h-5 text-[9px] text-red-400 hover:text-red-300 px-1.5"
+                  onClick={() => discardAll.mutate({ projectId, section: 'unstaged' }, {
+                    onSuccess: () => { setConfirmDiscard(null); toast.success('Changes discarded') },
+                    onError: (err) => { setConfirmDiscard(null); toast.error(err.message) },
+                  })}>
+                  Yes
+                </Button>
+                <Button variant="ghost" size="sm" className="h-5 text-[9px] px-1.5" onClick={() => setConfirmDiscard(null)}>
+                  No
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => stageAll.mutate(projectId)}>
+                  Stage All
+                </Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/50 hover:text-red-400"
+                  title="Discard all unstaged changes" onClick={() => setConfirmDiscard('unstaged')}>
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
           </div>
           {unstagedOpen && (
             <div className="space-y-1">

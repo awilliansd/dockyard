@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Plus, Minus, Eye, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Minus, Eye, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { useStageFile, useUnstageFile, useGitDiff } from '@/hooks/useGit'
+import { useStageFile, useUnstageFile, useGitDiff, useDiscardFile } from '@/hooks/useGit'
 import { FileIcon } from '@/components/files/FileIcon'
 import { FilePreviewDialog } from '@/components/files/FilePreviewDialog'
 
@@ -18,6 +18,7 @@ export function FileChange({ projectId, file, status, staged }: FileChangeProps)
   const [previewPath, setPreviewPath] = useState<string | null>(null)
   const stageFile = useStageFile()
   const unstageFile = useUnstageFile()
+  const discardFile = useDiscardFile()
   const { data: diffData } = useGitDiff(showDiff ? projectId : undefined, file)
 
   const statusColors: Record<string, string> = {
@@ -80,6 +81,19 @@ export function FileChange({ projectId, file, status, staged }: FileChangeProps)
             <Plus className="h-3 w-3" />
           </Button>
         )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn('h-6 w-6 shrink-0 text-muted-foreground/50 hover:text-red-400', status === '?' && 'hover:text-red-500')}
+          title={status === '?' ? 'Delete file' : 'Discard changes'}
+          onClick={() => {
+            const type = staged ? 'staged' : status === '?' ? 'untracked' : 'unstaged'
+            if (type === 'untracked' && !window.confirm(`Delete untracked file "${file}"?\nThis cannot be undone.`)) return
+            discardFile.mutate({ projectId, file, type })
+          }}
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
       </div>
       <FilePreviewDialog projectId={projectId} filePath={previewPath} onClose={() => setPreviewPath(null)} />
       {showDiff && diffData?.diff && (

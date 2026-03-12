@@ -118,3 +118,25 @@ export function useGitPull() {
     },
   })
 }
+
+export function useDiscardFile() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ projectId, file, type }: { projectId: string; file: string; type: 'staged' | 'unstaged' | 'untracked' }) =>
+      api.discardFile(projectId, file, type),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['git-status', variables.projectId] })
+    },
+  })
+}
+
+export function useDiscardAll() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ projectId, section }: { projectId: string; section: 'staged' | 'unstaged' }) =>
+      api.discardAll(projectId, section),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['git-status', variables.projectId] })
+    },
+  })
+}

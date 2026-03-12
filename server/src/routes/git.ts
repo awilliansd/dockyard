@@ -169,6 +169,34 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
+  app.post<{ Params: { projectId: string }; Body: { file: string; type: 'staged' | 'unstaged' | 'untracked' } }>(
+    '/api/projects/:projectId/git/discard',
+    async (request, reply) => {
+      const path = await getProjectPath(request.params.projectId);
+      if (!path) return reply.status(404).send({ error: 'Project not found' });
+      try {
+        await gitService.discardFile(path, request.body.file, request.body.type);
+        return { success: true };
+      } catch (err: any) {
+        return reply.status(500).send({ error: err.message });
+      }
+    }
+  );
+
+  app.post<{ Params: { projectId: string }; Body: { section: 'staged' | 'unstaged' } }>(
+    '/api/projects/:projectId/git/discard-all',
+    async (request, reply) => {
+      const path = await getProjectPath(request.params.projectId);
+      if (!path) return reply.status(404).send({ error: 'Project not found' });
+      try {
+        await gitService.discardAll(path, request.body.section);
+        return { success: true };
+      } catch (err: any) {
+        return reply.status(500).send({ error: err.message });
+      }
+    }
+  );
+
   app.get<{ Params: { projectId: string } }>(
     '/api/projects/:projectId/git/main-commit',
     async (request, reply) => {

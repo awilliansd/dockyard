@@ -270,6 +270,8 @@ interface McpConfig {
 - `POST /api/projects/:id/git/pull` - Pull
 - `GET /api/projects/:id/git/log` - Ultimos commits
 - `GET /api/projects/:id/git/branches` - Branches
+- `POST /api/projects/:id/git/discard` - Discard file changes { file, type: 'staged'|'unstaged'|'untracked' }
+- `POST /api/projects/:id/git/discard-all` - Discard all changes in section { section: 'staged'|'unstaged' }
 
 ### Terminais (nativos)
 - `POST /api/terminals/launch` - Abre terminal nativo { projectId, type } com titulo `[project] Type`

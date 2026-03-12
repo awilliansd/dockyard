@@ -57,6 +57,10 @@ export const api = {
   getGitLog: (projectId: string) => request<any>(`/projects/${projectId}/git/log`),
   getGitBranches: (projectId: string) => request<any>(`/projects/${projectId}/git/branches`),
   getGitMainCommit: (projectId: string) => request<{ commit: { hash: string; message: string; date: string; author_name: string; isMerged: boolean } | null }>(`/projects/${projectId}/git/main-commit`),
+  discardFile: (projectId: string, file: string, type: 'staged' | 'unstaged' | 'untracked') =>
+    request(`/projects/${projectId}/git/discard`, { method: 'POST', body: JSON.stringify({ file, type }) }),
+  discardAll: (projectId: string, section: 'staged' | 'unstaged') =>
+    request(`/projects/${projectId}/git/discard-all`, { method: 'POST', body: JSON.stringify({ section }) }),
 
   // Terminals (native launchers)
   launchTerminal: (projectId: string, type: string) => request('/terminals/launch', { method: 'POST', body: JSON.stringify({ projectId, type }) }),
