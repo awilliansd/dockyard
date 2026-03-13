@@ -526,7 +526,7 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
           })}
         </div>
 
-        <DragOverlay>
+        <DragOverlay dropAnimation={null}>
           {activeTask && (
             <div className="opacity-90 rotate-2">
               <TaskItem task={activeTask} onEdit={() => {}} />

@@ -367,7 +367,7 @@ export function TasksPage() {
             })}
           </div>
 
-          <DragOverlay>
+          <DragOverlay dropAnimation={null}>
             {activeTask && (
               <div className="opacity-90 rotate-2 max-w-sm">
                 <TaskItem

@@ -123,6 +123,10 @@ export async function terminalWsRoutes(app: FastifyInstance) {
             case 'input':
               session.pty.write(msg.data);
               break;
+            case 'binary':
+              // Binary data from TUI apps (mouse reports, etc.)
+              session.pty.write(Buffer.from(msg.data, 'binary'));
+              break;
             case 'resize':
               if (msg.cols && msg.rows) {
                 resizeSession(sessionId, msg.cols, msg.rows);

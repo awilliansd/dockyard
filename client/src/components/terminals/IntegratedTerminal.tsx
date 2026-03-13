@@ -119,6 +119,8 @@ export function IntegratedTerminal({ sessionId, isActive, onExit }: IntegratedTe
     disposedRef.current = false
     reconnectCountRef.current = 0
 
+    const isWindows = navigator.platform?.startsWith('Win') || navigator.userAgent.includes('Windows')
+
     const term = new Terminal({
       theme: TERMINAL_THEME,
       fontFamily: "'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace",
@@ -128,6 +130,9 @@ export function IntegratedTerminal({ sessionId, isActive, onExit }: IntegratedTe
       cursorStyle: 'bar',
       scrollback: 10000,
       allowProposedApi: true,
+      // Tell xterm.js about the ConPTY backend so it can optimize escape
+      // sequence handling (arrow keys, cursor movement, line wrapping)
+      ...(isWindows && { windowsPty: { backend: 'conpty' as const } }),
     })
 
     const fitAddon = new FitAddon()
@@ -187,6 +192,14 @@ export function IntegratedTerminal({ sessionId, isActive, onExit }: IntegratedTe
       }
     })
 
+    // Forward binary data (some TUI apps like Claude CLI use non-UTF8 mouse
+    // reports and other binary escape sequences for interactive prompts)
+    const binaryDisposable = term.onBinary((data) => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'binary', data }))
+      }
+    })
+
     // Connect WebSocket
     connectWs()
 
@@ -195,6 +208,7 @@ export function IntegratedTerminal({ sessionId, isActive, onExit }: IntegratedTe
       cancelAnimationFrame(rafId)
       clearTimeout(reconnectTimerRef.current)
       dataDisposable.dispose()
+      binaryDisposable.dispose()
       if (wsRef.current) {
         const ws = wsRef.current
         wsRef.current = null

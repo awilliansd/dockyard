@@ -31,7 +31,10 @@ export function isAvailable(): boolean {
 
 function getDefaultShell(): string {
   if (os === 'win32') {
-    return process.env.COMSPEC || 'powershell.exe';
+    // PowerShell has PSReadLine (arrow-key history, autocomplete) and much
+    // better ConPTY support than cmd.exe.  COMSPEC points to cmd.exe which
+    // doesn't handle escape sequences well through ConPTY.
+    return 'powershell.exe';
   }
   return process.env.SHELL || '/bin/bash';
 }
@@ -73,8 +76,8 @@ export async function createSession(
   let initialCommand: string | null = null;
 
   if (os === 'win32') {
-    // Windows: use powershell
-    shellArgs = [];
+    // Windows: PowerShell with -NoLogo for cleaner startup
+    shellArgs = ['-NoLogo'];
     if (type === 'claude') {
       env['CLAUDECODE'] = '';
       initialCommand = 'claude';

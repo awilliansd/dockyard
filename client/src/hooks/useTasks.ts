@@ -59,7 +59,36 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({ projectId, taskId, ...data }: { projectId: string; taskId: string; [key: string]: any }) =>
       api.updateTask(projectId, taskId, data),
-    onSuccess: (_, variables) => {
+    onMutate: async (variables) => {
+      const { projectId, taskId, ...data } = variables
+
+      // Cancel outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['tasks', projectId] })
+      await queryClient.cancelQueries({ queryKey: ['tasks', 'all'] })
+
+      // Snapshot current data for rollback
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks', projectId])
+      const previousAllTasks = queryClient.getQueryData<Task[]>(['tasks', 'all'])
+
+      // Optimistically update project tasks
+      const updater = (old: Task[] | undefined) => {
+        if (!old) return old
+        return old.map(t => t.id === taskId ? { ...t, ...data, updatedAt: new Date().toISOString() } : t)
+      }
+      queryClient.setQueryData<Task[]>(['tasks', projectId], updater)
+      queryClient.setQueryData<Task[]>(['tasks', 'all'], updater)
+
+      return { previousTasks, previousAllTasks, projectId }
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback on error
+      if (context) {
+        queryClient.setQueryData(['tasks', context.projectId], context.previousTasks)
+        queryClient.setQueryData(['tasks', 'all'], context.previousAllTasks)
+      }
+    },
+    onSettled: (_, __, variables) => {
+      // Always refetch to sync with server state
       queryClient.invalidateQueries({ queryKey: ['tasks', variables.projectId] })
       queryClient.invalidateQueries({ queryKey: ['tasks', 'all'] })
       scheduleAutoSyncPush(variables.projectId)
@@ -121,7 +150,30 @@ export function useReorderTasks() {
   return useMutation({
     mutationFn: ({ projectId, taskIds }: { projectId: string; taskIds: string[] }) =>
       api.reorderTasks(projectId, taskIds),
-    onSuccess: (_, variables) => {
+    onMutate: async (variables) => {
+      const { projectId, taskIds } = variables
+
+      await queryClient.cancelQueries({ queryKey: ['tasks', projectId] })
+
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks', projectId])
+
+      // Optimistically reorder
+      queryClient.setQueryData<Task[]>(['tasks', projectId], (old) => {
+        if (!old) return old
+        return old.map(t => {
+          const idx = taskIds.indexOf(t.id)
+          return idx !== -1 ? { ...t, order: idx } : t
+        })
+      })
+
+      return { previousTasks, projectId }
+    },
+    onError: (_err, _variables, context) => {
+      if (context) {
+        queryClient.setQueryData(['tasks', context.projectId], context.previousTasks)
+      }
+    },
+    onSettled: (_, __, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', variables.projectId] })
       queryClient.invalidateQueries({ queryKey: ['tasks', 'all'] })
       scheduleAutoSyncPush(variables.projectId)
