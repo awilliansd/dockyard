@@ -39,8 +39,8 @@ export const api = {
     request<{ tasks: any[] }>(`/projects/${projectId}/tasks/replace`, { method: 'POST', body: JSON.stringify({ tasks }) }),
 
   // Sync (stateless proxy)
-  syncProxy: (url: string, method: 'GET' | 'POST', payload?: unknown) =>
-    request<{ data: any; error?: string }>('/sync/proxy', { method: 'POST', body: JSON.stringify({ url, method, payload }) }),
+  syncProxy: (url: string, method: 'GET' | 'POST', payload?: unknown, action?: string) =>
+    request<{ data: any; error?: string }>('/sync/proxy', { method: 'POST', body: JSON.stringify({ url, method, payload, action }) }),
   syncTest: (url: string) =>
     request<{ ok: boolean; error?: string; data?: any }>('/sync/test', { method: 'POST', body: JSON.stringify({ url }) }),
 

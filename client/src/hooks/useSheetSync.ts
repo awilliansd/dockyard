@@ -217,6 +217,18 @@ export function useSyncTest() {
   })
 }
 
+// --- Hook: setup Dashboard sheet ---
+
+export function useSyncSetup() {
+  return useMutation({
+    mutationFn: async (url: string) => {
+      const result = await api.syncProxy(url, 'GET', undefined, 'setup')
+      if (result.data?.error) throw new Error(result.data.error)
+      return result.data as { ok: boolean; message: string }
+    },
+  })
+}
+
 // --- Hook: auto-sync (pull on mount + periodic polling every 30s) ---
 
 const POLL_INTERVAL = 30_000 // 30 seconds

@@ -1,106 +1,155 @@
 import { useState, useCallback } from 'react'
-import { Sheet, Download, Upload, Settings2, Loader2, CheckCircle2, XCircle, Unplug, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react'
+import { Sheet, Download, Upload, Settings2, Loader2, CheckCircle2, XCircle, Unplug, ChevronDown, ChevronUp, Copy, Check, Paintbrush } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { useSyncConfig, useSyncPush, useSyncPull, useSyncTest, type SyncConfig } from '@/hooks/useSheetSync'
+import { useSyncConfig, useSyncPush, useSyncPull, useSyncTest, useSyncSetup, type SyncConfig } from '@/hooks/useSheetSync'
 import type { Task } from '@/hooks/useTasks'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 
-const APPS_SCRIPT_TEMPLATE = `// Shipyard Sync — Paste this script in Google Apps Script
+const APPS_SCRIPT_TEMPLATE = `// Shipyard Sync v2 — Two-sheet system
+// "Data" sheet: raw synced data (auto-managed)
+// "Dashboard" sheet: formatted view (click "Format Sheet" in Shipyard)
+//
 // Deploy > New deployment > Web App
 // Execute as: Me | Access: Anyone
-//
-// Works with plain sheets AND Google Sheets "Table" format.
 
-const HEADERS = ['id', 'title', 'description', 'priority', 'status', 'prompt', 'updatedAt'];
+var DATA_SHEET = 'Data';
+var DASH_SHEET = 'Dashboard';
+var HEADERS = ['id','title','description','priority','status','prompt','updatedAt'];
+
+function getDataSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(DATA_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(DATA_SHEET);
+    sheet.getRange(1,1,1,HEADERS.length).setValues([HEADERS]).setFontWeight('bold');
+  }
+  return sheet;
+}
 
 function doGet(e) {
-  const action = (e && e.parameter && e.parameter.action) || 'read';
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-
+  var action = (e && e.parameter && e.parameter.action) || 'read';
   if (action === 'ping') {
-    return jsonResp({ ok: true, rows: Math.max(0, sheet.getLastRow() - 1) });
+    var s = getDataSheet();
+    return resp({ ok: true, rows: Math.max(0, s.getLastRow()-1) });
   }
+  if (action === 'setup') return setupDashboard();
 
-  const data = sheet.getDataRange().getValues();
-  if (data.length < 2) return jsonResp({ tasks: [] });
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(DATA_SHEET) || ss.getSheets()[0];
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return resp({ tasks: [] });
 
-  const headers = data[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var headers = data[0].map(function(h){return String(h).toLowerCase().trim();});
   var tasks = [];
-  for (var i = 1; i < data.length; i++) {
+  for (var i=1; i<data.length; i++) {
     var row = data[i];
-    if (!row.some(function(c) { return String(c).trim(); })) continue;
+    if (!row.some(function(c){return String(c).trim();})) continue;
     var task = {};
-    headers.forEach(function(h, idx) { task[h] = String(row[idx] || ''); });
+    headers.forEach(function(h,idx){task[h]=String(row[idx]||'');});
     if (task.title) tasks.push(task);
   }
-  return jsonResp({ tasks: tasks });
+  return resp({ tasks: tasks });
 }
 
 function doPost(e) {
   try {
     var payload = JSON.parse(e.postData.contents);
     var tasks = payload.tasks || [];
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-
-    // Build all rows: header + data
+    var sheet = getDataSheet();
     var allRows = [HEADERS];
-    for (var i = 0; i < tasks.length; i++) {
+    for (var i=0; i<tasks.length; i++) {
       var t = tasks[i];
-      allRows.push(HEADERS.map(function(h) { return t[h] || ''; }));
+      allRows.push(HEADERS.map(function(h){return t[h]||'';}));
     }
+    var lr = sheet.getLastRow(), lc = sheet.getLastColumn();
+    if (lr>0 && lc>0) sheet.getRange(1,1,lr,Math.max(lc,HEADERS.length)).clearContent();
+    var tr = sheet.getMaxRows();
+    if (tr > allRows.length+1) sheet.deleteRows(allRows.length+1, tr-allRows.length);
+    sheet.getRange(1,1,allRows.length,HEADERS.length).setValues(allRows);
+    sheet.getRange(1,1,1,HEADERS.length).setFontWeight('bold');
+    return resp({ success: true, updated: tasks.length });
+  } catch(err) { return resp({ error: err.message }); }
+}
 
-    // Clear content only (preserves Table formatting and structure)
-    var lastRow = sheet.getLastRow();
-    var lastCol = sheet.getLastColumn();
-    if (lastRow > 0 && lastCol > 0) {
-      sheet.getRange(1, 1, lastRow, Math.max(lastCol, HEADERS.length)).clearContent();
-    }
+function setupDashboard() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  getDataSheet();
+  var dash = ss.getSheetByName(DASH_SHEET);
+  if (dash) {
+    dash.clear(); dash.clearConditionalFormatRules();
+    var b = dash.getBandings(); for(var i=0;i<b.length;i++) b[i].remove();
+  } else { dash = ss.insertSheet(DASH_SHEET, 0); }
 
-    // Delete extra rows if sheet has more rows than we need
-    var totalRows = sheet.getMaxRows();
-    if (totalRows > allRows.length + 1) {
-      sheet.deleteRows(allRows.length + 1, totalRows - allRows.length);
-    }
+  // QUERY pulls Title, Description, Priority, Status, Details from Data
+  dash.getRange('A1').setFormula(
+    '=QUERY('+DATA_SHEET+'!A:G,"SELECT B,C,D,E,F WHERE B<>\\'\\' LABEL B \\'Title\\',C \\'Description\\',D \\'Priority\\',E \\'Status\\',F \\'Details\\'",1)'
+  );
+  SpreadsheetApp.flush();
 
-    // Write all data in-place (overwrites header + data without adding rows)
-    sheet.getRange(1, 1, allRows.length, HEADERS.length).setValues(allRows);
+  // Header
+  dash.getRange('A1:E1').setFontWeight('bold').setFontColor('#ffffff')
+    .setBackground('#1e293b').setFontSize(10).setHorizontalAlignment('center');
+  dash.setFrozenRows(1);
 
-    // Format: fixed widths per column, wrap text on long ones
-    if (allRows.length > 1) {
-      var WIDTHS = { id: 100, title: 220, description: 280, priority: 90, status: 100, prompt: 320, updatedAt: 160 };
-      var dataRange = sheet.getRange(2, 1, allRows.length - 1, HEADERS.length);
-      dataRange.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
-      for (var c = 0; c < HEADERS.length; c++) {
-        sheet.setColumnWidth(c + 1, WIDTHS[HEADERS[c]] || 120);
-      }
-      sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold');
-    }
-    return jsonResp({ success: true, updated: tasks.length });
-  } catch (err) {
-    return jsonResp({ error: err.message });
+  // Column widths
+  dash.setColumnWidth(1,280); dash.setColumnWidth(2,360);
+  dash.setColumnWidth(3,100); dash.setColumnWidth(4,120); dash.setColumnWidth(5,360);
+
+  // Data area
+  dash.getRange('A2:E500').setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP)
+    .setVerticalAlignment('top').setFontSize(10);
+
+  // Conditional formatting
+  var pCol = dash.getRange('C2:C500'), sCol = dash.getRange('D2:D500');
+  var rules = [];
+  var pColors = [
+    ['urgent','#fecaca','#991b1b',true], ['high','#fed7aa','#9a3412',true],
+    ['medium','#dbeafe','#1e40af',false], ['low','#f3f4f6','#6b7280',false]
+  ];
+  for (var i=0;i<pColors.length;i++) {
+    rules.push(SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo(pColors[i][0]).setBackground(pColors[i][1])
+      .setFontColor(pColors[i][2]).setBold(pColors[i][3])
+      .setRanges([pCol]).build());
   }
+  var sColors = [
+    ['todo','#dbeafe','#1e40af'], ['backlog','#e0e7ff','#4338ca'],
+    ['in_progress','#fef3c7','#92400e'], ['done','#d1fae5','#065f46']
+  ];
+  for (var i=0;i<sColors.length;i++) {
+    rules.push(SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo(sColors[i][0]).setBackground(sColors[i][1])
+      .setFontColor(sColors[i][2]).setRanges([sCol]).build());
+  }
+  // Alternating row color (even rows with data)
+  rules.push(SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied('=AND(ISEVEN(ROW()),$A2<>"")')
+    .setBackground('#f8fafc').setRanges([dash.getRange('A2:E500')]).build());
+  dash.setConditionalFormatRules(rules);
+
+  // Clean up extra columns
+  if (dash.getMaxColumns()>5) dash.deleteColumns(6, dash.getMaxColumns()-5);
+  ss.setActiveSheet(dash);
+  return resp({ ok:true, message:'Dashboard created' });
 }
 
-function jsonResp(data) {
-  return ContentService
-    .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-// Auto-update updatedAt when editing cells manually
 function onEdit(e) {
   var sheet = e.source.getActiveSheet();
+  if (sheet.getName() !== DATA_SHEET) return;
   var row = e.range.getRow();
-  if (row < 2) return; // skip header
-  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  if (row < 2) return;
+  var headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
   var col = headers.indexOf('updatedAt');
-  if (col === -1) return;
-  // Don't trigger if editing the updatedAt column itself
-  if (e.range.getColumn() === col + 1) return;
-  sheet.getRange(row, col + 1).setValue(new Date().toISOString());
+  if (col===-1 || e.range.getColumn()===col+1) return;
+  sheet.getRange(row, col+1).setValue(new Date().toISOString());
+}
+
+function resp(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
 }`
 
 interface SheetSyncPanelProps {
@@ -113,6 +162,7 @@ export function SheetSyncPanel({ projectId, tasks }: SheetSyncPanelProps) {
   const push = useSyncPush(projectId)
   const pull = useSyncPull(projectId)
   const test = useSyncTest()
+  const setup = useSyncSetup()
 
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [urlInput, setUrlInput] = useState('')
@@ -121,7 +171,7 @@ export function SheetSyncPanel({ projectId, tasks }: SheetSyncPanelProps) {
   const [showScript, setShowScript] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  const isWorking = push.isPending || pull.isPending
+  const isWorking = push.isPending || pull.isPending || setup.isPending
 
   const handleOpenPopover = useCallback(() => {
     setUrlInput(config?.url || '')
@@ -181,6 +231,14 @@ export function SheetSyncPanel({ projectId, tasks }: SheetSyncPanelProps) {
     if (!config?.url) return
     pull.mutate({ url: config.url })
   }, [config, pull])
+
+  const handleSetup = useCallback(() => {
+    if (!config?.url) return
+    setup.mutate(config.url, {
+      onSuccess: () => toast.success('Dashboard sheet created with formatting!'),
+      onError: (err) => toast.error(`Setup failed: ${err.message}`),
+    })
+  }, [config, setup])
 
   const handleCopyScript = useCallback(() => {
     navigator.clipboard.writeText(APPS_SCRIPT_TEMPLATE)
@@ -272,6 +330,16 @@ export function SheetSyncPanel({ projectId, tasks }: SheetSyncPanelProps) {
         <TooltipContent>Push local tasks to Google Sheet (overwrites sheet)</TooltipContent>
       </Tooltip>
 
+      {/* Format Dashboard */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={handleSetup} disabled={isWorking}>
+            {setup.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paintbrush className="h-3.5 w-3.5" />}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Create/refresh formatted Dashboard sheet (safe to re-run)</TooltipContent>
+      </Tooltip>
+
       {/* Settings */}
       <Popover open={popoverOpen} onOpenChange={(open) => { setPopoverOpen(open); if (open) handleOpenPopover() }}>
         <Tooltip>
@@ -342,7 +410,8 @@ function SetupContent({
       <div className="space-y-1">
         <h4 className="text-sm font-semibold">Google Sheet Sync</h4>
         <p className="text-[11px] text-muted-foreground">
-          Sync tasks with a Google Sheet via Apps Script. Config is saved only in this browser.
+          Two-sheet system: <strong>Data</strong> (raw sync) + <strong>Dashboard</strong> (formatted view).
+          Sync only touches Data — your formatting in Dashboard is permanent.
         </p>
       </div>
 
@@ -385,7 +454,8 @@ function SetupContent({
             <li>Copy the deployment URL and paste below</li>
           </ol>
           <p className="text-[10px] text-muted-foreground/70">
-            The script auto-creates columns (id, title, description, priority, status, prompt, updatedAt) on first sync.
+            After deploying, do a Push, then click the <strong>paintbrush</strong> button to create the formatted Dashboard.
+            The Dashboard uses a QUERY formula — all your custom formatting (colors, wrapping, widths) survives sync.
           </p>
           <div className="relative">
             <pre className="text-[10px] bg-background rounded p-2 overflow-auto max-h-36 border font-mono">

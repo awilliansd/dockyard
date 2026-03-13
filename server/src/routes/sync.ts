@@ -3,9 +3,9 @@ import { FastifyInstance } from 'fastify';
 export async function syncRoutes(app: FastifyInstance) {
   // Stateless proxy: receives Apps Script URL from client, fetches it, returns result
   app.post<{
-    Body: { url: string; method: 'GET' | 'POST'; payload?: unknown }
+    Body: { url: string; method: 'GET' | 'POST'; payload?: unknown; action?: string }
   }>('/api/sync/proxy', async (request, reply) => {
-    const { url, method, payload } = request.body;
+    const { url, method, payload, action } = request.body;
 
     if (!url || !url.startsWith('https://script.google.com/macros/s/')) {
       return reply.status(400).send({ error: 'Only Google Apps Script URLs are allowed' });
@@ -22,8 +22,9 @@ export async function syncRoutes(app: FastifyInstance) {
       };
 
       if (method === 'GET') {
-        // Apps Script doGet — append action=read as query param
-        fetchUrl = url + (url.includes('?') ? '&' : '?') + 'action=read';
+        // Apps Script doGet — append action as query param (default: read)
+        const queryAction = action || 'read';
+        fetchUrl = url + (url.includes('?') ? '&' : '?') + 'action=' + queryAction;
         fetchOptions.method = 'GET';
       } else {
         fetchOptions.method = 'POST';
