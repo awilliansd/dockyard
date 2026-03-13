@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { Play, Monitor, FolderOpen, Copy, Sparkles, ExternalLink, Rocket } from 'lucide-react'
+import { Play, Monitor, FolderOpen, Copy, Sparkles, ExternalLink, Rocket, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useLaunchTerminal, useOpenFolder } from '@/hooks/useProjects'
 import { useTerminalStatus } from '@/hooks/useTerminal'
 import { useTasks, type Task } from '@/hooks/useTasks'
 import { useMcpStatus } from '@/hooks/useMcp'
+import { useClaudeStatus } from '@/hooks/useClaude'
+import { TaskManagerDialog } from '@/components/tasks/TaskManagerDialog'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
@@ -69,7 +71,10 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
   const { data: tasks } = useTasks(projectId)
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
   const { data: mcpStatus } = useMcpStatus()
+  const { data: claudeStatus } = useClaudeStatus()
   const mcpActive = mcpStatus?.enabled ?? false
+  const aiAvailable = claudeStatus?.configured || claudeStatus?.cliAvailable
+  const [taskManagerOpen, setTaskManagerOpen] = useState(false)
   const [skipPermissions, setSkipPermissions] = useState(() => {
     try { return localStorage.getItem('shipyard:skipPermissions') === 'true' } catch { return false }
   })
@@ -117,11 +122,28 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
         )}
       </h2>
       <div className="space-y-1">
-        {/* Claude — primary action */}
+        {/* AI Task Manager — top action */}
+        {aiAvailable && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="default" className="w-full justify-start gap-2 h-8 text-xs" onClick={() => setTaskManagerOpen(true)}>
+                <Wand2 className="h-3.5 w-3.5" />
+                AI Task Manager
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p className="max-w-[200px] text-xs">
+                Paste any text — notes, emails, bug reports — and AI organizes them into tasks. Detects duplicates and can update existing tasks.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+
+        {/* Claude — secondary action */}
         {projectPath && projectName && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="default" className="w-full justify-start gap-2 h-8 text-xs" onClick={handleLaunchClaude}>
+              <Button variant={aiAvailable ? "outline" : "default"} className="w-full justify-start gap-2 h-8 text-xs" onClick={handleLaunchClaude}>
                 <Sparkles className="h-3.5 w-3.5" />
                 {mcpActive ? 'Open Claude Code' : 'Open Claude + Copy Context'}
               </Button>
@@ -217,6 +239,13 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
           <span className="text-[10px] text-muted-foreground">YOLO mode (--dangerously-skip-permissions)</span>
         </label>
       )}
+
+      <TaskManagerDialog
+        projectId={projectId}
+        tasks={tasks || []}
+        open={taskManagerOpen}
+        onOpenChange={setTaskManagerOpen}
+      />
     </div>
   )
 }

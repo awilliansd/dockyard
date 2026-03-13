@@ -235,7 +235,7 @@ export function GitPanel({ projectId }: GitPanelProps) {
       )}
 
       {/* Commit form */}
-      <CommitForm projectId={projectId} hasStagedChanges={hasStagedChanges} />
+      <CommitForm key={projectId} projectId={projectId} hasStagedChanges={hasStagedChanges} />
 
       {/* Recent commits */}
       {commits.length > 0 && (

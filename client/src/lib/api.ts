@@ -106,6 +106,10 @@ export const api = {
     request<{ tasks: Array<{ title: string; description: string; prompt: string; priority: string; status: string }> }>(
       '/claude/bulk-organize', { method: 'POST', body: JSON.stringify({ projectId, rawText }) }
     ),
+  manageTasks: (projectId: string, rawText: string, existingTasks: Array<{ id: string; title: string; description: string; status: string; priority: string }>) =>
+    request<{ actions: Array<{ type: string; task?: any; taskId?: string; changes?: any; reason?: string; title?: string; existingTaskId?: string }>; summary: string }>(
+      '/claude/manage-tasks', { method: 'POST', body: JSON.stringify({ projectId, rawText, existingTasks }) }
+    ),
   // MCP Server
   getMcpStatus: () => request<{
     enabled: boolean;

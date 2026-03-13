@@ -140,6 +140,43 @@ export async function analyzeTask(
   }
 }
 
+export async function manageTasks(
+  config: ClaudeConfig,
+  systemInstructions: string,
+  rawText: string,
+): Promise<{ actions: any[]; summary: string }> {
+  const client = createClient(config);
+
+  const response = await client.messages.create({
+    model: config.model,
+    max_tokens: config.maxTokens,
+    system: systemInstructions,
+    messages: [{ role: 'user', content: rawText }],
+  });
+
+  const text = response.content[0].type === 'text' ? response.content[0].text : '{}';
+  try {
+    const parsed = JSON.parse(text);
+    return {
+      actions: Array.isArray(parsed.actions) ? parsed.actions : [],
+      summary: parsed.summary || '',
+    };
+  } catch {
+    // Try to extract JSON from response
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        const parsed = JSON.parse(match[0]);
+        return {
+          actions: Array.isArray(parsed.actions) ? parsed.actions : [],
+          summary: parsed.summary || '',
+        };
+      } catch {}
+    }
+    return { actions: [], summary: 'Failed to parse AI response' };
+  }
+}
+
 export async function bulkOrganizeTasks(
   config: ClaudeConfig,
   projectContext: string,
