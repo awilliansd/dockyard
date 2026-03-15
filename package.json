@@ -2,8 +2,7 @@
   "name": "shipyard",
   "version": "1.0.0",
   "description": "Local development dashboard for managing projects, tasks, git, and terminals",
-  "author": "Shipyard",
-  "private": true,
+  "author": "Shipyard Contributors",
   "main": "electron/dist/main.js",
   "scripts": {
     "dev": "concurrently -n server,client -c blue,green \"pnpm --filter shipyard-server dev\" \"pnpm --filter shipyard-client dev\"",

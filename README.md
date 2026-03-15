@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/AEspadinha/shipyard"><img src="https://img.shields.io/github/stars/AEspadinha/shipyard?style=flat-square" alt="Stars" /></a>
+  <a href="https://github.com/defremont/Shipyard"><img src="https://img.shields.io/github/stars/defremont/Shipyard?style=flat-square" alt="Stars" /></a>
   <img src="https://img.shields.io/badge/react-18-61dafb?style=flat-square&logo=react&logoColor=white" alt="React 18" />
   <img src="https://img.shields.io/badge/fastify-5-000000?style=flat-square&logo=fastify&logoColor=white" alt="Fastify 5" />
   <img src="https://img.shields.io/badge/typescript-5-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript 5" />
@@ -18,7 +18,9 @@
 
 ---
 
-<!-- screenshot: dashboard -->
+<p align="center">
+  <img src="assets/screenshot.jpg" alt="Shipyard — workspace with kanban board, terminal, and git panel" width="100%" />
+</p>
 
 ## Why Shipyard
 
@@ -49,6 +51,8 @@
 
 **Multi-tab Workspace** -- Open multiple projects simultaneously in tabs, switch instantly between them.
 
+**Command Palette** -- `Ctrl+K` to quickly search and jump to any project, task, or action.
+
 ## Quick Start
 
 ### Prerequisites
@@ -60,8 +64,8 @@
 ### Install and Run
 
 ```bash
-git clone https://github.com/AEspadinha/shipyard.git
-cd shipyard
+git clone https://github.com/defremont/Shipyard.git
+cd vibedash
 pnpm install
 pnpm dev
 ```
@@ -89,7 +93,7 @@ The setup scripts install dependencies and optionally create launch shortcuts:
 
 ```bash
 # Add to ~/.bashrc or ~/.zshrc
-alias shipyard='cd /path/to/shipyard && ./devdash.sh'
+alias shipyard='cd /path/to/vibedash && ./devdash.sh'
 ```
 
 ### Integrated Terminal (optional)
@@ -106,16 +110,12 @@ On first launch, Shipyard shows a setup wizard that walks you through adding pro
 
 The home screen shows all your registered projects with live git indicators (branch, uncommitted changes, unpushed commits). The "Working On" section highlights in-progress tasks across all projects. Click any project to open its workspace in a tab.
 
-<!-- screenshot: dashboard-detail -->
-
 ### Workspace
 
 Each project opens in a tabbed workspace with two panels:
 
 - **Left (3/4)**: Kanban board with drag-and-drop between Inbox, In Progress, and Done columns
 - **Right (1/4)**: Quick Launch buttons, Claude context tools, file explorer, and Git panel
-
-<!-- screenshot: workspace -->
 
 ### Task Workflow
 
