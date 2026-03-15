@@ -6,10 +6,11 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Pencil, Copy, AlertTriangle, ArrowUp, ArrowDown, Minus, Inbox, Loader, CheckCircle2, Trash2 } from 'lucide-react'
+import { Pencil, Copy, AlertTriangle, ArrowUp, ArrowDown, Minus, Inbox, Loader, CheckCircle2, Trash2, Check, Wand2, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUpdateTask, useDeleteTask, type Task } from '@/hooks/useTasks'
 import { buildTaskPrompt } from '@/lib/promptBuilder'
+import { useClaudeStatus, useAnalyzeTask } from '@/hooks/useClaude'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { formatDistanceToNow } from 'date-fns'
@@ -48,7 +49,10 @@ export function TaskViewer({ task, projectName, projectPath, open, onOpenChange,
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
+  const { data: claudeStatus } = useClaudeStatus()
+  const analyzeTask = useAnalyzeTask()
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const canAiImprove = !!(claudeStatus?.configured || claudeStatus?.cliAvailable)
 
   if (!task) return null
 
@@ -65,6 +69,25 @@ export function TaskViewer({ task, projectName, projectPath, open, onOpenChange,
   const handleEdit = () => {
     onOpenChange(false)
     onEdit(task)
+  }
+
+  const handleAiImprove = async () => {
+    try {
+      const result = await analyzeTask.mutateAsync({
+        projectId: task.projectId,
+        title: task.title,
+        taskId: task.id,
+      })
+      updateTask.mutate({
+        projectId: task.projectId,
+        taskId: task.id,
+        description: result.description,
+        prompt: result.prompt,
+      })
+      toast.success('Task improved with AI')
+    } catch (err: any) {
+      toast.error(err.message || 'AI analysis failed')
+    }
   }
 
   const handleStatusChange = (status: Task['status']) => {
@@ -115,6 +138,26 @@ export function TaskViewer({ task, projectName, projectPath, open, onOpenChange,
             <div>
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Details</label>
               <pre className="mt-1.5 text-xs font-mono bg-muted/50 rounded-md p-3 whitespace-pre-wrap max-h-40 overflow-y-auto">{task.prompt}</pre>
+            </div>
+          )}
+
+          {task.subtasks && task.subtasks.length > 0 && (
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Subtasks ({task.subtasks.filter(s => s.done).length}/{task.subtasks.length})
+              </label>
+              <div className="mt-1.5 space-y-1">
+                {task.subtasks.map((st) => (
+                  <div key={st.id} className="flex items-center gap-2">
+                    {st.done ? (
+                      <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                    ) : (
+                      <div className="h-3.5 w-3.5 rounded-sm border border-muted-foreground/40 shrink-0" />
+                    )}
+                    <span className={cn('text-sm', st.done && 'line-through text-muted-foreground')}>{st.title}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -173,6 +216,18 @@ export function TaskViewer({ task, projectName, projectPath, open, onOpenChange,
               <Copy className="h-3.5 w-3.5" />
               Copy as Prompt
             </Button>
+            {canAiImprove && task.status !== 'done' && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs text-blue-500 hover:text-blue-400"
+                onClick={handleAiImprove}
+                disabled={analyzeTask.isPending}
+              >
+                {analyzeTask.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+                AI Improve
+              </Button>
+            )}
             <Button variant="default" size="sm" className="gap-1.5 text-xs" onClick={handleEdit}>
               <Pencil className="h-3.5 w-3.5" />
               Edit

@@ -5,6 +5,8 @@ import {
   getSession,
   killSession,
   listSessions,
+  listAiSessions,
+  writeToSession,
   resizeSession,
 } from '../services/terminalService.js';
 import { getProjects, updateProject } from '../services/projectDiscovery.js';
@@ -27,19 +29,19 @@ export async function terminalWsRoutes(app: FastifyInstance) {
   );
 
   // REST: Create a new terminal session
-  app.post<{ Body: { projectId: string; type?: string; cols?: number; rows?: number } }>(
+  app.post<{ Body: { projectId: string; type?: string; cols?: number; rows?: number; taskId?: string } }>(
     '/api/terminal/sessions',
     async (request, reply) => {
       if (!isAvailable()) {
         return reply.status(503).send({ error: 'Integrated terminal not available (node-pty not installed)' });
       }
 
-      const { projectId, type = 'shell', cols = 80, rows = 24 } = request.body;
+      const { projectId, type = 'shell', cols = 80, rows = 24, taskId } = request.body;
       const projects = await getProjects();
       const project = projects.find(p => p.id === projectId);
       if (!project) return reply.status(404).send({ error: 'Project not found' });
 
-      const sessionId = await createSession(projectId, project.path, type, cols, rows, project.name);
+      const sessionId = await createSession(projectId, project.path, type, cols, rows, project.name, taskId);
       if (!sessionId) return reply.status(500).send({ error: 'Failed to create terminal session' });
 
       await updateProject(project.id, { lastOpenedAt: new Date().toISOString() });
@@ -51,7 +53,26 @@ export async function terminalWsRoutes(app: FastifyInstance) {
         type,
         title: session?.title || 'Terminal',
         createdAt: session?.createdAt,
+        taskId: session?.taskId,
       };
+    }
+  );
+
+  // REST: List active AI resolution sessions
+  app.get('/api/terminal/ai-sessions', async () => {
+    return { sessions: listAiSessions() };
+  });
+
+  // REST: Write data to a terminal session's PTY
+  app.post<{ Params: { sessionId: string }; Body: { data: string } }>(
+    '/api/terminal/sessions/:sessionId/write',
+    async (request, reply) => {
+      const { sessionId } = request.params;
+      const { data } = request.body;
+      if (!data) return reply.status(400).send({ error: 'No data provided' });
+      const ok = writeToSession(sessionId, data);
+      if (!ok) return reply.status(404).send({ error: 'Session not found' });
+      return { success: true };
     }
   );
 

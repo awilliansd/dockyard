@@ -1,5 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import * as taskStore from '../services/taskStore.js';
+import { getProjects } from '../services/projectDiscovery.js';
+import { buildAiResolvePrompt } from '../services/aiResolvePrompt.js';
 
 export async function taskRoutes(app: FastifyInstance) {
   // All tasks across all projects
@@ -94,6 +96,24 @@ export async function taskRoutes(app: FastifyInstance) {
     async (request) => {
       const tasks = await taskStore.replaceTasks(request.params.projectId, request.body.tasks);
       return { tasks };
+    }
+  );
+
+  // Build AI resolution prompt for a task
+  app.post<{ Params: { projectId: string; taskId: string } }>(
+    '/api/projects/:projectId/tasks/:taskId/ai-resolve',
+    async (request, reply) => {
+      const { projectId, taskId } = request.params;
+      const task = await taskStore.getTask(projectId, taskId);
+      if (!task) return reply.status(404).send({ error: 'Task not found' });
+
+      const projects = await getProjects();
+      const project = projects.find(p => p.id === projectId);
+      if (!project) return reply.status(404).send({ error: 'Project not found' });
+
+      const port = (request.server.addresses()?.[0] as any)?.port || 5420;
+      const prompt = buildAiResolvePrompt(task, project, port);
+      return { prompt };
     }
   );
 

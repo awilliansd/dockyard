@@ -130,7 +130,7 @@ export async function analyzeTask(
 
   const text = response.content[0].type === 'text' ? response.content[0].text : '';
   try {
-    const parsed = JSON.parse(text);
+    const parsed = parseJsonFromAiResponse(text);
     return {
       description: parsed.description || '',
       prompt: parsed.prompt || '',
@@ -138,6 +138,31 @@ export async function analyzeTask(
   } catch {
     return { description: text, prompt: '' };
   }
+}
+
+/** Robust JSON extraction: handles markdown fences, leading text, etc. */
+function parseJsonFromAiResponse(text: string): any {
+  const trimmed = text.trim();
+  try { return JSON.parse(trimmed); } catch {}
+
+  // Strip markdown fences
+  const fenceStripped = trimmed.replace(/^```(?:json)?\s*\n?/gim, '').replace(/\n?```\s*$/gim, '').trim();
+  try { return JSON.parse(fenceStripped); } catch {}
+
+  // Extract from code fences
+  const fenceMatch = trimmed.match(/```(?:json)?\s*\n([\s\S]*?)\n\s*```/);
+  if (fenceMatch) {
+    try { return JSON.parse(fenceMatch[1].trim()); } catch {}
+  }
+
+  // Find first { and match to last }
+  const start = trimmed.indexOf('{');
+  const end = trimmed.lastIndexOf('}');
+  if (start !== -1 && end > start) {
+    try { return JSON.parse(trimmed.substring(start, end + 1)); } catch {}
+  }
+
+  throw new Error('Could not parse JSON from AI response');
 }
 
 export async function manageTasks(

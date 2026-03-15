@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useRef } from 'react'
-import { Plus, Inbox, Loader, CheckCircle2, FileSpreadsheet, Copy, ArrowUpDown, Import } from 'lucide-react'
+import { Plus, Inbox, Loader, CheckCircle2, FileSpreadsheet, Copy, ArrowUpDown, Import, LayoutGrid, List, Sparkles } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -20,11 +20,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { TaskItem } from './TaskItem'
 import { TaskEditor } from './TaskEditor'
 import { TaskViewer } from './TaskViewer'
+import { TaskListView } from './TaskListView'
 import { CsvReviewDialog } from './CsvReviewDialog'
 import { BulkImportDialog } from './BulkImportDialog'
 import { SheetSyncPanel } from './SheetSyncPanel'
 import { SyncPanelExports } from '@/components/sync/SyncPanel'
 import { useTasks, useUpdateTask, useReorderTasks, useCreateTask, type Task } from '@/hooks/useTasks'
+import { useTerminalStatus } from '@/hooks/useTerminal'
 import { tasksToCSV, parseCSV, diffTasks, type CsvDiff } from '@/lib/csv'
 import { buildColumnPrompt } from '@/lib/promptBuilder'
 import { useAutoSync } from '@/hooks/useSheetSync'
@@ -231,7 +233,7 @@ function DroppableColumn({ col, children, count, taskIds, onCopy, projectId, onA
   )
 }
 
-function SortableTaskItem({ task, projectName, projectPath, onEdit, onView }: { task: Task; projectName?: string; projectPath?: string; onEdit: (task: Task) => void; onView: (task: Task) => void }) {
+function SortableTaskItem({ task, projectName, projectPath, onEdit, onView, onAiResolve }: { task: Task; projectName?: string; projectPath?: string; onEdit: (task: Task) => void; onView: (task: Task) => void; onAiResolve?: (task: Task) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
     data: { task },
@@ -255,6 +257,7 @@ function SortableTaskItem({ task, projectName, projectPath, onEdit, onView }: { 
         projectPath={projectPath}
         onEdit={onEdit}
         onView={onView}
+        onAiResolve={onAiResolve}
         dragListeners={listeners as unknown as Record<string, Function>}
       />
     </div>
@@ -265,6 +268,7 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
   const { data: tasks, isLoading } = useTasks(projectId)
   const { isSyncing } = useAutoSync(projectId)
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
+  const { data: terminalStatus } = useTerminalStatus()
   const updateTask = useUpdateTask()
   const reorderTasks = useReorderTasks()
   const [editorOpen, setEditorOpen] = useState(false)
@@ -279,6 +283,9 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
   )
   const [addingInColumn, setAddingInColumn] = useState<string | null>(null)
   const [bulkImportOpen, setBulkImportOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>(() =>
+    (localStorage.getItem('shipyard:view:' + projectId) as 'kanban' | 'list') || 'kanban'
+  )
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -298,6 +305,22 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
     setEditingTask(null)
     setEditorOpen(true)
   }
+
+  const handleAiResolve = useCallback(async (task: Task) => {
+    if (!terminalStatus?.available) {
+      toast.error('Integrated terminal required for AI resolution')
+      return
+    }
+    try {
+      const { prompt } = await api.getAiResolvePrompt(projectId, task.id)
+      window.dispatchEvent(new CustomEvent('shipyard:open-terminal', {
+        detail: { projectId, type: 'ai-resolve', taskId: task.id, prompt }
+      }))
+      toast.success('AI resolution started')
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to start AI resolution')
+    }
+  }, [projectId, terminalStatus])
 
   const handleCsvExport = () => {
     if (!tasks?.length) { toast.info('No tasks to export'); return }
@@ -453,6 +476,31 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
           <div className="w-px h-4 bg-border mx-0.5" />
           <SheetSyncPanel projectId={projectId} tasks={tasks || []} />
           <div className="w-px h-4 bg-border mx-0.5" />
+          <div className="flex items-center border rounded-md">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => { setViewMode('kanban'); localStorage.setItem('shipyard:view:' + projectId, 'kanban') }}
+                  className={cn('p-1.5 rounded-l-md transition-colors', viewMode === 'kanban' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground')}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Kanban view</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => { setViewMode('list'); localStorage.setItem('shipyard:view:' + projectId, 'list') }}
+                  className={cn('p-1.5 rounded-r-md transition-colors', viewMode === 'list' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground')}
+                >
+                  <List className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>List view</TooltipContent>
+            </Tooltip>
+          </div>
+          <div className="w-px h-4 bg-border mx-0.5" />
           <Tooltip>
             <TooltipTrigger asChild>
               <select
@@ -487,53 +535,64 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
         </div>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={itemsFirstCollision}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="grid grid-cols-3 gap-3">
-          {columns.map(col => {
-            const colTasks = grouped[col.key] || []
-            const taskIds = colTasks.map(t => t.id)
-            return (
-              <DroppableColumn
-                key={col.key} col={col} count={colTasks.length} taskIds={taskIds}
-                onCopy={() => handleCopyColumn(col.key)}
-                projectId={projectId}
-                isAdding={addingInColumn === col.key}
-                onAddingChange={(adding) => setAddingInColumn(adding ? col.key : null)}
-              >
-                {colTasks.length > 0 ? (
-                  colTasks.map(task => (
-                    <SortableTaskItem
-                      key={task.id}
-                      task={task}
-                      projectName={projectName}
-                      projectPath={projectPath}
-                      onEdit={handleEdit}
-                      onView={handleView}
-                    />
-                  ))
-                ) : (
-                  <div className="text-xs text-muted-foreground/50 py-6 text-center">
-                    Drop tasks here
-                  </div>
-                )}
-              </DroppableColumn>
-            )
-          })}
-        </div>
+      {viewMode === 'kanban' ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={itemsFirstCollision}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="grid grid-cols-3 gap-3">
+            {columns.map(col => {
+              const colTasks = grouped[col.key] || []
+              const taskIds = colTasks.map(t => t.id)
+              return (
+                <DroppableColumn
+                  key={col.key} col={col} count={colTasks.length} taskIds={taskIds}
+                  onCopy={() => handleCopyColumn(col.key)}
+                  projectId={projectId}
+                  isAdding={addingInColumn === col.key}
+                  onAddingChange={(adding) => setAddingInColumn(adding ? col.key : null)}
+                >
+                  {colTasks.length > 0 ? (
+                    colTasks.map(task => (
+                      <SortableTaskItem
+                        key={task.id}
+                        task={task}
+                        projectName={projectName}
+                        projectPath={projectPath}
+                        onEdit={handleEdit}
+                        onView={handleView}
+                        onAiResolve={terminalStatus?.available ? handleAiResolve : undefined}
+                      />
+                    ))
+                  ) : (
+                    <div className="text-xs text-muted-foreground/50 py-6 text-center">
+                      Drop tasks here
+                    </div>
+                  )}
+                </DroppableColumn>
+              )
+            })}
+          </div>
 
-        <DragOverlay dropAnimation={null}>
-          {activeTask && (
-            <div className="opacity-90 rotate-2">
-              <TaskItem task={activeTask} onEdit={() => {}} />
-            </div>
-          )}
-        </DragOverlay>
-      </DndContext>
+          <DragOverlay dropAnimation={null}>
+            {activeTask && (
+              <div className="opacity-90 rotate-2">
+                <TaskItem task={activeTask} onEdit={() => {}} />
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+      ) : (
+        <TaskListView
+          tasks={tasks || []}
+          projectName={projectName}
+          projectPath={projectPath}
+          onEdit={handleEdit}
+          onView={handleView}
+        />
+      )}
 
       <TaskViewer
         task={viewingTask}

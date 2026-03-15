@@ -29,8 +29,8 @@ export function useTerminalSessions(projectId?: string) {
 export function useCreateTerminalSession() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ projectId, type, cols, rows }: { projectId: string; type?: string; cols?: number; rows?: number }) =>
-      api.createTerminalSession(projectId, type, cols, rows),
+    mutationFn: ({ projectId, type, cols, rows, taskId }: { projectId: string; type?: string; cols?: number; rows?: number; taskId?: string }) =>
+      api.createTerminalSession(projectId, type, cols, rows, taskId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['terminal', 'sessions', variables.projectId] })
     },

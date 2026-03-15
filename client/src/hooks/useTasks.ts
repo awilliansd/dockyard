@@ -16,6 +16,7 @@ export interface Task {
   inboxAt?: string
   inProgressAt?: string
   doneAt?: string
+  subtasks?: { id: string; title: string; done: boolean }[]
 }
 
 export function useAllTasks() {
@@ -44,7 +45,7 @@ export function useTasks(projectId: string | undefined) {
 export function useCreateTask() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ projectId, ...data }: { projectId: string; title: string; description?: string; priority?: string; status?: string; prompt?: string }) =>
+    mutationFn: ({ projectId, ...data }: { projectId: string; title: string; description?: string; priority?: string; status?: string; prompt?: string; subtasks?: { id: string; title: string; done: boolean }[] }) =>
       api.createTask(projectId, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', variables.projectId] })

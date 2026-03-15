@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Plus, X, ChevronDown, ChevronUp, Terminal, Trash2, ExternalLink } from 'lucide-react'
+import { Plus, X, ChevronDown, ChevronUp, Terminal, Trash2, ExternalLink, Sparkles } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   useTerminalStatus,
@@ -8,6 +8,7 @@ import {
 } from '@/hooks/useTerminal'
 import { useLaunchTerminal } from '@/hooks/useProjects'
 import { useTabs } from '@/hooks/useTabs'
+import { useAiSessions } from '@/hooks/useAiSessions'
 import { api } from '@/lib/api'
 import { IntegratedTerminal } from './IntegratedTerminal'
 import { cn } from '@/lib/utils'
@@ -19,6 +20,7 @@ interface GlobalTab {
   title: string
   type: string
   exited: boolean
+  taskId?: string
 }
 
 const PANEL_HEIGHT_KEY = 'shipyard:terminal-height'
@@ -50,6 +52,7 @@ export function TerminalPanel() {
   const killSession = useKillTerminalSession()
   const launchNative = useLaunchTerminal()
   const { activeTabId: activeProjectId, openTab: openProjectTab } = useTabs()
+  const aiSessions = useAiSessions()
 
   const [tabs, setTabs] = useState<GlobalTab[]>(loadTerminalTabs)
   const [activeTabId, setActiveTabId] = useState<string | null>(loadActiveTabId)
@@ -105,12 +108,14 @@ export function TerminalPanel() {
 
     api.getTerminalSessions().then(({ sessions }) => {
       const serverIds = new Set(sessions.map((s: any) => s.id))
+      const serverMap = new Map(sessions.map((s: any) => [s.id, s]))
       setTabs(prev => {
         const valid: GlobalTab[] = []
         // Keep existing persisted tabs that still have server sessions
         for (const t of prev) {
           if (serverIds.has(t.sessionId)) {
-            valid.push({ ...t, exited: false }) // Reset exited since server still has it
+            const srv = serverMap.get(t.sessionId) as any
+            valid.push({ ...t, exited: false, taskId: t.taskId || srv?.taskId }) // Recover taskId
           }
         }
         // Add any server sessions not in our persisted tabs (recovery)
@@ -122,6 +127,7 @@ export function TerminalPanel() {
               title: s.title,
               type: s.type,
               exited: false,
+              taskId: (s as any).taskId,
             })
           }
         }
@@ -170,7 +176,7 @@ export function TerminalPanel() {
   }, [panelHeight])
 
   // Create a new terminal tab for a given project (or active project)
-  const handleNewTab = useCallback(async (type = 'shell', forProjectId?: string) => {
+  const handleNewTab = useCallback(async (type = 'shell', forProjectId?: string, taskId?: string, prompt?: string) => {
     if (!status?.available) {
       toast.error('Integrated terminal not available')
       return
@@ -186,21 +192,31 @@ export function TerminalPanel() {
     }
 
     try {
-      const session = await createSession.mutateAsync({ projectId: targetProject, type, cols: 80, rows: 24 })
+      const session = await createSession.mutateAsync({ projectId: targetProject, type, cols: 80, rows: 24, taskId })
       const tab: GlobalTab = {
         sessionId: session.id,
         projectId: targetProject,
         title: session.title,
         type: session.type,
         exited: false,
+        taskId,
       }
       setTabs(prev => [...prev, tab])
       setActiveTabId(session.id)
       setIsVisible(true)
+
+      // For AI resolve sessions: register and inject prompt after CLI initializes
+      if (taskId && prompt) {
+        aiSessions.register({ taskId, sessionId: session.id, projectId: targetProject })
+        const delay = navigator.userAgent.includes('Win') ? 3000 : 2000
+        setTimeout(() => {
+          api.writeToTerminalSession(session.id, prompt + '\r').catch(() => {})
+        }, delay)
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to create terminal')
     }
-  }, [status, createSession])
+  }, [status, createSession, aiSessions])
 
   const togglePanel = useCallback(() => {
     if (!isVisible && tabs.length === 0) {
@@ -229,6 +245,7 @@ export function TerminalPanel() {
 
   const handleCloseTab = useCallback((sessionId: string) => {
     killSession.mutate(sessionId)
+    aiSessions.unregisterBySession(sessionId)
     setTabs(prev => {
       const next = prev.filter(t => t.sessionId !== sessionId)
       if (activeTabIdRef.current === sessionId) {
@@ -237,16 +254,17 @@ export function TerminalPanel() {
       if (next.length === 0) setIsVisible(false)
       return next
     })
-  }, [killSession])
+  }, [killSession, aiSessions])
 
   const handleCloseAll = useCallback(() => {
     for (const tab of tabsRef.current) {
       killSession.mutate(tab.sessionId)
+      if (tab.taskId) aiSessions.unregisterBySession(tab.sessionId)
     }
     setTabs([])
     setActiveTabId(null)
     setIsVisible(false)
-  }, [killSession])
+  }, [killSession, aiSessions])
 
   const handleTabExit = useCallback((sessionId: string, _code: number) => {
     setTabs(prev => prev.map(t =>
@@ -254,7 +272,9 @@ export function TerminalPanel() {
         ? { ...t, exited: true, title: t.title.includes('[exited]') ? t.title : `${t.title} [exited]` }
         : t
     ))
-  }, [])
+    // Unregister AI session when the process exits
+    aiSessions.unregisterBySession(sessionId)
+  }, [aiSessions])
 
   // Stable ref so IntegratedTerminal doesn't re-create on every render
   const handleTabExitRef = useRef(handleTabExit)
@@ -297,8 +317,8 @@ export function TerminalPanel() {
 
   // Listen for shipyard:open-terminal events (from TerminalLauncher) for ANY project
   useEffect(() => {
-    const handler = (e: CustomEvent<{ projectId: string; type: string }>) => {
-      handleNewTab(e.detail.type, e.detail.projectId)
+    const handler = (e: CustomEvent<{ projectId: string; type: string; taskId?: string; prompt?: string }>) => {
+      handleNewTab(e.detail.type, e.detail.projectId, e.detail.taskId, e.detail.prompt)
     }
     window.addEventListener('shipyard:open-terminal' as any, handler as any)
     return () => window.removeEventListener('shipyard:open-terminal' as any, handler as any)
@@ -346,11 +366,16 @@ export function TerminalPanel() {
                 className={cn(
                   'flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-sm transition-colors max-w-[200px] group',
                   activeTabId === tab.sessionId
-                    ? 'bg-background/60 text-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-background/30',
+                    ? tab.taskId && !tab.exited
+                      ? 'bg-purple-500/20 text-purple-300 ring-1 ring-purple-500/40'
+                      : 'bg-background/60 text-foreground'
+                    : tab.taskId && !tab.exited
+                      ? 'text-purple-400/60 hover:text-purple-300 hover:bg-purple-500/10'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-background/30',
                   tab.exited && 'opacity-50'
                 )}
               >
+                {tab.taskId && !tab.exited && <Sparkles className="h-3 w-3 shrink-0 animate-pulse" />}
                 <span className="truncate">{tab.title.replace(/^\[(.*?)\]\s*/, '$1 · ')}</span>
                 <X
                   className="h-3 w-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"

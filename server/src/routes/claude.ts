@@ -190,7 +190,7 @@ export async function claudeRoutes(app: FastifyInstance) {
     return reply.status(400).send({ error: 'No AI available. Install Claude CLI or configure API key.' });
   });
 
-  // Analyze task — CLI-first, API fallback
+  // Analyze task — API-first (faster for structured JSON), CLI fallback
   app.post<{
     Body: { projectId: string; taskId?: string; title: string }
   }>('/api/claude/analyze-task', async (request, reply) => {
@@ -207,35 +207,40 @@ export async function claudeRoutes(app: FastifyInstance) {
       context = await buildProjectContext(projectId);
     }
 
-    const userMessage = existingDescription
-      ? `Analyze this task and improve/generate the fields:\n\nTitle: ${title}\nCurrent description: ${existingDescription}\n\nGenerate an improved description (user-facing, what needs to be done) and a detailed technical prompt (implementation details, files, solutions).`
-      : `Analyze this task and generate the fields:\n\nTitle: ${title}\n\nGenerate a description (user-facing, what needs to be done) and a detailed technical prompt (implementation details, possible approaches, relevant files).`;
+    // Try API first (faster for structured JSON responses)
+    const config = await claudeService.loadClaudeConfig();
+    if (config) {
+      try {
+        return await claudeService.analyzeTask(config, context, title, existingDescription);
+      } catch (err: any) {
+        console.error('[analyze-task] API failed:', err.message);
+        // Fall through to CLI
+      }
+    }
 
-    const systemInstructions = `You are a senior developer analyzing tasks for a project. ${context}\n\nRespond in JSON format: { "description": "...", "prompt": "..." }\n- description: Clear, user-facing explanation of what needs to be done\n- prompt: Technical analysis with implementation details, relevant files, possible solutions\n\nRespond ONLY with valid JSON, no markdown fences.`;
-
-    // Try CLI first
+    // Fallback to CLI
     const cliOk = await claudeCliService.getCliStatus();
     if (cliOk) {
+      const userMessage = existingDescription
+        ? `Analyze this task and improve/generate the fields:\n\nTitle: ${title}\nCurrent description: ${existingDescription}\n\nGenerate an improved description (user-facing, what needs to be done) and a detailed technical prompt (implementation details, files, solutions).`
+        : `Analyze this task and generate the fields:\n\nTitle: ${title}\n\nGenerate a description (user-facing, what needs to be done) and a detailed technical prompt (implementation details, possible approaches, relevant files).`;
+
+      const systemInstructions = `You are a senior developer analyzing tasks for a project. ${context}\n\nRespond in JSON format: { "description": "...", "prompt": "..." }\n- description: Clear, user-facing explanation of what needs to be done\n- prompt: Technical analysis with implementation details, relevant files, possible solutions\n\nRespond ONLY with valid JSON, no markdown fences.`;
+
       try {
         const cwd = await getProjectPath(projectId);
         const result = await claudeCliService.runPrompt(
           `${systemInstructions}\n\n${userMessage}`,
-          { model: 'sonnet', maxTurns: 1, timeout: 120000, cwd },
+          { model: 'sonnet', maxTurns: 1, timeout: 60000, cwd },
         );
         const parsed = parseJsonResponse(result);
         return { description: parsed.description || '', prompt: parsed.prompt || '' };
       } catch (err: any) {
         console.error('[analyze-task] CLI failed:', err.message);
-        // Fall through to API
       }
     }
 
-    // Fallback to API
-    const config = await claudeService.loadClaudeConfig();
-    if (!config) {
-      return reply.status(400).send({ error: 'No AI available. Install Claude CLI or configure API key.' });
-    }
-    return await claudeService.analyzeTask(config, context, title, existingDescription);
+    return reply.status(400).send({ error: 'No AI available. Install Claude CLI or configure API key.' });
   });
 
   // Bulk organize tasks — CLI-first, API fallback

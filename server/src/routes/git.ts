@@ -4,6 +4,34 @@ import * as claudeCliService from '../services/claudeCliService.js';
 import * as claudeService from '../services/claudeService.js';
 import { getProjects } from '../services/projectDiscovery.js';
 
+/**
+ * Strip context lines from a git diff, keeping only +/- lines, file headers,
+ * and hunk headers. This significantly reduces token count for AI processing.
+ */
+function compactGitDiff(diff: string, maxLen: number): string {
+  const lines = diff.split('\n');
+  const kept: string[] = [];
+  let totalLen = 0;
+
+  for (const line of lines) {
+    // Always keep: diff headers, file names, hunk headers, +/- lines
+    if (
+      line.startsWith('diff ') ||
+      line.startsWith('--- ') ||
+      line.startsWith('+++ ') ||
+      line.startsWith('@@') ||
+      line.startsWith('+') ||
+      line.startsWith('-')
+    ) {
+      if (totalLen + line.length > maxLen) break;
+      kept.push(line);
+      totalLen += line.length + 1;
+    }
+  }
+
+  return kept.join('\n');
+}
+
 async function getProjectPath(projectId: string): Promise<string | null> {
   const projects = await getProjects();
   const project = projects.find(p => p.id === projectId);
@@ -200,7 +228,7 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  // Generate commit message via Claude CLI (priority) or API (fallback)
+  // Generate commit message via Claude API (priority) or CLI (fallback)
   app.post<{ Params: { projectId: string } }>(
     '/api/projects/:projectId/git/generate-commit-message',
     async (request, reply) => {
@@ -213,35 +241,37 @@ export async function gitRoutes(app: FastifyInstance) {
           return reply.status(400).send({ error: 'No staged changes' });
         }
 
-        const truncatedDiff = diff.slice(0, 50000);
+        // Strip context lines (lines not starting with +/-) to reduce token count
+        const compactDiff = compactGitDiff(diff, 30000);
         const prompt = 'Write a concise git commit message for this diff. Subject line under 72 chars. If multiple changes, add bullet points in body. Output ONLY the message, no quotes, no markdown fences, no explanation.';
+        const commitModel = 'claude-haiku-4-5-20251001';
 
-        // Priority: CLI → API → error
-        const cliOk = await claudeCliService.getCliStatus();
-        if (cliOk) {
-          const message = await claudeCliService.runPrompt(prompt, {
-            input: truncatedDiff,
-            model: 'sonnet',
-            maxTurns: 1,
-            timeout: 30000,
-            cwd: path,
-          });
-          return { message, source: 'cli' };
-        }
-
-        // Fallback: API
+        // Priority: API (fast, no spawn) → CLI → error
         const config = await claudeService.loadClaudeConfig();
         if (config) {
           const { default: Anthropic } = await import('@anthropic-ai/sdk');
           const client = new Anthropic({ apiKey: config.apiKey });
           const response = await client.messages.create({
-            model: config.model,
+            model: commitModel,
             max_tokens: 256,
             system: prompt,
-            messages: [{ role: 'user', content: truncatedDiff }],
+            messages: [{ role: 'user', content: compactDiff }],
           });
           const text = response.content[0].type === 'text' ? response.content[0].text : '';
           return { message: text.trim(), source: 'api' };
+        }
+
+        // Fallback: CLI
+        const cliOk = await claudeCliService.getCliStatus();
+        if (cliOk) {
+          const message = await claudeCliService.runPrompt(prompt, {
+            input: compactDiff,
+            model: 'haiku',
+            maxTurns: 1,
+            timeout: 30000,
+            cwd: path,
+          });
+          return { message, source: 'cli' };
         }
 
         return reply.status(503).send({ error: 'No AI available. Install Claude CLI or configure API key.' });

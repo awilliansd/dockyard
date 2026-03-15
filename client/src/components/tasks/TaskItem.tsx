@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Trash2, Copy, Check, Circle, AlertTriangle, ArrowUp, ArrowDown, Minus } from 'lucide-react'
+import { Pencil, Trash2, Copy, CopyPlus, Check, Circle, AlertTriangle, ArrowUp, ArrowDown, Minus, Sparkles, Wand2, Loader2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -10,8 +10,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
-import { useUpdateTask, useDeleteTask, type Task } from '@/hooks/useTasks'
+import { useCreateTask, useUpdateTask, useDeleteTask, type Task } from '@/hooks/useTasks'
 import { buildTaskPrompt } from '@/lib/promptBuilder'
+import { useAiSessions } from '@/hooks/useAiSessions'
+import { useClaudeStatus, useAnalyzeTask } from '@/hooks/useClaude'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
@@ -24,6 +26,7 @@ interface TaskItemProps {
   projectLink?: string
   onEdit: (task: Task) => void
   onView?: (task: Task) => void
+  onAiResolve?: (task: Task) => void
   dragListeners?: Record<string, Function>
 }
 
@@ -41,10 +44,16 @@ const statusConfig = {
   done: { label: 'Done', variant: 'outline' as const },
 }
 
-export function TaskItem({ task, projectName, projectPath, showProjectBadge, projectLink, onEdit, onView, dragListeners }: TaskItemProps) {
+export function TaskItem({ task, projectName, projectPath, showProjectBadge, projectLink, onEdit, onView, onAiResolve, dragListeners }: TaskItemProps) {
+  const createTask = useCreateTask()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
+  const { hasSession: hasAiSession } = useAiSessions()
+  const { data: claudeStatus } = useClaudeStatus()
+  const analyzeTask = useAnalyzeTask()
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
+  const isAiResolving = hasAiSession(task.id)
+  const canAiImprove = !!(claudeStatus?.configured || claudeStatus?.cliAvailable)
 
   const priority = priorityConfig[task.priority] || priorityConfig.medium
   const status = statusConfig[task.status] || statusConfig.todo
@@ -69,6 +78,21 @@ export function TaskItem({ task, projectName, projectPath, showProjectBadge, pro
     toast.success('Copied to clipboard')
   }
 
+  const handleDuplicate = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    createTask.mutate(
+      {
+        projectId: task.projectId,
+        title: `Copy of ${task.title}`,
+        description: task.description || '',
+        priority: task.priority,
+        status: 'todo',
+        prompt: task.prompt || '',
+      },
+      { onSuccess: () => toast.success('Task duplicated') }
+    )
+  }
+
   const [deleteOpen, setDeleteOpen] = useState(false)
 
   const handleDelete = () => {
@@ -78,6 +102,26 @@ export function TaskItem({ task, projectName, projectPath, showProjectBadge, pro
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation()
     onEdit(task)
+  }
+
+  const handleAiImprove = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      const result = await analyzeTask.mutateAsync({
+        projectId: task.projectId,
+        title: task.title,
+        taskId: task.id,
+      })
+      updateTask.mutate({
+        projectId: task.projectId,
+        taskId: task.id,
+        description: result.description,
+        prompt: result.prompt,
+      })
+      toast.success('Task improved with AI')
+    } catch (err: any) {
+      toast.error(err.message || 'AI analysis failed')
+    }
   }
 
   // Timestamp of when the task entered its current column
@@ -95,13 +139,16 @@ export function TaskItem({ task, projectName, projectPath, showProjectBadge, pro
     <div
       className={cn(
         'group rounded-lg border bg-card transition-colors hover:border-primary/30 cursor-grab active:cursor-grabbing p-2',
-        task.status === 'done' && 'opacity-60'
+        task.status === 'done' && 'opacity-60',
+        isAiResolving && 'ring-2 ring-purple-500/40 border-purple-500/30 animate-pulse'
       )}
       {...dragListeners}
     >
       <div className="flex items-start gap-2">
         <button onClick={handleStatusToggle} className="shrink-0 mt-0.5">
-          {task.status === 'done' ? (
+          {isAiResolving ? (
+            <Sparkles className="h-3.5 w-3.5 text-purple-500 animate-pulse" />
+          ) : task.status === 'done' ? (
             <Check className="h-3.5 w-3.5 text-green-500" />
           ) : (
             <Circle className="h-3.5 w-3.5 text-muted-foreground" />
@@ -130,9 +177,40 @@ export function TaskItem({ task, projectName, projectPath, showProjectBadge, pro
               </Badge>
             )
           )}
+          {task.subtasks && task.subtasks.length > 0 && (
+            <span className="text-[10px] text-muted-foreground ml-1">
+              {task.subtasks.filter(s => s.done).length}/{task.subtasks.length}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-auto">
+          {onAiResolve && task.status === 'in_progress' && !isAiResolving && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-purple-500 hover:text-purple-400" onClick={(e) => { e.stopPropagation(); onAiResolve(task) }}>
+                  <Sparkles className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Resolve with AI — opens Claude Code to work on this task</TooltipContent>
+            </Tooltip>
+          )}
+          {canAiImprove && task.status !== 'done' && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-blue-500 hover:text-blue-400"
+                  onClick={handleAiImprove}
+                  disabled={analyzeTask.isPending}
+                >
+                  {analyzeTask.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>AI Improve — generate description and details</TooltipContent>
+            </Tooltip>
+          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopyPrompt}>
@@ -140,6 +218,14 @@ export function TaskItem({ task, projectName, projectPath, showProjectBadge, pro
               </Button>
             </TooltipTrigger>
             <TooltipContent>Copy task as prompt — paste into Claude or any AI assistant</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleDuplicate}>
+                <CopyPlus className="h-3 w-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Duplicate task</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>

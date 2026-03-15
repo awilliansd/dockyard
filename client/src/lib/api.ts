@@ -74,13 +74,21 @@ export const api = {
     request<{ sessions: { id: string; projectId: string; type: string; title: string; createdAt: string }[] }>(
       `/terminal/sessions${projectId ? `?projectId=${projectId}` : ''}`
     ),
-  createTerminalSession: (projectId: string, type = 'shell', cols = 80, rows = 24) =>
-    request<{ id: string; projectId: string; type: string; title: string; createdAt: string }>(
+  createTerminalSession: (projectId: string, type = 'shell', cols = 80, rows = 24, taskId?: string) =>
+    request<{ id: string; projectId: string; type: string; title: string; createdAt: string; taskId?: string }>(
       '/terminal/sessions',
-      { method: 'POST', body: JSON.stringify({ projectId, type, cols, rows }) }
+      { method: 'POST', body: JSON.stringify({ projectId, type, cols, rows, ...(taskId ? { taskId } : {}) }) }
     ),
   killTerminalSession: (sessionId: string) =>
     request('/terminal/sessions/' + sessionId, { method: 'DELETE' }),
+  getAiTerminalSessions: () =>
+    request<{ sessions: { id: string; projectId: string; type: string; taskId: string; createdAt: string }[] }>(
+      '/terminal/ai-sessions'
+    ),
+  writeToTerminalSession: (sessionId: string, data: string) =>
+    request<{ success: boolean }>(`/terminal/sessions/${sessionId}/write`, { method: 'POST', body: JSON.stringify({ data }) }),
+  getAiResolvePrompt: (projectId: string, taskId: string) =>
+    request<{ prompt: string }>(`/projects/${projectId}/tasks/${taskId}/ai-resolve`, { method: 'POST' }),
 
   // Project management
   scanDirectory: (directory: string) => request<{ projects: { path: string; name: string; techStack: string[]; isGitRepo: boolean }[] }>('/projects/scan', { method: 'POST', body: JSON.stringify({ directory }) }),
@@ -120,6 +128,12 @@ export const api = {
     request<{ ok: boolean; enabled: boolean; requireAuth: boolean }>('/mcp/config', { method: 'POST', body: JSON.stringify(data) }),
   revokeMcpClient: (clientId: string) =>
     request<{ ok: boolean }>(`/mcp/clients/${clientId}`, { method: 'DELETE' }),
+
+  // Search
+  searchFiles: (query: string, projectId?: string) =>
+    request<{ results: Array<{ name: string; path: string; projectId: string; projectName: string; type: 'file' | 'dir'; extension?: string }> }>(
+      `/search/files?q=${encodeURIComponent(query)}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ''}`
+    ),
 
   // Files
   getFileTree: (projectId: string, relPath: string) =>

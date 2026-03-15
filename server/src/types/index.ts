@@ -22,6 +22,12 @@ export interface Project {
   links?: { label: string; url: string }[];
 }
 
+export interface Subtask {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
 export interface Task {
   id: string;
   projectId: string;
@@ -37,6 +43,7 @@ export interface Task {
   inboxAt?: string;       // When moved to backlog/todo
   inProgressAt?: string;  // When moved to in_progress
   doneAt?: string;        // When moved to done
+  subtasks?: Subtask[];
 }
 
 export interface ProjectsCache {

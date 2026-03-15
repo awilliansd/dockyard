@@ -231,6 +231,72 @@ export async function fileRoutes(app: FastifyInstance) {
     }
   );
 
+  // Search files across projects by filename
+  app.get<{ Querystring: { q: string; projectId?: string; limit?: string } }>(
+    '/api/search/files',
+    async (request, reply) => {
+      const query = (request.query.q || '').trim().toLowerCase();
+      if (!query || query.length < 2) {
+        return { results: [] };
+      }
+
+      const limit = Math.min(parseInt(request.query.limit || '30', 10), 100);
+      const filterProjectId = request.query.projectId;
+      const projects = await getProjects();
+      const targetProjects = filterProjectId
+        ? projects.filter(p => p.id === filterProjectId)
+        : projects;
+
+      const results: Array<{
+        name: string;
+        path: string;
+        projectId: string;
+        projectName: string;
+        type: 'file' | 'dir';
+        extension?: string;
+      }> = [];
+
+      const MAX_DEPTH = 5;
+
+      async function walkDir(dirPath: string, relPath: string, projectId: string, projectName: string, depth: number) {
+        if (depth > MAX_DEPTH || results.length >= limit) return;
+        try {
+          const entries = await readdir(dirPath, { withFileTypes: true });
+          for (const entry of entries) {
+            if (results.length >= limit) break;
+            if (IGNORE_NAMES.has(entry.name)) continue;
+            if (entry.name.startsWith('.') && entry.name !== '.env.example') continue;
+
+            const entryRelPath = relPath ? `${relPath}/${entry.name}` : entry.name;
+
+            if (entry.name.toLowerCase().includes(query)) {
+              results.push({
+                name: entry.name,
+                path: entryRelPath,
+                projectId,
+                projectName,
+                type: entry.isDirectory() ? 'dir' : 'file',
+                extension: entry.isFile() ? extname(entry.name).toLowerCase() || undefined : undefined,
+              });
+            }
+
+            if (entry.isDirectory()) {
+              await walkDir(join(dirPath, entry.name), entryRelPath, projectId, projectName, depth + 1);
+            }
+          }
+        } catch {
+          // Skip directories we can't read
+        }
+      }
+
+      await Promise.all(
+        targetProjects.map(p => walkDir(p.path, '', p.id, p.name, 0))
+      );
+
+      return { results: results.slice(0, limit) };
+    }
+  );
+
   // Open folder in system explorer
   app.post<{ Params: { projectId: string }; Body: { path: string } }>(
     '/api/projects/:projectId/files/open-folder',

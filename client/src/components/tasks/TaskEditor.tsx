@@ -6,6 +6,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCreateTask, useUpdateTask, type Task } from '@/hooks/useTasks'
 import { TaskAnalysisButton } from '@/components/claude/TaskAnalysisButton'
+import { X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
 interface TaskEditorProps {
@@ -21,6 +23,8 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
   const [priority, setPriority] = useState<string>('medium')
   const [status, setStatus] = useState<string>('todo')
   const [prompt, setPrompt] = useState('')
+  const [subtasks, setSubtasks] = useState<{ id: string; title: string; done: boolean }[]>([])
+  const [newSubtask, setNewSubtask] = useState('')
   const [quickCreate, setQuickCreate] = useState(() =>
     localStorage.getItem('shipyard:quick-create') === 'true'
   )
@@ -36,12 +40,14 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
       setPriority(task.priority)
       setStatus(task.status)
       setPrompt(task.prompt || '')
+      setSubtasks(task.subtasks || [])
     } else {
       setTitle('')
       setDescription('')
       setPriority('medium')
       setStatus('todo')
       setPrompt('')
+      setSubtasks([])
     }
   }, [task, open])
 
@@ -51,6 +57,8 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
     setPriority('medium')
     setStatus('todo')
     setPrompt('')
+    setSubtasks([])
+    setNewSubtask('')
     setTimeout(() => titleInputRef.current?.focus(), 50)
   }
 
@@ -59,12 +67,12 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
 
     if (task) {
       updateTask.mutate(
-        { projectId, taskId: task.id, title, description, priority, status, prompt: prompt || undefined },
+        { projectId, taskId: task.id, title, description, priority, status, prompt: prompt || undefined, subtasks: subtasks.length > 0 ? subtasks : undefined },
         { onSuccess: () => onOpenChange(false) }
       )
     } else {
       createTask.mutate(
-        { projectId, title, description, priority, status, prompt: prompt || undefined },
+        { projectId, title, description, priority, status, prompt: prompt || undefined, subtasks: subtasks.length > 0 ? subtasks : undefined },
         {
           onSuccess: () => {
             if (quickCreate) {
@@ -171,6 +179,45 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
               className="mt-1 font-mono text-xs"
               rows={4}
             />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Subtasks</label>
+            <div className="mt-1 space-y-1">
+              {subtasks.map((st) => (
+                <div key={st.id} className="flex items-center gap-2 group/st">
+                  <input
+                    type="checkbox"
+                    checked={st.done}
+                    onChange={() => setSubtasks(prev => prev.map(s => s.id === st.id ? { ...s, done: !s.done } : s))}
+                    className="rounded border-border"
+                  />
+                  <span className={cn('text-sm flex-1', st.done && 'line-through text-muted-foreground')}>{st.title}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSubtasks(prev => prev.filter(s => s.id !== st.id))}
+                    className="opacity-0 group-hover/st:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newSubtask}
+                  onChange={e => setNewSubtask(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && newSubtask.trim()) {
+                      e.preventDefault()
+                      setSubtasks(prev => [...prev, { id: Math.random().toString(36).slice(2, 12), title: newSubtask.trim(), done: false }])
+                      setNewSubtask('')
+                    }
+                  }}
+                  placeholder="Add subtask... (Enter)"
+                  className="flex-1 text-sm bg-background border rounded px-2 py-1 outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+            </div>
           </div>
         </div>
         <DialogFooter className="flex items-center justify-between sm:justify-between">

@@ -17,10 +17,11 @@ try {
 export interface TerminalSession {
   id: string;
   projectId: string;
-  type: string; // 'shell' | 'dev' | 'claude'
+  type: string; // 'shell' | 'dev' | 'claude' | 'ai-resolve'
   title: string;
   pty: import('node-pty').IPty;
   createdAt: string;
+  taskId?: string;
 }
 
 const sessions = new Map<string, TerminalSession>();
@@ -56,6 +57,7 @@ export async function createSession(
   cols: number,
   rows: number,
   projectName?: string,
+  taskId?: string,
 ): Promise<string | null> {
   if (!nodePty) return null;
 
@@ -81,7 +83,7 @@ export async function createSession(
     if (type === 'claude') {
       env['CLAUDECODE'] = '';
       initialCommand = 'claude';
-    } else if (type === 'claude-yolo') {
+    } else if (type === 'claude-yolo' || type === 'ai-resolve') {
       env['CLAUDECODE'] = '';
       initialCommand = 'claude --dangerously-skip-permissions';
     } else if (type === 'dev') {
@@ -92,7 +94,7 @@ export async function createSession(
     shellArgs = ['-il'];
     if (type === 'claude') {
       initialCommand = 'claude';
-    } else if (type === 'claude-yolo') {
+    } else if (type === 'claude-yolo' || type === 'ai-resolve') {
       initialCommand = 'claude --dangerously-skip-permissions';
     } else if (type === 'dev') {
       initialCommand = await detectDevCommand(projectPath);
@@ -103,7 +105,7 @@ export async function createSession(
   const shortName = projectName && projectName.length > maxLen
     ? projectName.slice(0, maxLen - 3) + '...'
     : projectName || projectId;
-  const typeLabels: Record<string, string> = { claude: 'Claude', 'claude-yolo': 'Claude', dev: 'Dev', shell: 'Shell' };
+  const typeLabels: Record<string, string> = { claude: 'Claude', 'claude-yolo': 'Claude', dev: 'Dev', shell: 'Shell', 'ai-resolve': 'AI' };
   const title = `[${shortName}] ${typeLabels[type] || 'Shell'}`;
 
   const spawnOptions: Record<string, any> = {
@@ -129,6 +131,7 @@ export async function createSession(
     title,
     pty,
     createdAt: new Date().toISOString(),
+    ...(taskId ? { taskId } : {}),
   };
 
   sessions.set(id, session);
@@ -177,6 +180,26 @@ export function resizeSession(id: string, cols: number, rows: number): boolean {
   try {
     session.pty.resize(cols, rows);
   } catch {}
+  return true;
+}
+
+export function listAiSessions(): Omit<TerminalSession, 'pty'>[] {
+  const list: Omit<TerminalSession, 'pty'>[] = [];
+  for (const session of sessions.values()) {
+    if (session.taskId) {
+      const { pty, ...rest } = session;
+      list.push(rest);
+    }
+  }
+  return list;
+}
+
+export function writeToSession(id: string, data: string): boolean {
+  const session = sessions.get(id);
+  if (!session) return false;
+  try {
+    session.pty.write(data);
+  } catch { return false; }
   return true;
 }
 
