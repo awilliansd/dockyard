@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  build:
     strategy:
       fail-fast: false
       matrix:
@@ -45,22 +45,35 @@ jobs:
       - name: Build and package
         run: ${{ matrix.cmd }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - name: List release artifacts
-        if: always()
-        shell: bash
-        run: ls -lah release/ 2>/dev/null || echo "No release directory"
-
-      - name: Upload release assets
-        if: success()
-        uses: softprops/action-gh-release@v2
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          draft: true
-          generate_release_notes: true
-          files: |
+          name: release-${{ matrix.os }}
+          path: |
             release/*.exe
             release/*.dmg
             release/*.AppImage
             release/*.deb
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: find artifacts -type f 2>/dev/null || ls -R artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: artifacts/*
