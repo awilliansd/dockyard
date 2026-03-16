@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Plus, X, ChevronDown, ChevronUp, Terminal, Trash2, ExternalLink, Sparkles, XCircle } from 'lucide-react'
+import { Plus, X, ChevronDown, ChevronUp, Terminal, Trash2, ExternalLink, Sparkles, XCircle, CheckCircle2 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   useTerminalStatus,
@@ -443,14 +443,19 @@ export function TerminalPanel() {
                   activeTabId === tab.sessionId
                     ? tab.taskId && !tab.exited
                       ? 'bg-purple-500/20 text-purple-300 ring-1 ring-purple-500/40'
-                      : 'bg-background/60 text-foreground'
+                      : tab.taskId && tab.exited
+                        ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
+                        : 'bg-background/60 text-foreground'
                     : tab.taskId && !tab.exited
                       ? 'text-purple-400/60 hover:text-purple-300 hover:bg-purple-500/10'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-background/30',
-                  tab.exited && !tab.hasNotification && 'opacity-50'
+                      : tab.taskId && tab.exited
+                        ? 'text-emerald-400/60 hover:text-emerald-300 hover:bg-emerald-500/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-background/30',
+                  tab.exited && !tab.taskId && !tab.hasNotification && 'opacity-50'
                 )}
               >
                 {tab.taskId && !tab.exited && <Sparkles className="h-3 w-3 shrink-0 animate-pulse" />}
+                {tab.taskId && tab.exited && <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-400" />}
                 {tab.hasNotification && (
                   <span className="relative flex h-2 w-2 shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
