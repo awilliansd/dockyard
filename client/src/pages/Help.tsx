@@ -5,17 +5,19 @@ import {
   Star, ArrowUp, ArrowDown, FileEdit, Cloud, Download, Keyboard, ChevronDown,
   Layers, Search, ExternalLink, GripVertical, Copy, Plus, Trash2, RefreshCw,
   MonitorPlay, HelpCircle, Sparkles, Server, List, LayoutGrid, Wand2,
-  CheckSquare, Import, Eye
+  CheckSquare, Import, Eye, Milestone, FileCode, SearchCode
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type SectionId = 'overview' | 'dashboard' | 'workspace' | 'tasks' | 'terminal' | 'git' | 'sync' | 'claude' | 'mcp' | 'settings' | 'shortcuts' | 'data' | 'electron'
+type SectionId = 'overview' | 'dashboard' | 'workspace' | 'editor' | 'tasks' | 'milestones' | 'terminal' | 'git' | 'sync' | 'claude' | 'mcp' | 'settings' | 'shortcuts' | 'data' | 'electron'
 
 const sections: { id: SectionId; label: string; icon: React.ReactNode }[] = [
   { id: 'overview', label: 'Overview', icon: <HelpCircle className="h-4 w-4" /> },
   { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
   { id: 'workspace', label: 'Workspace', icon: <Layers className="h-4 w-4" /> },
+  { id: 'editor', label: 'Code Editor', icon: <FileCode className="h-4 w-4" /> },
   { id: 'tasks', label: 'Tasks & Kanban', icon: <ClipboardList className="h-4 w-4" /> },
+  { id: 'milestones', label: 'Milestones', icon: <Milestone className="h-4 w-4" /> },
   { id: 'terminal', label: 'Terminal', icon: <Terminal className="h-4 w-4" /> },
   { id: 'git', label: 'Git', icon: <GitBranch className="h-4 w-4" /> },
   { id: 'sync', label: 'Sync & Export', icon: <Cloud className="h-4 w-4" /> },
@@ -59,7 +61,9 @@ export function Help() {
             {active === 'overview' && <SectionOverview />}
             {active === 'dashboard' && <SectionDashboard />}
             {active === 'workspace' && <SectionWorkspace />}
+            {active === 'editor' && <SectionEditor />}
             {active === 'tasks' && <SectionTasks />}
+            {active === 'milestones' && <SectionMilestones />}
             {active === 'terminal' && <SectionTerminal />}
             {active === 'git' && <SectionGit />}
             {active === 'sync' && <SectionSync />}
@@ -141,13 +145,16 @@ function SectionOverview() {
       <H3>Key Features</H3>
       <Bullet title="Multi-project tabs">Open several projects simultaneously and switch instantly between them.</Bullet>
       <Bullet title="Kanban & List views">Organize tasks in Inbox, In Progress, and Done with drag-and-drop or a compact list view.</Bullet>
+      <Bullet title="Milestones">Group tasks into phases or sprints within each project.</Bullet>
       <Bullet title="Subtasks">Break tasks into smaller subtasks with checkboxes and progress tracking.</Bullet>
+      <Bullet title="Code editor">Edit files with syntax highlighting for 11+ languages, multi-tab, and <Kbd>Ctrl + S</Kbd> save.</Bullet>
       <Bullet title="Integrated terminal">Run shells, dev servers, and Claude Code inside the dashboard.</Bullet>
       <Bullet title="Git panel">Stage, commit, push, pull, discard, and view diffs without leaving the browser.</Bullet>
-      <Bullet title="Claude AI">Chat with Claude, auto-analyze tasks, bulk import, and AI-powered task resolution.</Bullet>
-      <Bullet title="Global search">Search projects, tasks, and files across all projects with <Kbd>Ctrl + K</Kbd>.</Bullet>
+      <Bullet title="Claude AI">Chat with Claude, auto-analyze tasks, bulk import, AI task resolution, and AI Task Manager.</Bullet>
+      <Bullet title="Global search">Search projects, tasks, and files with <Kbd>Ctrl + K</Kbd>. Search file contents with <Kbd>Ctrl + Shift + F</Kbd>.</Bullet>
       <Bullet title="Google Sheets sync">Bidirectional sync of tasks via Google Apps Script.</Bullet>
-      <Bullet title="Export/Import">JSON and Markdown export. Full backup/restore in Settings.</Bullet>
+      <Bullet title="Export/Import">JSON, Markdown, and CSV export. Full backup/restore in Settings.</Bullet>
+      <Bullet title="Project notes & links">Add notes and multiple external links to each project.</Bullet>
       <Bullet title="File explorer">Browse project files, preview code and images, copy paths.</Bullet>
       <Bullet title="Desktop app">Available as an installable app via Electron (Windows, macOS, Linux).</Bullet>
 
@@ -218,11 +225,13 @@ function SectionWorkspace() {
       <Bullet title="Info bar">Project path, git branch badge, favorite star, external link.</Bullet>
       <Bullet title="Kanban board">Three columns: Inbox, In Progress, Done. Drag tasks between them.</Bullet>
       <Bullet title="List view">Toggle between Kanban and List views using the toolbar buttons.</Bullet>
+      <Bullet title="Code editor">Toggle to editor mode to edit project files with syntax highlighting. See the Code Editor section for details.</Bullet>
 
       <H3>Sidebar (right, 1/4 width)</H3>
+      <Bullet title="Project details">Collapsible panel with project notes and custom links. Click to expand/collapse.</Bullet>
       <Bullet title="Claude context">Copy project context (path, tasks) to clipboard. "Open Claude + Copy Context" opens a terminal with context ready.</Bullet>
       <Bullet title="Quick Launch">Buttons to open Claude Code, Dev Server, Shell, VS Code, and Folder.</Bullet>
-      <Bullet title="File explorer">Collapsible tree view for browsing project files (lazy-loaded). Supports preview, delete, copy path, and open in system explorer.</Bullet>
+      <Bullet title="File explorer">Collapsible tree view for browsing project files (lazy-loaded). Supports preview, edit, delete, copy path, and open in system explorer.</Bullet>
       <Bullet title="Git panel">Full git operations (details in Git section).</Bullet>
 
       <H3>Terminal Panel (bottom)</H3>
@@ -238,11 +247,25 @@ function SectionWorkspace() {
         Switching between tabs is instant thanks to cached data.
       </P>
 
-      <H3>External Links</H3>
+      <H3>Project Notes & Links</H3>
       <P>
-        Each project can have an external link (Notion, Google Sheets, Figma, etc.).
-        Click the link icon in the info bar to add or edit it. Links open in the default browser.
+        The "Details" panel in the sidebar lets you add freeform notes and multiple external
+        links to each project. Notes are useful for project context, reminders, or quick references.
+        Links support custom labels and open in the default browser.
       </P>
+      <Bullet title="Notes">Click the edit button to write or update project notes. Saved server-side.</Bullet>
+      <Bullet title="Links">Add multiple labeled URLs (Notion, Figma, Jira, etc.). Each link has a label and URL.</Bullet>
+      <Bullet title="Info bar link">The link icon in the info bar is a quick shortcut to a single primary external URL.</Bullet>
+
+      <H3>File Content Search</H3>
+      <P>
+        Press <Kbd>Ctrl + Shift + F</Kbd> to open the file content search. This searches inside
+        file contents across the current project (or all projects if on the home page). Results show
+        matching lines with highlighted text, grouped by file.
+      </P>
+      <Bullet title="Case sensitive">Toggle case-sensitive matching with the Aa button.</Bullet>
+      <Bullet title="Navigation">Use <Kbd>Arrow Up/Down</Kbd> to move between results, <Kbd>Enter</Kbd> to open the file at that line, <Kbd>Space</Kbd> to collapse/expand a file group.</Bullet>
+      <Bullet title="Editor integration">Selecting a result opens the file in the code editor at the matching line.</Bullet>
 
       <H3>File Explorer</H3>
       <P>
@@ -257,6 +280,99 @@ function SectionWorkspace() {
         Common directories like .git, node_modules, dist, and build are automatically hidden.
         Files larger than 2MB are blocked from preview.
       </P>
+    </>
+  )
+}
+
+function SectionEditor() {
+  return (
+    <>
+      <H2>Code Editor</H2>
+      <P>
+        Shipyard includes a built-in code editor powered by CodeMirror 6. Toggle between
+        Kanban/List and Editor modes using the mode buttons in the workspace toolbar.
+      </P>
+
+      <H3>Multi-tab Editing</H3>
+      <P>
+        Open multiple files simultaneously in tabs. Each tab shows the file name and a blue dot
+        indicator when there are unsaved changes. Close tabs with the X button — if there are
+        unsaved changes, a confirmation dialog appears.
+      </P>
+
+      <H3>Opening Files</H3>
+      <Bullet title="File explorer">Click the "Edit" action in the file explorer context menu (three dots on hover).</Bullet>
+      <Bullet title="File content search">Select a result from <Kbd>Ctrl + Shift + F</Kbd> to open the file at the matching line.</Bullet>
+
+      <H3>Saving</H3>
+      <P>
+        Press <Kbd>Ctrl + S</Kbd> to save the active file. The blue dot on the tab disappears
+        after a successful save. Files are saved via the API back to disk.
+      </P>
+
+      <H3>Supported Languages</H3>
+      <P>
+        Syntax highlighting is available for: TypeScript, JavaScript, JSON, CSS, HTML, Markdown,
+        Python, Rust, SQL, XML, and YAML. Other text files open without highlighting.
+      </P>
+
+      <H3>Features</H3>
+      <Bullet title="Syntax highlighting">Language-specific coloring with the One Dark theme.</Bullet>
+      <Bullet title="Line numbers">Visible by default with active line highlighting.</Bullet>
+      <Bullet title="Bracket matching">Auto-highlights matching brackets and parentheses.</Bullet>
+      <Bullet title="Code folding">Collapse and expand code blocks.</Bullet>
+
+      <InfoBox>
+        <p><strong>Limitations:</strong> Only text files can be edited. Binary files and images are preview-only. Max file size: 2MB.</p>
+        <p><strong>Tab state:</strong> Open tabs are saved in localStorage per project, but file content reloads from disk on revisit.</p>
+      </InfoBox>
+    </>
+  )
+}
+
+function SectionMilestones() {
+  return (
+    <>
+      <H2>Milestones</H2>
+      <P>
+        Milestones let you organize tasks into phases, sprints, or logical groups within a project.
+        Each milestone has its own kanban board with separate Inbox, In Progress, and Done columns.
+      </P>
+
+      <H3>Default Milestone</H3>
+      <P>
+        Every project starts with a virtual "General" milestone. Tasks without an explicit milestone
+        belong here. Existing projects work without any changes — all tasks appear in General.
+      </P>
+
+      <H3>Creating Milestones</H3>
+      <P>
+        Click the milestone dropdown in the kanban toolbar header, then click the <strong>+</strong> button.
+        Give it a name and optional description. The new milestone becomes the active view.
+      </P>
+
+      <H3>Switching Milestones</H3>
+      <P>
+        Use the dropdown selector in the kanban header to switch between milestones. Each milestone
+        shows its own set of tasks. The active milestone is saved per project in localStorage.
+      </P>
+
+      <H3>Managing Milestones</H3>
+      <Bullet title="Edit">Click the edit button next to a milestone in the dropdown to change its name or description.</Bullet>
+      <Bullet title="Close / Reopen">Close a milestone when the phase is complete. Closed milestones are hidden from the dropdown but can be shown and reopened.</Bullet>
+      <Bullet title="Delete">Deleting a milestone moves all its tasks back to the "General" default milestone.</Bullet>
+
+      <H3>Tasks & Milestones</H3>
+      <P>
+        Tasks created via the kanban board or task editor inherit the currently active milestone.
+        You can also set a task's milestone explicitly in the task editor. Tasks created via MCP
+        tools support the <code className="bg-muted px-1 rounded">milestoneId</code> parameter.
+      </P>
+
+      <InfoBox>
+        <p><strong>Data:</strong> Milestones are stored in the same task file (<code className="bg-muted px-1 rounded">data/tasks/project-id.json</code>) alongside tasks.</p>
+        <p><strong>Migration:</strong> Zero migration needed. Projects without milestones keep working as before.</p>
+      </InfoBox>
     </>
   )
 }
@@ -320,6 +436,8 @@ function SectionTasks() {
       <Bullet title="Delete">Remove the task permanently.</Bullet>
       <Bullet title="Toggle status">Click the status icon on the card to cycle through states.</Bullet>
       <Bullet title="AI Improve">Use the wand button to have Claude improve the task's title, description, and details.</Bullet>
+      <Bullet title="Resolve with AI">For in-progress tasks, click the sparkles button to open Claude Code with the task context pre-loaded. A pulsing purple indicator appears while the AI session is active. When the task is completed by AI, it's flagged for human review.</Bullet>
+      <Bullet title="Mark all as read">In the Done column header, click the checkmark button to dismiss all completed tasks from the visible list.</Bullet>
 
       <H3>Column Actions</H3>
       <P>
@@ -331,8 +449,29 @@ function SectionTasks() {
       <H3>Bulk Import</H3>
       <P>
         Click the "Import" button in the task toolbar to open the bulk import dialog. Paste
-        unstructured text or a list, and Claude AI will organize it into individual tasks with
-        proper titles and descriptions.
+        unstructured text or a list, then choose how to process it:
+      </P>
+      <Bullet title="AI Analyze">Claude organizes the text into properly structured tasks with titles, descriptions, and priorities. Requires Claude API key or CLI installed.</Bullet>
+      <Bullet title="Basic Parse">A simple fallback that splits bullet points or numbered lists into individual tasks without AI.</Bullet>
+      <P>
+        Review the parsed tasks before importing — you can select/deselect individual tasks.
+      </P>
+
+      <H3>AI Task Manager</H3>
+      <P>
+        The AI Task Manager (wrench icon in the toolbar) is a more powerful alternative to bulk import.
+        Paste any text — meeting notes, bug reports, task lists, or even natural language instructions
+        like "mark all design tasks as done". Claude runs in the integrated terminal and directly
+        creates, updates, or reorganizes tasks in the project.
+      </P>
+      <Bullet title="Requires">Integrated terminal (node-pty) and either Claude CLI installed or API key configured.</Bullet>
+      <Bullet title="Deduplication">AI detects existing tasks to avoid creating duplicates.</Bullet>
+
+      <H3>CSV Import & Export</H3>
+      <P>
+        Export tasks as CSV for use in spreadsheets, or import a CSV file to update tasks. When
+        importing, a visual diff review dialog shows added, modified, and deleted rows. You can
+        select individual rows and fields to apply before confirming.
       </P>
 
       <H3>All Tasks View</H3>
@@ -505,6 +644,13 @@ function SectionSync() {
         Copy to clipboard or download as a file.
       </P>
 
+      <H3>CSV Export & Import</H3>
+      <P>
+        Export tasks as CSV for spreadsheet editing. Import a modified CSV back with a visual diff
+        review that shows exactly what will change — added rows, modified fields, and deleted tasks.
+        You can selectively apply changes row-by-row or field-by-field before confirming.
+      </P>
+
       <H3>Full Backup (Settings)</H3>
       <P>
         In Settings, export/import a complete backup including projects, settings, and all tasks.
@@ -552,8 +698,14 @@ function SectionSettings() {
         clients. See the MCP Server section for details.
       </P>
 
+      <H3>Sound</H3>
+      <P>
+        Toggle the AI completion sound effect. When enabled, a short chime plays when AI
+        operations finish (bulk import, task analysis, chat responses). Uses Web Audio API — no files needed.
+      </P>
+
       <H3>Export & Import</H3>
-      <Bullet title="Export">Download a JSON backup of settings, projects, and tasks.</Bullet>
+      <Bullet title="Export">Download a JSON backup of settings, projects, and tasks. Choose which data to include.</Bullet>
       <Bullet title="Import">Load a backup file to merge with existing data. Duplicates are skipped.</Bullet>
     </>
   )
@@ -567,15 +719,29 @@ function SectionShortcuts() {
       <H3>Global</H3>
       <div className="border rounded-lg p-3">
         <ShortcutRow keys="Ctrl + K" description="Open global search (projects, tasks, files)" />
+        <ShortcutRow keys="Ctrl + Shift + F" description="Open file content search" />
         <ShortcutRow keys="Ctrl + `" description="Toggle terminal panel" />
       </div>
 
-      <H3>Global Search</H3>
+      <H3>Global Search (Ctrl + K)</H3>
       <div className="border rounded-lg p-3">
-        <ShortcutRow keys="Tab" description="Cycle through filter tabs (All, Projects, Tasks, Files)" />
+        <ShortcutRow keys="Tab / Shift + Tab" description="Cycle through filter tabs (All, Projects, Tasks, Files)" />
         <ShortcutRow keys="Arrow Up / Down" description="Navigate through results" />
         <ShortcutRow keys="Enter" description="Open selected result" />
         <ShortcutRow keys="Esc" description="Close search" />
+      </div>
+
+      <H3>File Content Search (Ctrl + Shift + F)</H3>
+      <div className="border rounded-lg p-3">
+        <ShortcutRow keys="Arrow Up / Down" description="Navigate through results" />
+        <ShortcutRow keys="Enter" description="Open file at matching line" />
+        <ShortcutRow keys="Space" description="Collapse / expand file group" />
+        <ShortcutRow keys="Esc" description="Close search" />
+      </div>
+
+      <H3>Code Editor</H3>
+      <div className="border rounded-lg p-3">
+        <ShortcutRow keys="Ctrl + S" description="Save the active file" />
       </div>
 
       <H3>Navigation</H3>
@@ -698,6 +864,13 @@ function SectionClaude() {
       <H3>Task Summarization</H3>
       <P>
         Get an AI summary of all tasks in a project — highlights priorities, blockers, and progress.
+      </P>
+
+      <H3>Sound Notifications</H3>
+      <P>
+        Shipyard can play a short chime when AI operations complete (bulk import, task analysis, etc.).
+        Enable or disable this in Settings under the sound toggle. The sound is synthesized via
+        Web Audio — no audio files needed.
       </P>
 
       <H3>Models</H3>
