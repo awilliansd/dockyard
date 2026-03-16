@@ -66,6 +66,10 @@ shipyard/
 │   │   │   ├── sync/
 │   │   │   │   ├── SyncSettingsCard.tsx  # Card de integrações na pagina Settings
 │   │   │   │   └── SyncPanel.tsx         # Botoes de export (JSON, Markdown) no toolbar
+│   │   │   ├── editor/
+│   │   │   │   ├── CodeMirrorEditor.tsx   # CodeMirror 6 wrapper com syntax highlighting
+│   │   │   │   ├── EditorTabBar.tsx       # Abas de arquivos abertos com dirty indicators
+│   │   │   │   └── EditorPanel.tsx        # Painel principal do editor com tabs + save
 │   │   │   ├── files/
 │   │   │   │   ├── FileExplorer.tsx       # Tree view na sidebar do Workspace (lazy-loading)
 │   │   │   │   ├── FilePreviewDialog.tsx  # Dialog preview: markdown, code, imagens
@@ -95,7 +99,8 @@ shipyard/
 │   │   │   ├── useTerminal.ts     # Hook para sessoes de terminal integrado
 │   │   │   ├── useClaude.ts       # Claude API hooks + SSE streaming chat
 │   │   │   ├── useMcp.ts          # MCP server status/config hooks
-│   │   │   └── useFiles.ts        # File tree, content, delete, open-folder hooks
+│   │   │   ├── useEditorTabs.ts    # Estado de abas do editor (open/close/dirty/save)
+│   │   │   └── useFiles.ts        # File tree, content, delete, open-folder, save hooks
 │   │   ├── lib/
 │   │   │   ├── api.ts             # Fetch wrapper para todas as rotas do backend
 │   │   │   ├── sheetsAdapter.ts   # Converte Task[] <-> formato Google Sheets
@@ -312,6 +317,7 @@ interface McpConfig {
 ### Files
 - `GET /api/projects/:id/files/tree?path=<relpath>` - Lista arquivos/pastas (depth=1, lazy)
 - `GET /api/projects/:id/files/content?path=<relpath>` - Conteudo do arquivo (JSON ou raw binary)
+- `PUT /api/projects/:id/files/content` - Salva conteudo do arquivo { path, content } (somente texto, max 2MB)
 - `DELETE /api/projects/:id/files?path=<relpath>` - Deleta arquivo ou pasta (recursivo)
 - `POST /api/projects/:id/files/open-folder` - Abre pasta no explorer do sistema { path }
 
@@ -320,6 +326,22 @@ interface McpConfig {
 - `POST /api/browse` - Navega filesystem { path } → { directories[] }
 
 ## Funcionalidades Implementadas
+
+### Code Editor (editor integrado)
+- Editor de codigo integrado no Workspace com **CodeMirror 6** e syntax highlighting
+- **Multi-tab**: abre multiplos arquivos em abas, com indicador de unsaved changes (dot azul)
+- **Ctrl+S** salva o arquivo ativo via API PUT
+- **Syntax highlighting** para: TypeScript, JavaScript, JSON, CSS, HTML, Markdown, Python, Rust, SQL, XML, YAML
+- **Mode toggle**: botao no info bar alterna entre Kanban (Tasks) e Editor
+- Arquivos abertos via menu "Edit" no contexto do FileExplorer (tres pontos)
+- Somente arquivos de texto podem ser editados (binarios/imagens sao preview-only)
+- Confirmacao de discard ao fechar aba com alteracoes nao salvas
+- Tab state (paths) persistido em localStorage por projeto (`shipyard:editor-tabs:{projectId}`)
+- Conteudo NAO persiste em localStorage — recarrega do servidor ao reabrir
+- Cada aba de projeto tem seu proprio editor state independente
+- Tema: One Dark do CodeMirror, alinhado com o dark theme do app
+- Arquivos server: `routes/files.ts` (PUT endpoint)
+- Arquivos client: `CodeMirrorEditor.tsx`, `EditorTabBar.tsx`, `EditorPanel.tsx`, `useEditorTabs.ts`
 
 ### File Explorer (browser de arquivos)
 - Tree view na sidebar direita do Workspace, colapsavel (fechado por padrao)
@@ -516,13 +538,18 @@ interface McpConfig {
 - Delete e copy-as-prompt inline
 
 ### Sidebar
-- Link "All Projects" → /
-- Link "All Tasks" → /tasks (com contador de pendentes)
-- Counters separados: Inbox e In Progress
-- Projetos ativos (com tarefas in-progress) — clique abre como aba
-- Projetos favoritos — clique abre como aba
-- Busca de projetos — resultados abrem como aba
-- Link para Settings
+- **Expanded (w-56)**: Header com logo + Refresh + Collapse, Search button (Ctrl+K), Dashboard link, All Tasks link com counter
+- **Collapsible sections** com chevron toggle + localStorage persistence (`shipyard:sidebar-sections`):
+  - **Favorites**: projetos favoritos com avatar, nome, git branch, git indicators, task count badge
+  - **Active**: projetos com tarefas in_progress que NAO sao favoritos (evita duplicacao)
+  - **Projects**: todos os demais projetos (auto-collapsed se > 8 projetos)
+- Per-project **task count badges** (pending = inbox + in_progress)
+- Per-project **git branch name** exibido abaixo do nome (expanded mode)
+- **Collapsed (w-12)**: icones de navegacao, avatars agrupados por secao com dividers
+  - Dot amarelo pulsante em projetos com tarefas in_progress
+  - Dot laranja em projetos com git pendente
+  - Tooltips incluem nome, task count e git info
+- Footer: project count, Help, Settings, credit link
 
 ### Settings (/settings)
 - Folder browser visual para navegar filesystem
@@ -584,7 +611,7 @@ O `terminalLauncher.ts` detecta o OS via `os.platform()` e usa comandos nativos:
 
 ## Dependencias Principais
 
-**Frontend**: react, react-dom, vite, @vitejs/plugin-react-swc, tailwindcss, @tanstack/react-query, react-router-dom, @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, lucide-react, sonner, date-fns, cmdk, @xterm/xterm, @xterm/addon-fit, @xterm/addon-web-links, react-markdown, remark-gfm
+**Frontend**: react, react-dom, vite, @vitejs/plugin-react-swc, tailwindcss, @tanstack/react-query, react-router-dom, @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, lucide-react, sonner, date-fns, cmdk, @xterm/xterm, @xterm/addon-fit, @xterm/addon-web-links, react-markdown, remark-gfm, @uiw/react-codemirror, @codemirror/lang-javascript, @codemirror/lang-css, @codemirror/lang-html, @codemirror/lang-json, @codemirror/lang-markdown, @codemirror/lang-python, @codemirror/lang-rust, @codemirror/lang-sql, @codemirror/lang-xml, @codemirror/lang-yaml, @codemirror/theme-one-dark
 
 **Backend**: fastify, @fastify/cors, @fastify/static, @fastify/websocket, simple-git, tsx, nanoid, @anthropic-ai/sdk, jose, node-pty (optional)
 

@@ -52,3 +52,14 @@ export function useOpenFileFolder() {
       api.openFileFolder(projectId, relPath),
   })
 }
+
+export function useSaveFile() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ projectId, relPath, content }: { projectId: string; relPath: string; content: string }) =>
+      api.saveFileContent(projectId, relPath, content),
+    onSuccess: (_data, { projectId, relPath }) => {
+      queryClient.invalidateQueries({ queryKey: ['files', 'content', projectId, relPath] })
+    },
+  })
+}

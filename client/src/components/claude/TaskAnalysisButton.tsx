@@ -7,7 +7,7 @@ interface TaskAnalysisButtonProps {
   projectId: string
   taskId?: string
   title: string
-  onResult: (result: { description: string; prompt: string }) => void
+  onResult: (result: { title: string; description: string; prompt: string }) => void
 }
 
 export function TaskAnalysisButton({ projectId, taskId, title, onResult }: TaskAnalysisButtonProps) {

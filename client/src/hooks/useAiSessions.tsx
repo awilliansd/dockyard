@@ -90,6 +90,10 @@ export function AiSessionsProvider({ children }: { children: ReactNode }) {
           for (const entry of entries) {
             const task = tasks.find((t: any) => t.id === entry.taskId)
             if (task && task.status === 'done') {
+              // Mark as needs review so the user sees an "unread" indicator
+              if (!task.needsReview) {
+                api.updateTask(entry.projectId, entry.taskId, { needsReview: true }).catch(() => {})
+              }
               setSessions(prev => {
                 const next = new Map(prev)
                 next.delete(entry.taskId)

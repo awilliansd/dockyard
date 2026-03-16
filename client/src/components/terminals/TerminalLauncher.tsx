@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Play, Monitor, FolderOpen, Copy, Sparkles, ExternalLink, Rocket, Wand2 } from 'lucide-react'
+import { Play, Monitor, FolderOpen, Copy, Sparkles, Rocket, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useLaunchTerminal, useOpenFolder } from '@/hooks/useProjects'
@@ -121,8 +121,9 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
           </span>
         )}
       </h2>
+
+      {/* Primary actions */}
       <div className="space-y-1">
-        {/* AI Task Manager — top action */}
         {aiAvailable && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -133,13 +134,12 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
             </TooltipTrigger>
             <TooltipContent side="left">
               <p className="max-w-[200px] text-xs">
-                Paste any text — notes, emails, bug reports — and AI organizes them into tasks. Detects duplicates and can update existing tasks.
+                Paste any text — notes, emails, bug reports — and AI organizes them into tasks.
               </p>
             </TooltipContent>
           </Tooltip>
         )}
 
-        {/* Claude — secondary action */}
         {projectPath && projectName && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -157,88 +157,71 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
             </TooltipContent>
           </Tooltip>
         )}
+      </div>
 
-        {/* Copy context — only when MCP is not active */}
-        {!mcpActive && projectPath && projectName && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start gap-2 h-8 text-xs" onClick={handleCopyContext}>
-                <Copy className="h-3.5 w-3.5" />
-                Copy Tasks Context
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              <p className="max-w-[200px] text-xs">Copies project path + all tasks to clipboard. Paste into any AI assistant.</p>
-            </TooltipContent>
-          </Tooltip>
-        )}
-
-        {/* Dev Server */}
+      {/* Quick actions — compact icon row */}
+      <div className="flex items-center gap-1">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start gap-2 h-8 text-xs" onClick={() => launch('dev', 'Dev Server')}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => launch('dev', 'Dev Server')}>
               <Play className="h-3.5 w-3.5" />
-              Dev Server
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="left">Runs dev server {hasIntegrated ? 'in integrated terminal' : 'in native terminal'}</TooltipContent>
+          <TooltipContent side="bottom">Dev Server</TooltipContent>
         </Tooltip>
 
-        {/* Shell */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start gap-2 h-8 text-xs" onClick={() => launch('shell', 'Shell')}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => launch('shell', 'Shell')}>
               <Monitor className="h-3.5 w-3.5" />
-              Shell
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="left">Opens shell {hasIntegrated ? 'in integrated terminal' : 'in native terminal'}</TooltipContent>
+          <TooltipContent side="bottom">Shell</TooltipContent>
         </Tooltip>
 
-        {/* Native terminal fallback */}
-        {hasIntegrated && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start gap-2 h-8 text-xs text-muted-foreground"
-                onClick={() => launchTerminal.mutate({ projectId, type: 'shell' }, { onSuccess: () => toast.success('Opened native terminal') })}
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                Open Native Terminal
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">Opens a separate native terminal window</TooltipContent>
-          </Tooltip>
-        )}
-
-        {/* Open Folder */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start gap-2 h-8 text-xs"
+            <Button variant="ghost" size="icon" className="h-8 w-8"
               onClick={() => openFolder.mutate(projectId, { onSuccess: () => toast.success('Opened folder') })}
             >
               <FolderOpen className="h-3.5 w-3.5" />
-              Open Folder
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="left">Opens project folder in file manager</TooltipContent>
+          <TooltipContent side="bottom">Open Folder</TooltipContent>
         </Tooltip>
-      </div>
 
-      {/* YOLO mode toggle */}
-      {projectPath && (
-        <label className="flex items-center gap-2 px-1 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={skipPermissions}
-            onChange={e => {
-              setSkipPermissions(e.target.checked)
-              localStorage.setItem('shipyard:skipPermissions', String(e.target.checked))
-            }}
-            className="rounded border-muted-foreground/30"
-          />
-          <span className="text-[10px] text-muted-foreground">YOLO mode (--dangerously-skip-permissions)</span>
-        </label>
-      )}
+        {!mcpActive && projectPath && projectName && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCopyContext}>
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Copy Tasks Context</TooltipContent>
+          </Tooltip>
+        )}
+
+        {/* YOLO toggle */}
+        {projectPath && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <label className="ml-auto flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={skipPermissions}
+                  onChange={e => {
+                    setSkipPermissions(e.target.checked)
+                    localStorage.setItem('shipyard:skipPermissions', String(e.target.checked))
+                  }}
+                  className="rounded border-muted-foreground/30 h-3 w-3"
+                />
+                <span className="text-[10px] text-muted-foreground ml-1.5">YOLO</span>
+              </label>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">--dangerously-skip-permissions</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
 
       <TaskManagerDialog
         projectId={projectId}

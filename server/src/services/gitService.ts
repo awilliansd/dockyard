@@ -2,10 +2,22 @@ import { simpleGit, SimpleGit, StatusResult, LogResult } from 'simple-git';
 import path from 'path';
 import { promises as fsp } from 'fs';
 
+// Cache SimpleGit instances per resolved path so that all operations on the
+// same repo go through one instance's internal task queue. This serializes git
+// commands and prevents concurrent index access that can cause incomplete
+// status results on Windows (index.lock conflicts).
+const gitInstances = new Map<string, SimpleGit>();
+
 function getGit(projectPath: string): SimpleGit {
-  return simpleGit(projectPath, {
-    config: ['core.quotepath=false'],
-  });
+  const key = path.resolve(projectPath);
+  let instance = gitInstances.get(key);
+  if (!instance) {
+    instance = simpleGit(projectPath, {
+      config: ['core.quotepath=false'],
+    });
+    gitInstances.set(key, instance);
+  }
+  return instance;
 }
 
 export async function fetch(projectPath: string): Promise<void> {
@@ -131,6 +143,17 @@ export async function discardAll(projectPath: string, section: 'staged' | 'unsta
       } catch { /* ignore */ }
     }
   }
+}
+
+export async function undoLastCommit(projectPath: string): Promise<void> {
+  const git = getGit(projectPath);
+  // Check there's at least one commit
+  try {
+    await git.raw(['rev-parse', 'HEAD']);
+  } catch {
+    throw new Error('No commits to undo');
+  }
+  await git.reset(['--soft', 'HEAD~1']);
 }
 
 export async function getMainBranchLastCommit(projectPath: string): Promise<{ hash: string; message: string; date: string; author_name: string; isMerged: boolean } | null> {

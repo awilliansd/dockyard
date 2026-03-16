@@ -58,7 +58,8 @@ export function buildInProgressPrompt(
   lines.push('1. Investigate the codebase to understand the context')
   lines.push('2. Plan and implement the solution')
   lines.push('3. Test that your changes work correctly')
-  lines.push(`4. Update the tasks file (${tasksFilePath}) to mark the task as done:`)
+  lines.push('4. Create a git commit with your changes using a clear, concise commit message that describes what was done')
+  lines.push(`5. Update the tasks file (${tasksFilePath}) to mark the task as done:`)
   lines.push(`   - Set "status": "done"`)
   lines.push(`   - Set "doneAt" and "updatedAt" to the current ISO timestamp`)
   lines.push(`   - PRESERVE existing "inboxAt" and "inProgressAt" timestamps — never remove them`)
@@ -128,7 +129,8 @@ export function buildColumnPrompt(
     lines.push('1. Investigate the codebase to understand the context')
     lines.push('2. Plan and implement the solution')
     lines.push('3. Test that your changes work correctly')
-    lines.push(`4. Update the tasks file (${tasksFilePath}) to mark the task as done:`)
+    lines.push('4. Create a git commit with your changes using a clear, concise commit message that describes what was done')
+    lines.push(`5. Update the tasks file (${tasksFilePath}) to mark the task as done:`)
     lines.push('   - Set "status": "done"')
     lines.push('   - Set "doneAt" and "updatedAt" to the current ISO timestamp')
     lines.push('   - PRESERVE existing "inboxAt" and "inProgressAt" timestamps — never remove them')
@@ -193,10 +195,11 @@ export function buildTaskPrompt(
   lines.push('1. Investigate the codebase to understand the context of this task')
   lines.push('2. Plan and implement the solution')
   lines.push('3. Test that your changes work correctly')
+  lines.push('4. Create a git commit with your changes using a clear, concise commit message that describes what was done')
 
   // Shipyard task update instructions
   if (tasksFilePath) {
-    lines.push(`4. After completing the task, update the Shipyard tasks file to mark this task as done:`)
+    lines.push(`5. After completing the task, update the Shipyard tasks file to mark this task as done:`)
     lines.push(`   - File: ${tasksFilePath}`)
     lines.push(`   - Find the task with id "${task.id}" and set:`)
     lines.push(`     - "status": "done"`)

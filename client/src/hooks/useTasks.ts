@@ -4,6 +4,7 @@ import { scheduleAutoSync as scheduleAutoSyncPush } from '@/lib/sync/autoSync'
 
 export interface Task {
   id: string
+  number?: number
   projectId: string
   title: string
   description: string
@@ -16,6 +17,7 @@ export interface Task {
   inboxAt?: string
   inProgressAt?: string
   doneAt?: string
+  needsReview?: boolean
   subtasks?: { id: string; title: string; done: boolean }[]
 }
 

@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { readdir, stat, readFile, unlink, rm } from 'fs/promises';
+import { readdir, stat, readFile, writeFile, unlink, rm } from 'fs/promises';
 import { join, resolve, extname, relative, sep } from 'path';
 import { getProjects } from '../services/projectDiscovery.js';
 import { openFolder } from '../services/terminalLauncher.js';
@@ -226,6 +226,48 @@ export async function fileRoutes(app: FastifyInstance) {
         }
         return { success: true };
       } catch (err: any) {
+        return reply.status(500).send({ error: err.message });
+      }
+    }
+  );
+
+  // Save file content
+  app.put<{ Params: { projectId: string }; Body: { path: string; content: string } }>(
+    '/api/projects/:projectId/files/content',
+    async (request, reply) => {
+      const projectPath = await getProjectPath(request.params.projectId);
+      if (!projectPath) return reply.status(404).send({ error: 'Project not found' });
+
+      const { path: relPath, content } = request.body || {};
+      if (!relPath) return reply.status(400).send({ error: 'path is required' });
+      if (typeof content !== 'string') return reply.status(400).send({ error: 'content must be a string' });
+
+      let targetPath: string;
+      try {
+        targetPath = validatePath(projectPath, relPath);
+      } catch (e: any) {
+        return reply.status(e.statusCode || 400).send({ error: e.message });
+      }
+
+      const ext = extname(targetPath).toLowerCase();
+      const name = targetPath.split(/[/\\]/).pop() || '';
+      const mimeHint = getMimeHint(ext, name);
+
+      if (mimeHint === 'application/octet-stream' || IMAGE_TYPES[ext]) {
+        return reply.status(400).send({ error: 'Cannot write binary files' });
+      }
+
+      if (Buffer.byteLength(content, 'utf8') > MAX_FILE_SIZE) {
+        return reply.status(413).send({ error: 'Content too large (max 2MB)' });
+      }
+
+      try {
+        await stat(targetPath); // Verify file exists
+        await writeFile(targetPath, content, 'utf8');
+        const newStat = await stat(targetPath);
+        return { success: true, size: newStat.size };
+      } catch (err: any) {
+        if (err.code === 'ENOENT') return reply.status(404).send({ error: 'File not found' });
         return reply.status(500).send({ error: err.message });
       }
     }

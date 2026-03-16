@@ -222,10 +222,10 @@ export async function claudeRoutes(app: FastifyInstance) {
     const cliOk = await claudeCliService.getCliStatus();
     if (cliOk) {
       const userMessage = existingDescription
-        ? `Analyze this task and improve/generate the fields:\n\nTitle: ${title}\nCurrent description: ${existingDescription}\n\nGenerate an improved description (user-facing, what needs to be done) and a detailed technical prompt (implementation details, files, solutions).`
-        : `Analyze this task and generate the fields:\n\nTitle: ${title}\n\nGenerate a description (user-facing, what needs to be done) and a detailed technical prompt (implementation details, possible approaches, relevant files).`;
+        ? `Analyze this task and improve/generate the fields:\n\nTitle: ${title}\nCurrent description: ${existingDescription}\n\nGenerate an improved title (concise, action-oriented), an improved description (user-facing, what needs to be done) and a detailed technical prompt (implementation details, files, solutions).`
+        : `Analyze this task and generate the fields:\n\nTitle: ${title}\n\nGenerate an improved title (concise, action-oriented), a description (user-facing, what needs to be done) and a detailed technical prompt (implementation details, possible approaches, relevant files).`;
 
-      const systemInstructions = `You are a senior developer analyzing tasks for a project. ${context}\n\nRespond in JSON format: { "description": "...", "prompt": "..." }\n- description: Clear, user-facing explanation of what needs to be done\n- prompt: Technical analysis with implementation details, relevant files, possible solutions\n\nRespond ONLY with valid JSON, no markdown fences.`;
+      const systemInstructions = `You are a senior developer analyzing tasks for a project. ${context}\n\nRespond in JSON format: { "title": "...", "description": "...", "prompt": "..." }\n- title: Concise, action-oriented task title (improve the original if possible, keep it short)\n- description: Clear, user-facing explanation of what needs to be done\n- prompt: Technical analysis with implementation details, relevant files, possible solutions\n\nRespond ONLY with valid JSON, no markdown fences.`;
 
       try {
         const cwd = await getProjectPath(projectId);
@@ -234,9 +234,10 @@ export async function claudeRoutes(app: FastifyInstance) {
           { model: 'sonnet', maxTurns: 1, timeout: 60000, cwd },
         );
         const parsed = parseJsonResponse(result);
-        return { description: parsed.description || '', prompt: parsed.prompt || '' };
+        return { title: parsed.title || title, description: parsed.description || '', prompt: parsed.prompt || '' };
       } catch (err: any) {
         console.error('[analyze-task] CLI failed:', err.message);
+        return reply.status(500).send({ error: `AI analysis failed: ${err.message}` });
       }
     }
 
@@ -284,11 +285,17 @@ Respond ONLY with valid JSON array, no markdown fences. Example:
         return { tasks: Array.isArray(parsed) ? parsed : [] };
       } catch (err: any) {
         console.error('[bulk-organize] CLI failed:', err.message);
-        // Fall through to API
+        // Fall through to API, but save error for reporting
+        const config = await claudeService.loadClaudeConfig();
+        if (!config) {
+          return reply.status(500).send({ error: `AI bulk organize failed: ${err.message}` });
+        }
+        const tasks = await claudeService.bulkOrganizeTasks(config, context, rawText);
+        return { tasks };
       }
     }
 
-    // Fallback to API
+    // No CLI — try API directly
     const config = await claudeService.loadClaudeConfig();
     if (!config) {
       return reply.status(400).send({ error: 'No AI available. Install Claude CLI or configure API key.' });
@@ -369,11 +376,17 @@ Respond ONLY with valid JSON (no markdown fences):
         };
       } catch (err: any) {
         console.error('[manage-tasks] CLI failed:', err.message);
-        // Fall through to API
+        // Fall through to API, but save error for reporting
+        const config = await claudeService.loadClaudeConfig();
+        if (!config) {
+          return reply.status(500).send({ error: `AI task management failed: ${err.message}` });
+        }
+        const result = await claudeService.manageTasks(config, systemInstructions, rawText);
+        return result;
       }
     }
 
-    // Fallback to API
+    // No CLI — try API directly
     const config = await claudeService.loadClaudeConfig();
     if (!config) {
       return reply.status(400).send({ error: 'No AI available. Install Claude CLI or configure API key.' });

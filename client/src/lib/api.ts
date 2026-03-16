@@ -61,6 +61,8 @@ export const api = {
     request(`/projects/${projectId}/git/discard`, { method: 'POST', body: JSON.stringify({ file, type }) }),
   discardAll: (projectId: string, section: 'staged' | 'unstaged') =>
     request(`/projects/${projectId}/git/discard-all`, { method: 'POST', body: JSON.stringify({ section }) }),
+  undoCommit: (projectId: string) =>
+    request(`/projects/${projectId}/git/undo-commit`, { method: 'POST' }),
   generateCommitMessage: (projectId: string) =>
     request<{ message: string; source: 'cli' | 'api' }>(`/projects/${projectId}/git/generate-commit-message`, { method: 'POST' }),
 
@@ -74,10 +76,10 @@ export const api = {
     request<{ sessions: { id: string; projectId: string; type: string; title: string; createdAt: string }[] }>(
       `/terminal/sessions${projectId ? `?projectId=${projectId}` : ''}`
     ),
-  createTerminalSession: (projectId: string, type = 'shell', cols = 80, rows = 24, taskId?: string) =>
+  createTerminalSession: (projectId: string, type = 'shell', cols = 80, rows = 24, taskId?: string, prompt?: string) =>
     request<{ id: string; projectId: string; type: string; title: string; createdAt: string; taskId?: string }>(
       '/terminal/sessions',
-      { method: 'POST', body: JSON.stringify({ projectId, type, cols, rows, ...(taskId ? { taskId } : {}) }) }
+      { method: 'POST', body: JSON.stringify({ projectId, type, cols, rows, ...(taskId ? { taskId } : {}), ...(prompt ? { prompt } : {}) }) }
     ),
   killTerminalSession: (sessionId: string) =>
     request('/terminal/sessions/' + sessionId, { method: 'DELETE' }),
@@ -109,7 +111,7 @@ export const api = {
   testClaudeKey: (apiKey: string) =>
     request<{ ok: boolean; error?: string }>('/claude/config/test', { method: 'POST', body: JSON.stringify({ apiKey }) }),
   analyzeTask: (projectId: string, title: string, taskId?: string) =>
-    request<{ description: string; prompt: string }>('/claude/analyze-task', { method: 'POST', body: JSON.stringify({ projectId, title, taskId }) }),
+    request<{ title: string; description: string; prompt: string }>('/claude/analyze-task', { method: 'POST', body: JSON.stringify({ projectId, title, taskId }) }),
   bulkOrganizeTasks: (projectId: string, rawText: string) =>
     request<{ tasks: Array<{ title: string; description: string; prompt: string; priority: string; status: string }> }>(
       '/claude/bulk-organize', { method: 'POST', body: JSON.stringify({ projectId, rawText }) }
@@ -154,5 +156,10 @@ export const api = {
     request<{ success: boolean }>(
       `/projects/${projectId}/files/open-folder`,
       { method: 'POST', body: JSON.stringify({ path: relPath }) }
+    ),
+  saveFileContent: (projectId: string, relPath: string, content: string) =>
+    request<{ success: boolean; size: number }>(
+      `/projects/${projectId}/files/content`,
+      { method: 'PUT', body: JSON.stringify({ path: relPath, content }) }
     ),
 };

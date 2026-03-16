@@ -279,7 +279,7 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
   const [csvReviewOpen, setCsvReviewOpen] = useState(false)
   const [csvDiff, setCsvDiff] = useState<CsvDiff | null>(null)
   const [sortBy, setSortBy] = useState<SortOption>(() =>
-    (localStorage.getItem(`shipyard:sort:${projectId}`) as SortOption) || 'priority'
+    (localStorage.getItem(`shipyard:sort:${projectId}`) as SortOption) || 'updated'
   )
   const [addingInColumn, setAddingInColumn] = useState<string | null>(null)
   const [bulkImportOpen, setBulkImportOpen] = useState(false)

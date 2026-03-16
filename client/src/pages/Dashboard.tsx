@@ -79,6 +79,7 @@ export function Dashboard() {
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-yellow-500/10 hover:bg-yellow-500/20 transition-colors text-xs shrink-0 group"
                 >
                   <span className="text-muted-foreground">{task.projectName}:</span>
+                  <span className="font-mono text-muted-foreground/60">{task.id}</span>
                   <span className="truncate max-w-[200px]">{task.title}</span>
                   <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
                 </button>

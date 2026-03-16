@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { TabBar } from './TabBar'
-import { CommandPalette } from './CommandPalette'
+import { GlobalSearch } from './GlobalSearch'
 import { TabsProvider } from '@/hooks/useTabs'
 import { TerminalPanel } from '@/components/terminals/TerminalPanel'
 
@@ -31,7 +31,7 @@ export function Layout() {
           <TerminalPanel />
         </main>
       </div>
-      <CommandPalette />
+      <GlobalSearch />
     </TabsProvider>
   )
 }

@@ -2,9 +2,11 @@ import { execFile, spawn } from 'child_process';
 import { promisify } from 'util';
 
 const execFileAsync = promisify(execFile);
+const isWindows = process.platform === 'win32';
 
-// Cache CLI availability (re-check every 60s)
+// Cache CLI availability and resolved path (re-check every 60s)
 let cliAvailable: boolean | null = null;
+let cliPath: string = 'claude'; // resolved full path on Windows
 let lastCheck = 0;
 
 export async function isCliAvailable(): Promise<boolean> {
@@ -13,6 +15,19 @@ export async function isCliAvailable(): Promise<boolean> {
       timeout: 5000,
       windowsHide: true,
     });
+    // On Windows, resolve the full path so spawn() can find it without shell
+    if (isWindows) {
+      try {
+        const { stdout } = await execFileAsync('where', ['claude'], {
+          timeout: 5000,
+          windowsHide: true,
+        });
+        const resolved = stdout.trim().split(/\r?\n/)[0];
+        if (resolved) cliPath = resolved;
+      } catch {
+        // If 'where' fails, keep using 'claude' and rely on shell fallback
+      }
+    }
     return true;
   } catch {
     return false;
@@ -65,7 +80,7 @@ export async function runPrompt(prompt: string, options?: RunPromptOptions): Pro
   const env = buildCliEnv();
 
   return new Promise<string>((resolve, reject) => {
-    const proc = spawn('claude', args, {
+    const proc = spawn(cliPath, args, {
       env,
       cwd: options?.cwd,
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -117,7 +132,7 @@ export async function* streamPrompt(prompt: string, options?: RunPromptOptions):
   const args = buildCliArgs(options);
   const env = buildCliEnv();
 
-  const proc = spawn('claude', args, {
+  const proc = spawn(cliPath, args, {
     env,
     cwd: options?.cwd,
     stdio: ['pipe', 'pipe', 'pipe'],

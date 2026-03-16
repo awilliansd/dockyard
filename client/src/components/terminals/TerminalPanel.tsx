@@ -20,6 +20,7 @@ interface GlobalTab {
   title: string
   type: string
   exited: boolean
+  hasNotification: boolean
   taskId?: string
 }
 
@@ -76,6 +77,8 @@ export function TerminalPanel() {
   activeTabIdRef.current = activeTabId
   const activeProjectIdRef = useRef(activeProjectId)
   activeProjectIdRef.current = activeProjectId
+  const isVisibleRef = useRef(isVisible)
+  isVisibleRef.current = isVisible
 
   // Persist panel state
   useEffect(() => {
@@ -100,6 +103,21 @@ export function TerminalPanel() {
     }
   }, [activeTabId])
 
+  // Clear notification when the active tab becomes visible
+  useEffect(() => {
+    if (isVisible && activeTabId) {
+      setTabs(prev => {
+        const tab = prev.find(t => t.sessionId === activeTabId)
+        if (tab?.hasNotification) {
+          return prev.map(t =>
+            t.sessionId === activeTabId ? { ...t, hasNotification: false } : t
+          )
+        }
+        return prev
+      })
+    }
+  }, [isVisible, activeTabId])
+
   // On mount: validate persisted tabs against server sessions (recovery from refresh)
   const initializedRef = useRef(false)
   useEffect(() => {
@@ -115,7 +133,7 @@ export function TerminalPanel() {
         for (const t of prev) {
           if (serverIds.has(t.sessionId)) {
             const srv = serverMap.get(t.sessionId) as any
-            valid.push({ ...t, exited: false, taskId: t.taskId || srv?.taskId }) // Recover taskId
+            valid.push({ ...t, exited: false, hasNotification: false, taskId: t.taskId || srv?.taskId }) // Recover taskId
           }
         }
         // Add any server sessions not in our persisted tabs (recovery)
@@ -127,6 +145,7 @@ export function TerminalPanel() {
               title: s.title,
               type: s.type,
               exited: false,
+              hasNotification: false,
               taskId: (s as any).taskId,
             })
           }
@@ -192,26 +211,28 @@ export function TerminalPanel() {
     }
 
     try {
-      const session = await createSession.mutateAsync({ projectId: targetProject, type, cols: 80, rows: 24, taskId })
+      // For AI resolve sessions, pass the prompt to the server so it can
+      // inject it when Claude CLI is ready (output-based detection + chunked writes).
+      const session = await createSession.mutateAsync({
+        projectId: targetProject, type, cols: 80, rows: 24, taskId,
+        ...(taskId && prompt ? { prompt } : {}),
+      })
       const tab: GlobalTab = {
         sessionId: session.id,
         projectId: targetProject,
         title: session.title,
         type: session.type,
         exited: false,
+        hasNotification: false,
         taskId,
       }
       setTabs(prev => [...prev, tab])
       setActiveTabId(session.id)
       setIsVisible(true)
 
-      // For AI resolve sessions: register and inject prompt after CLI initializes
+      // Register AI session for UI indicators
       if (taskId && prompt) {
         aiSessions.register({ taskId, sessionId: session.id, projectId: targetProject })
-        const delay = navigator.userAgent.includes('Win') ? 3000 : 2000
-        setTimeout(() => {
-          api.writeToTerminalSession(session.id, prompt + '\r').catch(() => {})
-        }, delay)
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to create terminal')
@@ -267,13 +288,40 @@ export function TerminalPanel() {
   }, [killSession, aiSessions])
 
   const handleTabExit = useCallback((sessionId: string, _code: number) => {
+    // Find the tab before modifying state — we need the taskId for needsReview
+    const tab = tabsRef.current.find(t => t.sessionId === sessionId)
+
+    // Show notification if the exited tab is not currently visible
+    // (either it's not the active tab, or the panel is collapsed)
+    const isVisibleToUser = activeTabIdRef.current === sessionId && isVisibleRef.current
+
     setTabs(prev => prev.map(t =>
       t.sessionId === sessionId
-        ? { ...t, exited: true, title: t.title.includes('[exited]') ? t.title : `${t.title} [exited]` }
+        ? {
+            ...t,
+            exited: true,
+            hasNotification: !isVisibleToUser,
+            title: t.title.includes('[exited]') ? t.title : `${t.title} [exited]`,
+          }
         : t
     ))
     // Unregister AI session when the process exits
     aiSessions.unregisterBySession(sessionId)
+
+    // If this was an AI resolve session, check after a brief delay
+    // whether the task moved to done and mark it as needsReview
+    if (tab?.taskId) {
+      const { projectId, taskId } = tab
+      setTimeout(async () => {
+        try {
+          const { tasks } = await api.getTasks(projectId)
+          const task = tasks.find((t: any) => t.id === taskId)
+          if (task && task.status === 'done' && !task.needsReview) {
+            await api.updateTask(projectId, taskId, { needsReview: true })
+          }
+        } catch {}
+      }, 2000)
+    }
   }, [aiSessions])
 
   // Stable ref so IntegratedTerminal doesn't re-create on every render
@@ -285,6 +333,12 @@ export function TerminalPanel() {
   // Terminal tab click → also switch to that project's tab
   const handleTerminalTabClick = useCallback((sessionId: string) => {
     setActiveTabId(sessionId)
+    // Clear notification when user views this tab
+    setTabs(prev => prev.map(t =>
+      t.sessionId === sessionId && t.hasNotification
+        ? { ...t, hasNotification: false }
+        : t
+    ))
     const tab = tabsRef.current.find(t => t.sessionId === sessionId)
     if (tab) {
       openProjectTab(tab.projectId)
@@ -345,7 +399,15 @@ export function TerminalPanel() {
               onClick={togglePanel}
               className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              <Terminal className="h-3.5 w-3.5" />
+              <span className="relative">
+                <Terminal className="h-3.5 w-3.5" />
+                {tabs.some(t => t.hasNotification) && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                  </span>
+                )}
+              </span>
               <span className="font-medium">Terminal</span>
               {tabs.length > 0 && (
                 <span className="text-[10px] text-muted-foreground/60">({tabs.length})</span>
@@ -372,11 +434,20 @@ export function TerminalPanel() {
                     : tab.taskId && !tab.exited
                       ? 'text-purple-400/60 hover:text-purple-300 hover:bg-purple-500/10'
                       : 'text-muted-foreground hover:text-foreground hover:bg-background/30',
-                  tab.exited && 'opacity-50'
+                  tab.exited && !tab.hasNotification && 'opacity-50'
                 )}
               >
                 {tab.taskId && !tab.exited && <Sparkles className="h-3 w-3 shrink-0 animate-pulse" />}
+                {tab.hasNotification && (
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                  </span>
+                )}
                 <span className="truncate">{tab.title.replace(/^\[(.*?)\]\s*/, '$1 · ')}</span>
+                {tab.taskId && (
+                  <span className="text-[9px] font-mono opacity-60 shrink-0">{tab.taskId}</span>
+                )}
                 <X
                   className="h-3 w-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
                   onClick={(e) => { e.stopPropagation(); handleCloseTab(tab.sessionId) }}

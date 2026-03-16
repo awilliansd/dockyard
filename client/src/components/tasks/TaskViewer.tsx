@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -53,6 +53,13 @@ export function TaskViewer({ task, projectName, projectPath, open, onOpenChange,
   const analyzeTask = useAnalyzeTask()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const canAiImprove = !!(claudeStatus?.configured || claudeStatus?.cliAvailable)
+
+  // Clear "needs review" indicator when the user opens/views the task
+  useEffect(() => {
+    if (open && task?.needsReview) {
+      updateTask.mutate({ projectId: task.projectId, taskId: task.id, needsReview: false })
+    }
+  }, [open, task?.id, task?.needsReview])
 
   if (!task) return null
 
@@ -121,6 +128,7 @@ export function TaskViewer({ task, projectName, projectPath, open, onOpenChange,
                   <PriIcon className={cn('h-2.5 w-2.5', pri.color)} />
                   {pri.label}
                 </Badge>
+                <span className="text-[10px] text-muted-foreground/60 font-mono select-all ml-auto">#{task.number || '?'}</span>
               </div>
             </div>
           </div>

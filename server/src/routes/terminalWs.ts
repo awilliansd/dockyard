@@ -29,19 +29,19 @@ export async function terminalWsRoutes(app: FastifyInstance) {
   );
 
   // REST: Create a new terminal session
-  app.post<{ Body: { projectId: string; type?: string; cols?: number; rows?: number; taskId?: string } }>(
+  app.post<{ Body: { projectId: string; type?: string; cols?: number; rows?: number; taskId?: string; prompt?: string } }>(
     '/api/terminal/sessions',
     async (request, reply) => {
       if (!isAvailable()) {
         return reply.status(503).send({ error: 'Integrated terminal not available (node-pty not installed)' });
       }
 
-      const { projectId, type = 'shell', cols = 80, rows = 24, taskId } = request.body;
+      const { projectId, type = 'shell', cols = 80, rows = 24, taskId, prompt } = request.body;
       const projects = await getProjects();
       const project = projects.find(p => p.id === projectId);
       if (!project) return reply.status(404).send({ error: 'Project not found' });
 
-      const sessionId = await createSession(projectId, project.path, type, cols, rows, project.name, taskId);
+      const sessionId = await createSession(projectId, project.path, type, cols, rows, project.name, taskId, prompt);
       if (!sessionId) return reply.status(500).send({ error: 'Failed to create terminal session' });
 
       await updateProject(project.id, { lastOpenedAt: new Date().toISOString() });

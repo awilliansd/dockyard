@@ -30,6 +30,7 @@ export interface Subtask {
 
 export interface Task {
   id: string;
+  number?: number;        // Human-friendly sequential number per project (#1, #2, ...)
   projectId: string;
   title: string;
   description: string;
@@ -43,6 +44,7 @@ export interface Task {
   inboxAt?: string;       // When moved to backlog/todo
   inProgressAt?: string;  // When moved to in_progress
   doneAt?: string;        // When moved to done
+  needsReview?: boolean;  // True when AI resolved — cleared when user views the task
   subtasks?: Subtask[];
 }
 

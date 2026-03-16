@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useSyncExternalStore, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { Pencil, Trash2, Copy, CopyPlus, Check, Circle, AlertTriangle, ArrowUp, ArrowDown, Minus, Sparkles, Wand2, Loader2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
@@ -13,10 +13,21 @@ import { cn } from '@/lib/utils'
 import { useCreateTask, useUpdateTask, useDeleteTask, type Task } from '@/hooks/useTasks'
 import { buildTaskPrompt } from '@/lib/promptBuilder'
 import { useAiSessions } from '@/hooks/useAiSessions'
-import { useClaudeStatus, useAnalyzeTask } from '@/hooks/useClaude'
-import { useQuery } from '@tanstack/react-query'
+import { useClaudeStatus } from '@/hooks/useClaude'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
+import { scheduleAutoSync } from '@/lib/sync/autoSync'
+
+// Module-level store for AI improve operations — survives component unmounts
+const _improvingTasks = new Set<string>()
+const _listeners = new Set<() => void>()
+function _subscribe(cb: () => void) { _listeners.add(cb); return () => _listeners.delete(cb) }
+function _getSnapshot() { return _improvingTasks.size }
+function _setImproving(taskId: string, value: boolean) {
+  if (value) _improvingTasks.add(taskId); else _improvingTasks.delete(taskId)
+  _listeners.forEach(cb => cb())
+}
 
 interface TaskItemProps {
   task: Task
@@ -48,10 +59,13 @@ export function TaskItem({ task, projectName, projectPath, showProjectBadge, pro
   const createTask = useCreateTask()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
+  const queryClient = useQueryClient()
   const { hasSession: hasAiSession } = useAiSessions()
   const { data: claudeStatus } = useClaudeStatus()
-  const analyzeTask = useAnalyzeTask()
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
+  // Subscribe to module-level improving state so it persists across tab switches
+  useSyncExternalStore(_subscribe, _getSnapshot)
+  const isAiImproving = _improvingTasks.has(task.id)
   const isAiResolving = hasAiSession(task.id)
   const canAiImprove = !!(claudeStatus?.configured || claudeStatus?.cliAvailable)
 
@@ -104,25 +118,30 @@ export function TaskItem({ task, projectName, projectPath, showProjectBadge, pro
     onEdit(task)
   }
 
-  const handleAiImprove = async (e: React.MouseEvent) => {
+  const handleAiImprove = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation()
+    if (_improvingTasks.has(task.id)) return
+    _setImproving(task.id, true)
     try {
-      const result = await analyzeTask.mutateAsync({
-        projectId: task.projectId,
-        title: task.title,
-        taskId: task.id,
-      })
-      updateTask.mutate({
-        projectId: task.projectId,
-        taskId: task.id,
+      // Use direct API calls — not component-local mutations — so the operation
+      // continues even if the user switches tabs and this component unmounts.
+      const result = await api.analyzeTask(task.projectId, task.title, task.id)
+      await api.updateTask(task.projectId, task.id, {
+        title: result.title,
         description: result.description,
         prompt: result.prompt,
       })
+      // Invalidate cache so UI refreshes regardless of which tab is active
+      queryClient.invalidateQueries({ queryKey: ['tasks', task.projectId] })
+      queryClient.invalidateQueries({ queryKey: ['tasks', 'all'] })
+      scheduleAutoSync(task.projectId)
       toast.success('Task improved with AI')
     } catch (err: any) {
       toast.error(err.message || 'AI analysis failed')
+    } finally {
+      _setImproving(task.id, false)
     }
-  }
+  }, [task.id, task.projectId, task.title, queryClient])
 
   // Timestamp of when the task entered its current column
   const columnDate = useMemo(() => {
@@ -138,12 +157,19 @@ export function TaskItem({ task, projectName, projectPath, showProjectBadge, pro
   return (
     <div
       className={cn(
-        'group rounded-lg border bg-card transition-colors hover:border-primary/30 cursor-grab active:cursor-grabbing p-2',
-        task.status === 'done' && 'opacity-60',
+        'group relative rounded-lg border bg-card transition-colors hover:border-primary/30 cursor-grab active:cursor-grabbing p-2',
+        task.status === 'done' && !task.needsReview && 'opacity-60',
+        task.needsReview && 'border-purple-500/30 bg-purple-500/5',
         isAiResolving && 'ring-2 ring-purple-500/40 border-purple-500/30 animate-pulse'
       )}
       {...dragListeners}
     >
+      {task.needsReview && (
+        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-purple-500" />
+        </span>
+      )}
       <div className="flex items-start gap-2">
         <button onClick={handleStatusToggle} className="shrink-0 mt-0.5">
           {isAiResolving ? (
@@ -203,12 +229,12 @@ export function TaskItem({ task, projectName, projectPath, showProjectBadge, pro
                   size="icon"
                   className="h-6 w-6 text-blue-500 hover:text-blue-400"
                   onClick={handleAiImprove}
-                  disabled={analyzeTask.isPending}
+                  disabled={isAiImproving}
                 >
-                  {analyzeTask.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                  {isAiImproving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>AI Improve — generate description and details</TooltipContent>
+              <TooltipContent>AI Improve — generate title, description and details</TooltipContent>
             </Tooltip>
           )}
           <Tooltip>
@@ -264,11 +290,15 @@ export function TaskItem({ task, projectName, projectPath, showProjectBadge, pro
         </div>
       </div>
 
-      {columnDate && (
-        <div className="text-[10px] text-muted-foreground/40 mt-1 text-right">
-          {formatDistanceToNow(columnDate, { addSuffix: true })}
-        </div>
-      )}
+      <div className="flex items-center mt-1 gap-1">
+        <span className="text-[10px] text-muted-foreground/50 font-mono select-all">#{task.number || '?'}</span>
+        <span className="flex-1" />
+        {columnDate && (
+          <span className="text-[10px] text-muted-foreground/40">
+            {formatDistanceToNow(columnDate, { addSuffix: true })}
+          </span>
+        )}
+      </div>
     </div>
   )
 }

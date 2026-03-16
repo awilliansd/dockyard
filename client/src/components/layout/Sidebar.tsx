@@ -1,14 +1,16 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, FolderOpen, RefreshCw, Settings, ClipboardList, PanelLeftClose, PanelLeft, ArrowUp, ArrowDown, FileEdit, Search, HelpCircle } from 'lucide-react'
+import {
+  LayoutDashboard, RefreshCw, Settings, ClipboardList, PanelLeftClose, PanelLeft,
+  ArrowUp, ArrowDown, FileEdit, Search, HelpCircle, ChevronRight, Loader, GitBranch
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { useProjects, useRefreshProjects } from '@/hooks/useProjects'
+import { useProjects, type Project } from '@/hooks/useProjects'
 import { useAllTasks } from '@/hooks/useTasks'
 import { useTabs } from '@/hooks/useTabs'
+import { useRefreshProjects } from '@/hooks/useProjects'
 
 const avatarColors = [
   'bg-red-500/20 text-red-400',
@@ -73,10 +75,13 @@ function GitIndicators({ project }: { project: { gitAhead?: number; gitBehind?: 
   )
 }
 
-function CollapsedProjectItem({ project: p, location, openTab }: {
-  project: { id: string; name: string; gitDirty?: boolean; gitAhead?: number; gitBehind?: number; gitStaged?: number; gitUnstaged?: number; gitUntracked?: number }
+// --- Collapsed sidebar project item ---
+function CollapsedProjectItem({ project: p, location, openTab, taskCount, isActive }: {
+  project: Project
   location: { pathname: string }
   openTab: (id: string) => void
+  taskCount?: number
+  isActive?: boolean
 }) {
   const gitInfo = []
   if ((p.gitAhead ?? 0) > 0) gitInfo.push(`${p.gitAhead} unpushed`)
@@ -84,6 +89,10 @@ function CollapsedProjectItem({ project: p, location, openTab }: {
   const changes = (p.gitStaged ?? 0) + (p.gitUnstaged ?? 0) + (p.gitUntracked ?? 0)
   if (changes > 0) gitInfo.push(`${changes} changed`)
   const hasGitPending = p.gitDirty || (p.gitAhead ?? 0) > 0 || (p.gitBehind ?? 0) > 0
+
+  const tooltipParts = [p.name]
+  if (taskCount) tooltipParts.push(`${taskCount} task${taskCount > 1 ? 's' : ''}`)
+  if (gitInfo.length > 0) tooltipParts.push(gitInfo.join(', '))
 
   return (
     <Tooltip>
@@ -96,21 +105,102 @@ function CollapsedProjectItem({ project: p, location, openTab }: {
           )}
         >
           <ProjectAvatar name={p.name} className="w-7 h-7" />
-          {hasGitPending && (
+          {isActive && (
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+          )}
+          {!isActive && hasGitPending && (
             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-orange-400" />
+          )}
+          {!isActive && !hasGitPending && taskCount && taskCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary/70" />
           )}
         </button>
       </TooltipTrigger>
-      <TooltipContent side="right">
-        {p.name}{gitInfo.length > 0 && ` (${gitInfo.join(', ')})`}
-      </TooltipContent>
+      <TooltipContent side="right">{tooltipParts.join(' · ')}</TooltipContent>
     </Tooltip>
   )
 }
 
+// --- Expanded sidebar project item ---
+function ExpandedProjectItem({ project: p, location, openTab, taskCount, showBranch }: {
+  project: Project
+  location: { pathname: string }
+  openTab: (id: string) => void
+  taskCount?: number
+  showBranch?: boolean
+}) {
+  return (
+    <button
+      onClick={() => openTab(p.id)}
+      className={cn(
+        'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors w-full text-left group',
+        location.pathname === `/project/${p.id}`
+          ? 'bg-accent text-accent-foreground'
+          : 'text-muted-foreground hover:bg-accent/50'
+      )}
+    >
+      <ProjectAvatar name={p.name} className="w-5 h-5 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <span className="truncate block leading-tight">{p.name}</span>
+        {showBranch && p.gitBranch && (
+          <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground/50 leading-tight">
+            <GitBranch className="h-2.5 w-2.5" />
+            <span className="truncate">{p.gitBranch}</span>
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <GitIndicators project={p} />
+        {taskCount !== undefined && taskCount > 0 && (
+          <span className="text-[10px] bg-primary/10 text-primary px-1 py-0.5 rounded font-medium min-w-[16px] text-center">
+            {taskCount}
+          </span>
+        )}
+      </div>
+    </button>
+  )
+}
+
+// --- Collapsible section ---
+const SECTION_STORAGE_KEY = 'shipyard:sidebar-sections'
+
+function loadSectionState(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(SECTION_STORAGE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return {}
+}
+
+function SectionHeader({ label, count, isOpen, onToggle, icon }: {
+  label: string
+  count: number
+  isOpen: boolean
+  onToggle: () => void
+  icon?: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      className="flex items-center gap-1.5 w-full px-2.5 pt-3 pb-1 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider hover:text-muted-foreground transition-colors group"
+    >
+      <ChevronRight className={cn('h-3 w-3 transition-transform duration-150', isOpen && 'rotate-90')} />
+      {icon}
+      <span>{label}</span>
+      <span className="text-[10px] font-normal text-muted-foreground/40 ml-auto">{count}</span>
+    </button>
+  )
+}
+
+
+// --- Main Sidebar ---
 interface SidebarProps {
   collapsed: boolean
   onToggle: () => void
+}
+
+function openGlobalSearch() {
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))
 }
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
@@ -119,33 +209,57 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { data: tasks } = useAllTasks()
   const refreshProjects = useRefreshProjects()
   const { openTab } = useTabs()
-  const [search, setSearch] = useState('')
 
-  const [collapsedSearchOpen, setCollapsedSearchOpen] = useState(false)
-  const [collapsedSearch, setCollapsedSearch] = useState('')
-  const collapsedInputRef = useRef<HTMLInputElement>(null)
+  // Section collapsed state with localStorage persistence
+  const [sectionState, setSectionState] = useState<Record<string, boolean>>(loadSectionState)
+  const toggleSection = useCallback((key: string) => {
+    setSectionState(prev => {
+      const next = { ...prev, [key]: !prev[key] }
+      localStorage.setItem(SECTION_STORAGE_KEY, JSON.stringify(next))
+      return next
+    })
+  }, [])
+  const isSectionOpen = (key: string, defaultOpen: boolean) => {
+    return sectionState[key] !== undefined ? sectionState[key] : defaultOpen
+  }
 
-  useEffect(() => {
-    if (collapsedSearchOpen) {
-      setCollapsedSearch('')
-      setTimeout(() => collapsedInputRef.current?.focus(), 0)
+  // Compute task counts per project (pending = inbox + in_progress)
+  const { pendingByProject, inProgressProjects } = useMemo(() => {
+    const pending = new Map<string, number>()
+    const inProgress = new Set<string>()
+    if (tasks) {
+      for (const t of tasks) {
+        if (t.status !== 'done') {
+          pending.set(t.projectId, (pending.get(t.projectId) || 0) + 1)
+        }
+        if (t.status === 'in_progress') {
+          inProgress.add(t.projectId)
+        }
+      }
     }
-  }, [collapsedSearchOpen])
+    return { pendingByProject: pending, inProgressProjects: inProgress }
+  }, [tasks])
 
-  const favorites = projects?.filter(p => p.favorite) || []
-  const favoriteIds = new Set(favorites.map(p => p.id))
-  const nonFavorites = projects?.filter(p => !favoriteIds.has(p.id)) || []
-  const filtered = search
-    ? projects?.filter(p => p.name.toLowerCase().includes(search.toLowerCase())) || []
-    : []
-  const collapsedFiltered = collapsedSearch
-    ? projects?.filter(p => p.name.toLowerCase().includes(collapsedSearch.toLowerCase())) || []
-    : []
+  // Categorize projects
+  const favorites = useMemo(() => projects?.filter(p => p.favorite) || [], [projects])
+  const favoriteIds = useMemo(() => new Set(favorites.map(p => p.id)), [favorites])
 
+  const activeProjects = useMemo(() =>
+    projects?.filter(p => !favoriteIds.has(p.id) && inProgressProjects.has(p.id)) || [],
+    [projects, favoriteIds, inProgressProjects]
+  )
+  const activeIds = useMemo(() => new Set(activeProjects.map(p => p.id)), [activeProjects])
+
+  const otherProjects = useMemo(() =>
+    projects?.filter(p => !favoriteIds.has(p.id) && !activeIds.has(p.id)) || [],
+    [projects, favoriteIds, activeIds]
+  )
+
+  // Global task counts
   const inboxCount = tasks?.filter(t => t.status === 'backlog' || t.status === 'todo').length || 0
   const inProgressCount = tasks?.filter(t => t.status === 'in_progress').length || 0
 
-  // Collapsed sidebar - icons only
+  // Collapsed sidebar
   if (collapsed) {
     return (
       <aside className="w-12 border-r bg-card flex flex-col h-screen shrink-0">
@@ -156,6 +270,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </div>
 
         <nav className="flex-1 overflow-y-auto py-2 flex flex-col items-center gap-1 scrollbar-dark">
+          {/* Navigation icons */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Link
@@ -168,7 +283,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 <LayoutDashboard className="h-4 w-4" />
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right">All Projects</TooltipContent>
+            <TooltipContent side="right">Dashboard</TooltipContent>
           </Tooltip>
 
           <Tooltip>
@@ -191,58 +306,65 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <TooltipContent side="right">All Tasks ({inboxCount + inProgressCount})</TooltipContent>
           </Tooltip>
 
-          <Popover open={collapsedSearchOpen} onOpenChange={setCollapsedSearchOpen}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <PopoverTrigger asChild>
-                  <button
-                    className="flex items-center justify-center w-8 h-8 rounded-md transition-colors text-muted-foreground hover:bg-accent/50"
-                  >
-                    <Search className="h-4 w-4" />
-                  </button>
-                </PopoverTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="right">Search projects</TooltipContent>
-            </Tooltip>
-            <PopoverContent side="right" align="start" className="w-56 p-2">
-              <Input
-                ref={collapsedInputRef}
-                placeholder="Search projects..."
-                value={collapsedSearch}
-                onChange={e => setCollapsedSearch(e.target.value)}
-                className="h-7 text-xs mb-1"
-              />
-              {collapsedFiltered.length > 0 && (
-                <div className="max-h-48 overflow-y-auto space-y-0.5">
-                  {collapsedFiltered.slice(0, 8).map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => { openTab(p.id); setCollapsedSearchOpen(false) }}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs w-full text-left hover:bg-accent/50 transition-colors"
-                    >
-                      <ProjectAvatar name={p.name} className="w-5 h-5 shrink-0" />
-                      <span className="truncate">{p.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              {collapsedSearch && collapsedFiltered.length === 0 && (
-                <p className="text-[10px] text-muted-foreground/50 text-center py-2">No projects found</p>
-              )}
-            </PopoverContent>
-          </Popover>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={openGlobalSearch}
+                className="flex items-center justify-center w-8 h-8 rounded-md transition-colors text-muted-foreground hover:bg-accent/50"
+              >
+                <Search className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Search (Ctrl+K)</TooltipContent>
+          </Tooltip>
 
+          {/* Favorites */}
           {favorites.length > 0 && (
             <>
               <div className="w-6 border-t my-1" />
-              {favorites.map(p => <CollapsedProjectItem key={p.id} project={p} location={location} openTab={openTab} />)}
+              {favorites.map(p => (
+                <CollapsedProjectItem
+                  key={p.id}
+                  project={p}
+                  location={location}
+                  openTab={openTab}
+                  taskCount={pendingByProject.get(p.id)}
+                  isActive={inProgressProjects.has(p.id)}
+                />
+              ))}
             </>
           )}
 
-          {nonFavorites.length > 0 && (
+          {/* Active (in-progress, non-favorite) */}
+          {activeProjects.length > 0 && (
             <>
               <div className="w-6 border-t my-1" />
-              {nonFavorites.map(p => <CollapsedProjectItem key={p.id} project={p} location={location} openTab={openTab} />)}
+              {activeProjects.map(p => (
+                <CollapsedProjectItem
+                  key={p.id}
+                  project={p}
+                  location={location}
+                  openTab={openTab}
+                  taskCount={pendingByProject.get(p.id)}
+                  isActive
+                />
+              ))}
+            </>
+          )}
+
+          {/* Remaining projects */}
+          {otherProjects.length > 0 && (
+            <>
+              <div className="w-6 border-t my-1" />
+              {otherProjects.map(p => (
+                <CollapsedProjectItem
+                  key={p.id}
+                  project={p}
+                  location={location}
+                  openTab={openTab}
+                  taskCount={pendingByProject.get(p.id)}
+                />
+              ))}
             </>
           )}
         </nav>
@@ -275,159 +397,183 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   // Expanded sidebar
   return (
-    <aside className="w-64 border-r bg-card flex flex-col h-screen shrink-0">
-      <div className="p-4 border-b flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-          <LayoutDashboard className="h-5 w-5 text-primary" />
+    <aside className="w-56 border-r bg-card flex flex-col h-screen shrink-0">
+      {/* Header */}
+      <div className="px-3 py-3 border-b flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2 font-bold text-base">
+          <LayoutDashboard className="h-4 w-4 text-primary" />
           Shipyard
         </Link>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggle}>
-          <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
-        </Button>
-      </div>
-
-      <div className="p-3">
-        <div className="flex gap-1">
-          <Input
-            placeholder="Search projects..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="h-8 text-xs"
-          />
+        <div className="flex items-center gap-0.5">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0"
+            className="h-7 w-7"
             onClick={() => refreshProjects.mutate()}
             disabled={refreshProjects.isPending}
+            title="Refresh projects"
           >
-            <RefreshCw className={cn('h-3.5 w-3.5', refreshProjects.isPending && 'animate-spin')} />
+            <RefreshCw className={cn('h-3.5 w-3.5 text-muted-foreground', refreshProjects.isPending && 'animate-spin')} />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggle} title="Collapse sidebar">
+            <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
           </Button>
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 space-y-1 scrollbar-dark">
-        <Link
-          to="/"
-          className={cn(
-            'flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors',
-            location.pathname === '/'
-              ? 'bg-accent text-accent-foreground'
-              : 'text-muted-foreground hover:bg-accent/50'
-          )}
+      {/* Search */}
+      <div className="px-3 pt-2 pb-1">
+        <button
+          onClick={openGlobalSearch}
+          className="flex items-center gap-2 h-7 w-full rounded-md border border-input bg-transparent px-2.5 text-xs text-muted-foreground/60 hover:bg-accent/50 hover:text-muted-foreground transition-colors"
         >
-          <LayoutDashboard className="h-4 w-4" />
-          All Projects
-        </Link>
+          <Search className="h-3 w-3 shrink-0" />
+          <span className="flex-1 text-left">Search...</span>
+          <kbd className="pointer-events-none inline-flex h-4 select-none items-center rounded border bg-muted px-1 font-mono text-[9px] font-medium">
+            Ctrl+K
+          </kbd>
+        </button>
+      </div>
 
-        {/* Tasks link */}
-        <Link
-          to="/tasks"
-          className={cn(
-            'flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors',
-            location.pathname === '/tasks'
-              ? 'bg-accent text-accent-foreground'
-              : 'text-muted-foreground hover:bg-accent/50'
-          )}
-        >
-          <ClipboardList className="h-4 w-4" />
-          All Tasks
-          {(inboxCount > 0 || inProgressCount > 0) && (
-            <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium ml-auto">
-              {inboxCount + inProgressCount}
-            </span>
-          )}
-        </Link>
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-2 pb-2 scrollbar-dark">
+        <div className="space-y-0.5 pt-1">
+          <Link
+            to="/"
+            className={cn(
+              'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors',
+              location.pathname === '/'
+                ? 'bg-accent text-accent-foreground'
+                : 'text-muted-foreground hover:bg-accent/50'
+            )}
+          >
+            <LayoutDashboard className="h-3.5 w-3.5" />
+            Dashboard
+          </Link>
 
-        {/* Favorites */}
+          <Link
+            to="/tasks"
+            className={cn(
+              'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors',
+              location.pathname === '/tasks'
+                ? 'bg-accent text-accent-foreground'
+                : 'text-muted-foreground hover:bg-accent/50'
+            )}
+          >
+            <ClipboardList className="h-3.5 w-3.5" />
+            All Tasks
+            {(inboxCount > 0 || inProgressCount > 0) && (
+              <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium ml-auto">
+                {inboxCount + inProgressCount}
+              </span>
+            )}
+          </Link>
+        </div>
+
+        {/* Favorites section */}
         {favorites.length > 0 && (
-          <>
-            <div className="pt-4 pb-1 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Favorites
-            </div>
-            {favorites.map(p => (
-              <button
-                key={p.id}
-                onClick={() => openTab(p.id)}
-                className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors w-full text-left',
-                  location.pathname === `/project/${p.id}`
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground hover:bg-accent/50'
-                )}
-              >
-                <ProjectAvatar name={p.name} className="w-5 h-5 shrink-0" />
-                <span className="truncate flex-1">{p.name}</span>
-                <GitIndicators project={p} />
-              </button>
-            ))}
-          </>
+          <div>
+            <SectionHeader
+              label="Favorites"
+              count={favorites.length}
+              isOpen={isSectionOpen('favorites', true)}
+              onToggle={() => toggleSection('favorites')}
+            />
+            {isSectionOpen('favorites', true) && (
+              <div className="space-y-0.5">
+                {favorites.map(p => (
+                  <ExpandedProjectItem
+                    key={p.id}
+                    project={p}
+                    location={location}
+                    openTab={openTab}
+                    taskCount={pendingByProject.get(p.id)}
+                    showBranch
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
-        {/* All other projects (non-favorites) */}
-        {nonFavorites.length > 0 && (
-          <>
-            <div className="pt-4 pb-1 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Projects
-            </div>
-            {nonFavorites.map(p => (
-              <button
-                key={p.id}
-                onClick={() => openTab(p.id)}
-                className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors w-full text-left',
-                  location.pathname === `/project/${p.id}`
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground hover:bg-accent/50'
-                )}
-              >
-                <ProjectAvatar name={p.name} className="w-5 h-5 shrink-0" />
-                <span className="truncate flex-1">{p.name}</span>
-                <GitIndicators project={p} />
-              </button>
-            ))}
-          </>
+        {/* Active section (in-progress, not favorites) */}
+        {activeProjects.length > 0 && (
+          <div>
+            <SectionHeader
+              label="Active"
+              count={activeProjects.length}
+              isOpen={isSectionOpen('active', true)}
+              onToggle={() => toggleSection('active')}
+              icon={<Loader className="h-2.5 w-2.5 text-yellow-500" />}
+            />
+            {isSectionOpen('active', true) && (
+              <div className="space-y-0.5">
+                {activeProjects.map(p => (
+                  <ExpandedProjectItem
+                    key={p.id}
+                    project={p}
+                    location={location}
+                    openTab={openTab}
+                    taskCount={pendingByProject.get(p.id)}
+                    showBranch
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
-        {/* Search results */}
-        {search && filtered.length > 0 && (
-          <>
-            <div className="pt-4 pb-1 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Search Results
-            </div>
-            {filtered.map(p => (
-              <button
-                key={p.id}
-                onClick={() => openTab(p.id)}
-                className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors w-full text-left',
-                  location.pathname === `/project/${p.id}`
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground hover:bg-accent/50'
-                )}
-              >
-                <FolderOpen className="h-3.5 w-3.5" />
-                <span className="truncate">{p.name}</span>
-              </button>
-            ))}
-          </>
+        {/* Other projects */}
+        {otherProjects.length > 0 && (
+          <div>
+            <SectionHeader
+              label="Projects"
+              count={otherProjects.length}
+              isOpen={isSectionOpen('projects', otherProjects.length <= 8)}
+              onToggle={() => toggleSection('projects')}
+            />
+            {isSectionOpen('projects', otherProjects.length <= 8) && (
+              <div className="space-y-0.5">
+                {otherProjects.map(p => (
+                  <ExpandedProjectItem
+                    key={p.id}
+                    project={p}
+                    location={location}
+                    openTab={openTab}
+                    taskCount={pendingByProject.get(p.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </nav>
 
-      <div className="p-3 border-t space-y-1">
+      {/* Footer */}
+      <div className="px-3 py-2 border-t">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">{projects?.length || 0} projects</span>
+          <span className="text-[10px] text-muted-foreground/50">{projects?.length || 0} projects</span>
           <div className="flex items-center gap-0.5">
-            <Link to="/help">
-              <Button variant="ghost" size="icon" className="h-7 w-7">
-                <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-            </Link>
-            <Link to="/settings">
-              <Button variant="ghost" size="icon" className="h-7 w-7">
-                <Settings className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-            </Link>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to="/help">
+                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                    <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="top">Help</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to="/settings">
+                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                    <Settings className="h-3 w-3 text-muted-foreground" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="top">Settings</TooltipContent>
+            </Tooltip>
           </div>
         </div>
         <a href="https://dcoder.io/" target="_blank" rel="noopener noreferrer" className="block text-[10px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors">

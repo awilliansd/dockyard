@@ -30,12 +30,37 @@ async function writeTasks(projectId: string, tasks: Task[]): Promise<void> {
   await writeFile(getTasksFilePath(projectId), JSON.stringify(file, null, 2), 'utf-8');
 }
 
+function getNextNumber(tasks: Task[]): number {
+  let max = 0;
+  for (const t of tasks) {
+    if (t.number && t.number > max) max = t.number;
+  }
+  return max + 1;
+}
+
+// Backfill missing numbers on existing tasks (sorted by createdAt to assign in order)
+function backfillNumbers(tasks: Task[]): boolean {
+  const missing = tasks.filter(t => !t.number);
+  if (missing.length === 0) return false;
+  let next = getNextNumber(tasks);
+  // Sort missing by createdAt so older tasks get lower numbers
+  missing.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+  for (const t of missing) {
+    t.number = next++;
+  }
+  return true;
+}
+
 export async function getTasks(projectId: string): Promise<Task[]> {
   const tasks = await readTasks(projectId);
   for (const t of tasks) {
     if (!t.projectId) t.projectId = projectId;
     if (!t.createdAt) t.createdAt = t.updatedAt || new Date().toISOString();
     if (t.order == null) t.order = 0;
+  }
+  // Backfill numbers for tasks that don't have one yet
+  if (backfillNumbers(tasks)) {
+    await writeTasks(projectId, tasks);
   }
   return tasks;
 }
@@ -53,6 +78,9 @@ export async function getAllTasks(): Promise<Task[]> {
       if (!t.projectId) t.projectId = projectId;
       if (!t.createdAt) t.createdAt = t.updatedAt || new Date().toISOString();
       if (t.order == null) t.order = 0;
+    }
+    if (backfillNumbers(tasks)) {
+      await writeTasks(projectId, tasks);
     }
     allTasks.push(...tasks);
   }
@@ -87,6 +115,7 @@ export async function createTask(projectId: string, data: Omit<Task, 'id' | 'pro
     ...data,
     status,
     id: nanoid(10),
+    number: getNextNumber(tasks),
     projectId,
     createdAt: now,
     updatedAt: now,
@@ -146,6 +175,7 @@ export async function importTasks(projectId: string, importedTasks: Partial<Task
   const now = new Date().toISOString();
   const created: Task[] = [];
 
+  let nextNum = getNextNumber(existing);
   for (const t of importedTasks) {
     const status = (t.status as Task['status']) || 'todo';
     created.push({
@@ -155,6 +185,7 @@ export async function importTasks(projectId: string, importedTasks: Partial<Task
       status,
       prompt: t.prompt,
       id: nanoid(10),
+      number: nextNum++,
       projectId,
       createdAt: t.createdAt || now,
       updatedAt: now,
@@ -210,6 +241,7 @@ export async function applyCsvChanges(
   }
 
   // Create
+  let csvNextNum = getNextNumber(tasks);
   for (const newTask of changes.create) {
     const status = (newTask.status as Task['status']) || 'todo';
     tasks.push({
@@ -219,6 +251,7 @@ export async function applyCsvChanges(
       status,
       prompt: newTask.prompt,
       id: nanoid(10),
+      number: csvNextNum++,
       projectId,
       createdAt: now,
       updatedAt: now,
@@ -238,9 +271,13 @@ export async function replaceTasks(projectId: string, incoming: Partial<Task>[])
   const existingMap = new Map(existingTasks.map(t => [t.id, t]));
   const now = new Date().toISOString();
 
+  // Compute next number from both existing and incoming tasks that already have numbers
+  const allNumbers = [...existingTasks, ...incoming].map(t => t.number || 0);
+  let replaceNextNum = Math.max(0, ...allNumbers) + 1;
   const tasks: Task[] = incoming.map((t, i) => {
     const status = (t.status as Task['status']) || 'todo';
     const existing = t.id ? existingMap.get(t.id) : undefined;
+    const number = t.number || existing?.number || replaceNextNum++;
     return {
       title: t.title || 'Untitled',
       description: t.description || '',
@@ -248,6 +285,7 @@ export async function replaceTasks(projectId: string, incoming: Partial<Task>[])
       status,
       prompt: t.prompt,
       id: t.id || nanoid(10),
+      number,
       projectId,
       createdAt: t.createdAt || existing?.createdAt || now,
       updatedAt: t.updatedAt || now,

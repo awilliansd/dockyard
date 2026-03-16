@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { GitBranch, RefreshCw, Upload, Download, ChevronDown, ChevronRight, GitCommit, ArrowUp, ArrowDown, Trash2 } from 'lucide-react'
+import { GitBranch, RefreshCw, Upload, Download, ChevronDown, ChevronRight, GitCommit, ArrowUp, ArrowDown, Trash2, Undo2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { FileChange } from './FileChange'
 import { CommitForm } from './CommitForm'
-import { useGitStatus, useGitLog, useGitMainCommit, useStageAll, useUnstageAll, useGitPush, useGitPull, useDiscardAll } from '@/hooks/useGit'
+import { useGitStatus, useGitLog, useGitMainCommit, useStageAll, useUnstageAll, useGitPush, useGitPull, useDiscardAll, useUndoCommit } from '@/hooks/useGit'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -24,7 +24,9 @@ export function GitPanel({ projectId }: GitPanelProps) {
   const discardAll = useDiscardAll()
   const [stagedOpen, setStagedOpen] = useState(false)
   const [unstagedOpen, setUnstagedOpen] = useState(false)
+  const undoCommit = useUndoCommit()
   const [confirmDiscard, setConfirmDiscard] = useState<'staged' | 'unstaged' | null>(null)
+  const [confirmUndo, setConfirmUndo] = useState(false)
 
   if (isLoading || !status) {
     return <div className="text-sm text-muted-foreground p-4">Loading git status...</div>
@@ -240,7 +242,30 @@ export function GitPanel({ projectId }: GitPanelProps) {
       {/* Recent commits */}
       {commits.length > 0 && (
         <div className="space-y-1 pt-2 border-t">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Recent Commits</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Recent Commits</h3>
+            {confirmUndo ? (
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-orange-400">Undo commit?</span>
+                <Button variant="ghost" size="sm" className="h-5 text-[9px] text-orange-400 hover:text-orange-300 px-1.5"
+                  onClick={() => undoCommit.mutate(projectId, {
+                    onSuccess: () => { setConfirmUndo(false); toast.success('Commit undone — changes are back in staging') },
+                    onError: (err) => { setConfirmUndo(false); toast.error(err.message) },
+                  })}>
+                  Yes
+                </Button>
+                <Button variant="ghost" size="sm" className="h-5 text-[9px] px-1.5" onClick={() => setConfirmUndo(false)}>
+                  No
+                </Button>
+              </div>
+            ) : (
+              <Button variant="ghost" size="sm" className="h-6 text-[10px] gap-1 text-muted-foreground/60 hover:text-orange-400"
+                title="Undo last commit (keeps changes staged)" onClick={() => setConfirmUndo(true)}>
+                <Undo2 className="h-3 w-3" />
+                Undo
+              </Button>
+            )}
+          </div>
           {commits.slice(0, 10).map((commit: any, i: number) => {
             const unpushed = i < ahead
             return (

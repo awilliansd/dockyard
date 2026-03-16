@@ -109,22 +109,25 @@ export async function* streamChat(
   }
 }
 
+// Fast model for structured output tasks (analyze, bulk organize)
+const FAST_MODEL = 'claude-haiku-4-5-20251001';
+
 export async function analyzeTask(
   config: ClaudeConfig,
   projectContext: string,
   taskTitle: string,
   existingDescription?: string,
-): Promise<{ description: string; prompt: string }> {
+): Promise<{ title: string; description: string; prompt: string }> {
   const client = createClient(config);
 
   const userMessage = existingDescription
-    ? `Analyze this task and improve/generate the fields:\n\nTitle: ${taskTitle}\nCurrent description: ${existingDescription}\n\nGenerate an improved description (user-facing, what needs to be done) and a detailed technical prompt (implementation details, files, solutions).`
-    : `Analyze this task and generate the fields:\n\nTitle: ${taskTitle}\n\nGenerate a description (user-facing, what needs to be done) and a detailed technical prompt (implementation details, possible approaches, relevant files).`;
+    ? `Analyze this task and improve/generate the fields:\n\nTitle: ${taskTitle}\nCurrent description: ${existingDescription}\n\nGenerate an improved title (concise, action-oriented), an improved description (user-facing, what needs to be done) and a detailed technical prompt (implementation details, files, solutions).`
+    : `Analyze this task and generate the fields:\n\nTitle: ${taskTitle}\n\nGenerate an improved title (concise, action-oriented), a description (user-facing, what needs to be done) and a detailed technical prompt (implementation details, possible approaches, relevant files).`;
 
   const response = await client.messages.create({
-    model: config.model,
+    model: FAST_MODEL,
     max_tokens: 2048,
-    system: `You are a senior developer analyzing tasks for a project. ${projectContext}\n\nRespond in JSON format: { "description": "...", "prompt": "..." }\n- description: Clear, user-facing explanation of what needs to be done\n- prompt: Technical analysis with implementation details, relevant files, possible solutions\n\nRespond ONLY with valid JSON, no markdown fences.`,
+    system: `You are a senior developer analyzing tasks for a project. ${projectContext}\n\nRespond in JSON format: { "title": "...", "description": "...", "prompt": "..." }\n- title: Concise, action-oriented task title (improve the original if possible, keep it short)\n- description: Clear, user-facing explanation of what needs to be done\n- prompt: Technical analysis with implementation details, relevant files, possible solutions\n\nRespond ONLY with valid JSON, no markdown fences.`,
     messages: [{ role: 'user', content: userMessage }],
   });
 
@@ -132,11 +135,12 @@ export async function analyzeTask(
   try {
     const parsed = parseJsonFromAiResponse(text);
     return {
+      title: parsed.title || taskTitle,
       description: parsed.description || '',
       prompt: parsed.prompt || '',
     };
   } catch {
-    return { description: text, prompt: '' };
+    return { title: taskTitle, description: text, prompt: '' };
   }
 }
 
@@ -173,7 +177,7 @@ export async function manageTasks(
   const client = createClient(config);
 
   const response = await client.messages.create({
-    model: config.model,
+    model: FAST_MODEL,
     max_tokens: config.maxTokens,
     system: systemInstructions,
     messages: [{ role: 'user', content: rawText }],
@@ -210,7 +214,7 @@ export async function bulkOrganizeTasks(
   const client = createClient(config);
 
   const response = await client.messages.create({
-    model: config.model,
+    model: FAST_MODEL,
     max_tokens: config.maxTokens,
     system: `You are a senior developer organizing tasks for a project. ${projectContext}
 

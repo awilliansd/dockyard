@@ -4,7 +4,8 @@ import {
   LayoutDashboard, ClipboardList, GitBranch, Terminal, Settings, FolderOpen,
   Star, ArrowUp, ArrowDown, FileEdit, Cloud, Download, Keyboard, ChevronDown,
   Layers, Search, ExternalLink, GripVertical, Copy, Plus, Trash2, RefreshCw,
-  MonitorPlay, HelpCircle, Sparkles, Server
+  MonitorPlay, HelpCircle, Sparkles, Server, List, LayoutGrid, Wand2,
+  CheckSquare, Import, Eye
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -139,11 +140,15 @@ function SectionOverview() {
 
       <H3>Key Features</H3>
       <Bullet title="Multi-project tabs">Open several projects simultaneously and switch instantly between them.</Bullet>
-      <Bullet title="Kanban board">Organize tasks in Inbox, In Progress, and Done with drag-and-drop.</Bullet>
+      <Bullet title="Kanban & List views">Organize tasks in Inbox, In Progress, and Done with drag-and-drop or a compact list view.</Bullet>
+      <Bullet title="Subtasks">Break tasks into smaller subtasks with checkboxes and progress tracking.</Bullet>
       <Bullet title="Integrated terminal">Run shells, dev servers, and Claude Code inside the dashboard.</Bullet>
-      <Bullet title="Git panel">Stage, commit, push, pull, and view diffs without leaving the browser.</Bullet>
+      <Bullet title="Git panel">Stage, commit, push, pull, discard, and view diffs without leaving the browser.</Bullet>
+      <Bullet title="Claude AI">Chat with Claude, auto-analyze tasks, bulk import, and AI-powered task resolution.</Bullet>
+      <Bullet title="Global search">Search projects, tasks, and files across all projects with <Kbd>Ctrl + K</Kbd>.</Bullet>
       <Bullet title="Google Sheets sync">Bidirectional sync of tasks via Google Apps Script.</Bullet>
       <Bullet title="Export/Import">JSON and Markdown export. Full backup/restore in Settings.</Bullet>
+      <Bullet title="File explorer">Browse project files, preview code and images, copy paths.</Bullet>
       <Bullet title="Desktop app">Available as an installable app via Electron (Windows, macOS, Linux).</Bullet>
 
       <H3>Architecture</H3>
@@ -162,28 +167,34 @@ function SectionDashboard() {
     <>
       <H2>Dashboard (Home)</H2>
       <P>
-        The dashboard is the landing page. It shows all your projects and highlights active work.
+        The dashboard is the landing page, oriented toward action. It highlights active work
+        and provides quick access to all your projects.
       </P>
 
-      <H3>Working On Banner</H3>
+      <H3>Working On</H3>
       <P>
-        At the top, a horizontal strip shows tasks currently in progress across all projects.
-        Click any task to jump directly to its project workspace.
+        At the top, tasks currently in progress are grouped by project. Each task shows quick
+        launch buttons (Claude, VS Code) so you can jump right into work. Click any task to
+        open its project workspace.
       </P>
 
-      <H3>Project Grid</H3>
+      <H3>Needs Attention</H3>
       <P>
-        All added projects appear as cards in a grid. Each card shows:
+        Below the active work, urgent and high-priority tasks in the inbox are highlighted.
+        These are tasks that haven't been started yet but need attention.
       </P>
-      <Bullet title="Tech stack badges">Detected from package.json (React, Vite, Tailwind, etc.).</Bullet>
-      <Bullet title="Git branch">Current branch and dirty indicator (asterisk).</Bullet>
-      <Bullet title="Task counts">How many tasks are in inbox, in progress, and done.</Bullet>
-      <Bullet title="Quick actions">Hover to see launch buttons for terminal, VS Code, folder.</Bullet>
+
+      <H3>Recent Projects</H3>
+      <P>
+        A compact list of your most recent and favorite projects appears in the sidebar column.
+        Click any project to open it as a tab.
+      </P>
 
       <H3>Search</H3>
       <P>
-        The search bar at the top filters projects by name. Results update as you type.
-        Projects can also be searched from the sidebar.
+        The search bar at the top filters projects by name. Results update as you type and
+        appear inline. You can also use <Kbd>Ctrl + K</Kbd> for global search across
+        projects, tasks, and files.
       </P>
 
       <H3>Sorting & Filters</H3>
@@ -206,10 +217,12 @@ function SectionWorkspace() {
       <H3>Main Area (left, 3/4 width)</H3>
       <Bullet title="Info bar">Project path, git branch badge, favorite star, external link.</Bullet>
       <Bullet title="Kanban board">Three columns: Inbox, In Progress, Done. Drag tasks between them.</Bullet>
+      <Bullet title="List view">Toggle between Kanban and List views using the toolbar buttons.</Bullet>
 
       <H3>Sidebar (right, 1/4 width)</H3>
+      <Bullet title="Claude context">Copy project context (path, tasks) to clipboard. "Open Claude + Copy Context" opens a terminal with context ready.</Bullet>
       <Bullet title="Quick Launch">Buttons to open Claude Code, Dev Server, Shell, VS Code, and Folder.</Bullet>
-      <Bullet title="Claude context">Copy project context (path, tasks) to clipboard for Claude Code.</Bullet>
+      <Bullet title="File explorer">Collapsible tree view for browsing project files (lazy-loaded). Supports preview, delete, copy path, and open in system explorer.</Bullet>
       <Bullet title="Git panel">Full git operations (details in Git section).</Bullet>
 
       <H3>Terminal Panel (bottom)</H3>
@@ -230,6 +243,20 @@ function SectionWorkspace() {
         Each project can have an external link (Notion, Google Sheets, Figma, etc.).
         Click the link icon in the info bar to add or edit it. Links open in the default browser.
       </P>
+
+      <H3>File Explorer</H3>
+      <P>
+        The file explorer in the sidebar shows a tree view of the project's files. It loads
+        lazily — only the immediate children of a folder are fetched when you expand it.
+      </P>
+      <Bullet title="Preview">Click a file to open a preview dialog. Supports Markdown (rendered), code (syntax highlighted), and images.</Bullet>
+      <Bullet title="Copy path">Copy the relative path of any file to clipboard.</Bullet>
+      <Bullet title="Open in explorer">Open the containing folder in your OS file manager.</Bullet>
+      <Bullet title="Delete">Delete files or folders with confirmation dialog.</Bullet>
+      <P>
+        Common directories like .git, node_modules, dist, and build are automatically hidden.
+        Files larger than 2MB are blocked from preview.
+      </P>
     </>
   )
 }
@@ -246,31 +273,83 @@ function SectionTasks() {
         to change their status. Tasks are ordered within each column — drag to reorder.
       </P>
 
+      <H3>List View</H3>
+      <P>
+        Toggle between Kanban and List views using the grid/list icons in the toolbar. The list
+        view shows tasks in collapsible sections (In Progress, Inbox, Done) with compact rows.
+        Each row displays the status, priority, task ID, title, subtask progress, project badge,
+        and age. Hover for inline actions (copy, duplicate, edit, delete).
+      </P>
+
       <H3>Creating Tasks</H3>
       <P>
         Click the <strong>+</strong> button at the top of any column. Fill in:
       </P>
       <Bullet title="Title">Short description of the task.</Bullet>
       <Bullet title="Description">What needs to be done (user-facing, plain language).</Bullet>
-      <Bullet title="Prompt">Technical details, causes, files, solutions. This is copied along with context for Claude.</Bullet>
+      <Bullet title="Details (Prompt)">Technical details, causes, files, solutions. This is copied along with context for Claude.</Bullet>
       <Bullet title="Priority">Urgent, High, Medium, or Low. Affects visual indicators.</Bullet>
+      <Bullet title="Subtasks">Add a checklist of smaller steps within the task.</Bullet>
+
+      <H3>Quick Create Mode</H3>
+      <P>
+        In the task editor dialog, enable "Quick create" to keep the dialog open after saving.
+        The form clears automatically so you can rapidly create multiple tasks without
+        reopening the dialog each time. The preference is saved in localStorage.
+      </P>
+
+      <H3>Subtasks</H3>
+      <P>
+        Tasks can have nested subtasks — a simple checklist of smaller steps. Add subtasks in the
+        task editor by typing in the input field and pressing Enter. Check/uncheck subtasks to track
+        progress. The task card shows a progress indicator (e.g., "3/5") when subtasks exist.
+      </P>
+
+      <H3>Task Viewer</H3>
+      <P>
+        Click a task title to open the read-only viewer dialog. It shows the full task details
+        including description, technical details, subtask checklist, and timestamps (created,
+        started, completed). From here you can change status, copy as prompt, edit, or delete.
+      </P>
 
       <H3>Task Actions</H3>
-      <Bullet title="Edit">Click the task card to open the editor dialog.</Bullet>
+      <Bullet title="Edit">Click the edit button to open the editor dialog.</Bullet>
+      <Bullet title="View">Click the task title to open the read-only viewer.</Bullet>
       <Bullet title="Copy as prompt">Copies task title, description, and prompt to clipboard for AI tools.</Bullet>
+      <Bullet title="Duplicate">Create a copy of the task.</Bullet>
       <Bullet title="Delete">Remove the task permanently.</Bullet>
       <Bullet title="Toggle status">Click the status icon on the card to cycle through states.</Bullet>
+      <Bullet title="AI Improve">Use the wand button to have Claude improve the task's title, description, and details.</Bullet>
+
+      <H3>Column Actions</H3>
+      <P>
+        Each kanban column has a copy button in its header. This copies all tasks in the column
+        as a formatted prompt for Claude with context-specific instructions (e.g., "organize and
+        detail" for Inbox, "resolve them" for In Progress, "verify completion" for Done).
+      </P>
+
+      <H3>Bulk Import</H3>
+      <P>
+        Click the "Import" button in the task toolbar to open the bulk import dialog. Paste
+        unstructured text or a list, and Claude AI will organize it into individual tasks with
+        proper titles and descriptions.
+      </P>
 
       <H3>All Tasks View</H3>
       <P>
-        Navigate to <strong>All Tasks</strong> in the sidebar to see every task across all projects
-        in a single kanban board. Tasks show project name badges. You can filter by search text and priority.
+        Navigate to <strong>All Tasks</strong> in the sidebar to see every task across all projects.
+        This view supports both Kanban and List modes with the same toggle buttons.
       </P>
+      <Bullet title="Search">Filter by title, description, or project name.</Bullet>
+      <Bullet title="Priority filters">Toggle buttons for Urgent, High, Medium, Low (multi-select).</Bullet>
+      <Bullet title="Sort options">Sort by Priority, Newest, Oldest, or Recently Updated.</Bullet>
+      <Bullet title="Clear filters">Reset all filters with one click.</Bullet>
 
       <H3>Timestamps</H3>
       <P>
         Tasks track when they entered each stage: <code>inboxAt</code>, <code>inProgressAt</code>,{' '}
         <code>doneAt</code>. These cascade — moving to Done also fills in the earlier timestamps if missing.
+        The task viewer and list view show time elapsed since each transition.
       </P>
     </>
   )
@@ -335,13 +414,20 @@ function SectionGit() {
 
       <H3>File Changes</H3>
       <P>
-        Files are grouped into three sections:
+        Files are grouped into three collapsible sections:
       </P>
       <Bullet title="Staged">Files ready to commit. Click to unstage. Expand to see diff.</Bullet>
       <Bullet title="Unstaged">Modified files not yet staged. Click to stage.</Bullet>
       <Bullet title="Untracked">New files. Click to stage.</Bullet>
       <P>
         Use "Stage All" and "Unstage All" buttons for bulk operations.
+      </P>
+
+      <H3>Discard Changes</H3>
+      <P>
+        Right-click or use the action menu on individual files to discard changes. You can also
+        discard all changes in a section (staged or unstaged) at once. Untracked files can be
+        deleted individually. All discard operations require confirmation.
       </P>
 
       <H3>Commit</H3>
@@ -454,6 +540,18 @@ function SectionSettings() {
         Currently available: Google Sheets, JSON Export, Markdown Export.
       </P>
 
+      <H3>Claude AI</H3>
+      <P>
+        Configure your Anthropic API key, choose a model, and set max tokens. The API key
+        is encrypted and stored server-side only. See the Claude AI section for details.
+      </P>
+
+      <H3>MCP Server</H3>
+      <P>
+        Enable/disable the MCP server, toggle OAuth authentication, and manage connected
+        clients. See the MCP Server section for details.
+      </P>
+
       <H3>Export & Import</H3>
       <Bullet title="Export">Download a JSON backup of settings, projects, and tasks.</Bullet>
       <Bullet title="Import">Load a backup file to merge with existing data. Duplicates are skipped.</Bullet>
@@ -466,9 +564,18 @@ function SectionShortcuts() {
     <>
       <H2>Keyboard Shortcuts</H2>
 
-      <H3>Terminal</H3>
+      <H3>Global</H3>
       <div className="border rounded-lg p-3">
+        <ShortcutRow keys="Ctrl + K" description="Open global search (projects, tasks, files)" />
         <ShortcutRow keys="Ctrl + `" description="Toggle terminal panel" />
+      </div>
+
+      <H3>Global Search</H3>
+      <div className="border rounded-lg p-3">
+        <ShortcutRow keys="Tab" description="Cycle through filter tabs (All, Projects, Tasks, Files)" />
+        <ShortcutRow keys="Arrow Up / Down" description="Navigate through results" />
+        <ShortcutRow keys="Enter" description="Open selected result" />
+        <ShortcutRow keys="Esc" description="Close search" />
       </div>
 
       <H3>Navigation</H3>
@@ -479,8 +586,9 @@ function SectionShortcuts() {
 
       <H3>Task Board</H3>
       <P>
-        Drag-and-drop tasks between columns. Click a task to edit. The kanban board supports
-        pointer-based drag with an 8px activation distance to prevent accidental drags.
+        Drag-and-drop tasks between columns. Click a task title to view details. Click the edit
+        button to modify. The kanban board supports pointer-based drag with an 8px activation
+        distance to prevent accidental drags.
       </P>
     </>
   )
@@ -502,6 +610,10 @@ function SectionData() {
         <p>data/</p>
         <p className="pl-4">settings.json <span className="text-muted-foreground">— selected project paths</span></p>
         <p className="pl-4">projects.json <span className="text-muted-foreground">— cache (auto-generated)</span></p>
+        <p className="pl-4">claude.json <span className="text-muted-foreground">— encrypted API key + model config</span></p>
+        <p className="pl-4">.claude-key <span className="text-muted-foreground">— AES-256-GCM encryption key</span></p>
+        <p className="pl-4">mcp-config.json <span className="text-muted-foreground">— MCP server config</span></p>
+        <p className="pl-4">mcp-auth.json <span className="text-muted-foreground">— OAuth clients, tokens, JWT secret</span></p>
         <p className="pl-4">tasks/</p>
         <p className="pl-8">project-id.json <span className="text-muted-foreground">— tasks for each project</span></p>
       </div>
@@ -518,6 +630,7 @@ function SectionData() {
       <P>
         Shipyard never sends data to external servers. The only network calls are:
       </P>
+      <Bullet title="Claude AI">Only if you configure an API key. Calls go to Anthropic's API.</Bullet>
       <Bullet title="Google Sheets sync">Only if you configure it. Goes through your own Apps Script URL.</Bullet>
       <Bullet title="Git operations">Push/pull go to your configured git remotes.</Bullet>
       <P>
@@ -547,18 +660,45 @@ function SectionClaude() {
         Your API key is encrypted with AES-256-GCM and stored server-side only. It never reaches the browser.
       </Bullet>
 
-      <H3>Features</H3>
-      <Bullet title="Chat Panel">
+      <H3>Chat Panel</H3>
+      <P>
         Available in the workspace sidebar. Chat with Claude about your project — it has context
         about your tasks, git status, and file structure. Responses stream in real-time via SSE.
-      </Bullet>
-      <Bullet title="AI Task Analysis">
+      </P>
+
+      <H3>AI Task Analysis</H3>
+      <P>
         In the task editor, click "AI Analyze" to auto-generate the description (user-facing)
         and technical details/prompt fields based on the task title and project context.
-      </Bullet>
-      <Bullet title="Task Summarization">
+      </P>
+
+      <H3>AI Improve</H3>
+      <P>
+        The wand button on task cards sends the task to Claude for improvement. Claude enhances
+        the title, description, and technical details based on the project context. Available
+        in the task viewer and on task cards in both Kanban and List views.
+      </P>
+
+      <H3>AI Task Resolution</H3>
+      <P>
+        For tasks in progress, click the sparkles button to open Claude Code with the task context
+        pre-loaded. Shipyard tracks the AI session and monitors progress. When Claude completes
+        the work, the task is automatically flagged for review with a pulsing indicator.
+      </P>
+      <Bullet title="Session tracking">Active AI sessions show a pulsing purple indicator on the task card.</Bullet>
+      <Bullet title="Auto-detection">When the task moves to "done", it's automatically marked as "needs review".</Bullet>
+      <Bullet title="Requirement">Requires the integrated terminal to be available (node-pty installed).</Bullet>
+
+      <H3>Bulk Import with AI</H3>
+      <P>
+        Paste unstructured text or a list into the bulk import dialog and Claude will organize
+        it into properly structured tasks with titles, descriptions, and appropriate priorities.
+      </P>
+
+      <H3>Task Summarization</H3>
+      <P>
         Get an AI summary of all tasks in a project — highlights priorities, blockers, and progress.
-      </Bullet>
+      </P>
 
       <H3>Models</H3>
       <P>

@@ -104,7 +104,10 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{task ? 'Edit Task' : 'New Task'}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {task ? 'Edit Task' : 'New Task'}
+            {task && <span className="text-xs text-muted-foreground/60 font-mono font-normal">#{task.number || '?'}</span>}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div>
@@ -114,7 +117,8 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
                 projectId={projectId}
                 taskId={task?.id}
                 title={title}
-                onResult={({ description: d, prompt: p }) => {
+                onResult={({ title: t, description: d, prompt: p }) => {
+                  if (t) setTitle(t)
                   if (d) setDescription(d)
                   if (p) setPrompt(p)
                 }}

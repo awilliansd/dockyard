@@ -84,18 +84,27 @@ function TaskRow({ task, projectName, projectPath, showProjectBadge, projectMap,
 
   return (
     <div className={cn(
-      'group flex items-center gap-3 px-3 py-1.5 hover:bg-accent/50 rounded transition-colors',
-      task.status === 'done' && 'opacity-60'
+      'group relative flex items-center gap-3 px-3 py-1.5 hover:bg-accent/50 rounded transition-colors',
+      task.status === 'done' && !task.needsReview && 'opacity-60',
+      task.needsReview && 'bg-purple-500/5'
     )}>
-      <button onClick={handleStatusToggle} className="shrink-0">
+      <button onClick={handleStatusToggle} className="shrink-0 relative">
         {task.status === 'done' ? (
           <Check className="h-3.5 w-3.5 text-green-500" />
         ) : (
           <Circle className="h-3.5 w-3.5 text-muted-foreground" />
         )}
+        {task.needsReview && (
+          <span className="absolute -top-1 -right-1 flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500" />
+          </span>
+        )}
       </button>
 
       <PriorityIcon className={cn('h-3 w-3 shrink-0', priority.color)} />
+
+      <span className="text-[10px] text-muted-foreground/50 font-mono shrink-0 select-all">#{task.number || '?'}</span>
 
       <span
         className={cn('text-sm flex-1 truncate cursor-pointer hover:text-primary transition-colors', task.status === 'done' && 'line-through')}
@@ -173,10 +182,7 @@ export function TaskListView({ tasks, projectName, projectPath, showProjectBadge
     return statusSections.map(section => ({
       ...section,
       tasks: tasks.filter(t => section.statuses.includes(t.status))
-        .sort((a, b) => {
-          const po = (priorityConfig[a.priority]?.order ?? 2) - (priorityConfig[b.priority]?.order ?? 2)
-          return po !== 0 ? po : a.order - b.order
-        })
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     }))
   }, [tasks])
 

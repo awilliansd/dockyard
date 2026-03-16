@@ -120,6 +120,17 @@ export function useGitPull() {
   })
 }
 
+export function useUndoCommit() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (projectId: string) => api.undoCommit(projectId),
+    onSuccess: (_, projectId) => {
+      queryClient.invalidateQueries({ queryKey: ['git-status', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['git-log', projectId] })
+    },
+  })
+}
+
 export function useDiscardFile() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -132,8 +143,12 @@ export function useDiscardFile() {
 }
 
 export function useGenerateCommitMessage() {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (projectId: string) => api.generateCommitMessage(projectId),
+    onSettled: (_, __, projectId) => {
+      queryClient.invalidateQueries({ queryKey: ['git-status', projectId] })
+    },
   })
 }
 

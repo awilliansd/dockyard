@@ -43,6 +43,7 @@ export function buildAiResolvePrompt(
   lines.push(`2. Explore the codebase at ${project.path} to understand the current state`);
   lines.push('3. Implement the required changes');
   lines.push('4. Test your implementation');
+  lines.push('5. Create a git commit with your changes using a clear, concise commit message that describes what was done (do NOT use --no-verify or skip hooks)');
   lines.push('');
 
   lines.push('## IMPORTANT: When starting work on this task');

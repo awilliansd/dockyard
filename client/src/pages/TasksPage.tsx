@@ -176,7 +176,7 @@ export function TasksPage() {
   const [viewerOpen, setViewerOpen] = useState(false)
   const [viewingTask, setViewingTask] = useState<Task | null>(null)
   const [sortBy, setSortBy] = useState<SortOption>(() =>
-    (localStorage.getItem('shipyard:sort:global') as SortOption) || 'priority'
+    (localStorage.getItem('shipyard:sort:global') as SortOption) || 'updated'
   )
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>(() =>
     (localStorage.getItem('shipyard:view:global') as 'kanban' | 'list') || 'kanban'

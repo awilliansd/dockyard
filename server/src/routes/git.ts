@@ -228,6 +228,21 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
+  app.post<{ Params: { projectId: string } }>(
+    '/api/projects/:projectId/git/undo-commit',
+    async (request, reply) => {
+      const path = await getProjectPath(request.params.projectId);
+      if (!path) return reply.status(404).send({ error: 'Project not found' });
+
+      try {
+        await gitService.undoLastCommit(path);
+        return { success: true };
+      } catch (err: any) {
+        return reply.status(400).send({ error: err.message });
+      }
+    }
+  );
+
   // Generate commit message via Claude API (priority) or CLI (fallback)
   app.post<{ Params: { projectId: string } }>(
     '/api/projects/:projectId/git/generate-commit-message',
@@ -242,7 +257,7 @@ export async function gitRoutes(app: FastifyInstance) {
         }
 
         // Strip context lines (lines not starting with +/-) to reduce token count
-        const compactDiff = compactGitDiff(diff, 30000);
+        const compactDiff = compactGitDiff(diff, 15000);
         const prompt = 'Write a concise git commit message for this diff. Subject line under 72 chars. If multiple changes, add bullet points in body. Output ONLY the message, no quotes, no markdown fences, no explanation.';
         const commitModel = 'claude-haiku-4-5-20251001';
 
@@ -268,7 +283,8 @@ export async function gitRoutes(app: FastifyInstance) {
             input: compactDiff,
             model: 'haiku',
             maxTurns: 1,
-            timeout: 30000,
+            outputFormat: 'text',
+            timeout: 60000,
             cwd: path,
           });
           return { message, source: 'cli' };

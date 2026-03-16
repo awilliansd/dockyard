@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { ChevronDown, ChevronRight, MoreHorizontal, Eye, Trash2, FolderOpen, Loader2, Copy, FolderTree } from 'lucide-react'
+import { ChevronDown, ChevronRight, MoreHorizontal, Eye, Pencil, Trash2, FolderOpen, Loader2, Copy, FolderTree } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 interface FileExplorerProps {
   projectId: string
   projectPath: string
+  onOpenInEditor?: (path: string, name: string, extension: string) => void
 }
 
 interface TreeNodeProps {
@@ -26,9 +27,10 @@ interface TreeNodeProps {
   onToggle: (path: string) => void
   onPreview: (path: string) => void
   onContextAction: (entry: FileEntry, action: 'delete' | 'open-folder' | 'copy-path') => void
+  onOpenInEditor?: (path: string, name: string, extension: string) => void
 }
 
-function TreeNode({ entry, projectId, depth, expanded, onToggle, onPreview, onContextAction }: TreeNodeProps) {
+function TreeNode({ entry, projectId, depth, expanded, onToggle, onPreview, onContextAction, onOpenInEditor }: TreeNodeProps) {
   const isOpen = expanded.has(entry.path)
   const { data, isLoading } = useFileTree(projectId, entry.path, entry.type === 'dir' && isOpen)
   const [contextOpen, setContextOpen] = useState(false)
@@ -36,6 +38,8 @@ function TreeNode({ entry, projectId, depth, expanded, onToggle, onPreview, onCo
   const handleClick = () => {
     if (entry.type === 'dir') {
       onToggle(entry.path)
+    } else if (onOpenInEditor && entry.mimeHint !== 'application/octet-stream' && !entry.mimeHint?.startsWith('image/')) {
+      onOpenInEditor(entry.path, entry.name, entry.extension || '')
     } else {
       onPreview(entry.path)
     }
@@ -82,6 +86,14 @@ function TreeNode({ entry, projectId, depth, expanded, onToggle, onPreview, onCo
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-40 p-1" side="right" align="start">
+            {entry.type === 'file' && onOpenInEditor && entry.mimeHint !== 'application/octet-stream' && !entry.mimeHint?.startsWith('image/') && (
+              <button
+                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent transition-colors"
+                onClick={() => { setContextOpen(false); onOpenInEditor(entry.path, entry.name, entry.extension || '') }}
+              >
+                <Pencil className="h-3.5 w-3.5" /> Edit
+              </button>
+            )}
             {entry.type === 'file' && (
               <button
                 className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent transition-colors"
@@ -132,6 +144,7 @@ function TreeNode({ entry, projectId, depth, expanded, onToggle, onPreview, onCo
                 onToggle={onToggle}
                 onPreview={onPreview}
                 onContextAction={onContextAction}
+                onOpenInEditor={onOpenInEditor}
               />
             ))
           )}
@@ -146,7 +159,7 @@ function TreeNode({ entry, projectId, depth, expanded, onToggle, onPreview, onCo
   )
 }
 
-export function FileExplorer({ projectId, projectPath }: FileExplorerProps) {
+export function FileExplorer({ projectId, projectPath, onOpenInEditor }: FileExplorerProps) {
   const [sectionOpen, setSectionOpen] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [previewPath, setPreviewPath] = useState<string | null>(null)
@@ -237,6 +250,7 @@ export function FileExplorer({ projectId, projectPath }: FileExplorerProps) {
                   onToggle={handleToggle}
                   onPreview={setPreviewPath}
                   onContextAction={handleContextAction}
+                  onOpenInEditor={onOpenInEditor}
                 />
               ))}
             </div>
