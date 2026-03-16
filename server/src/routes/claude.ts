@@ -102,9 +102,11 @@ export async function claudeRoutes(app: FastifyInstance) {
   app.get('/api/claude/status', async () => {
     const config = await claudeService.loadClaudeConfig();
     const cliAvailable = await claudeCliService.getCliStatus();
+    const envKeyAvailable = !!process.env.ANTHROPIC_API_KEY;
     return {
       configured: !!config,
       cliAvailable,
+      envKeyAvailable,
       model: config?.model || null,
       maxTokens: config?.maxTokens || null,
     };

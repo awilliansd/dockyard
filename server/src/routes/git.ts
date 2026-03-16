@@ -276,12 +276,14 @@ export async function gitRoutes(app: FastifyInstance) {
           const prompt = 'Write a concise git commit message for this diff. Subject line under 72 chars. If multiple changes, add bullet points in body. Output ONLY the message, no quotes, no markdown fences, no explanation.';
           const commitModel = 'claude-haiku-4-5-20251001';
 
-          // Priority: API (fast, no spawn) → CLI → error
-          const config = await claudeService.loadClaudeConfig();
-          if (config) {
+          // Priority: configured API key → env ANTHROPIC_API_KEY → CLI → error
+          const apiKey = (await claudeService.loadClaudeConfig())?.apiKey
+            || process.env.ANTHROPIC_API_KEY;
+
+          if (apiKey) {
             try {
               const { default: Anthropic } = await import('@anthropic-ai/sdk');
-              const client = new Anthropic({ apiKey: config.apiKey, timeout: 20_000 });
+              const client = new Anthropic({ apiKey, timeout: 20_000 });
               const response = await client.messages.create({
                 model: commitModel,
                 max_tokens: 256,

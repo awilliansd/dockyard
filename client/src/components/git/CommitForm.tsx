@@ -19,7 +19,7 @@ export function CommitForm({ projectId, hasStagedChanges }: CommitFormProps) {
   const generateMsg = useGenerateCommitMessage()
   const { data: claudeStatus } = useClaudeStatus()
 
-  const aiAvailable = claudeStatus?.cliAvailable || claudeStatus?.configured
+  const aiAvailable = claudeStatus?.cliAvailable || claudeStatus?.configured || claudeStatus?.envKeyAvailable
   const isBusy = gitCommit.isPending || gitPush.isPending
 
   const handleGenerate = () => {

@@ -134,7 +134,7 @@ export const api = {
   browse: (path: string) => request<{ directories: { name: string; path: string }[] }>('/browse', { method: 'POST', body: JSON.stringify({ path }) }),
 
   // Claude AI
-  getClaudeStatus: () => request<{ configured: boolean; cliAvailable: boolean; model: string | null; maxTokens: number | null }>('/claude/status'),
+  getClaudeStatus: () => request<{ configured: boolean; cliAvailable: boolean; envKeyAvailable: boolean; model: string | null; maxTokens: number | null }>('/claude/status'),
   saveClaudeConfig: (data: { apiKey: string; model?: string; maxTokens?: number }) =>
     request<{ ok: boolean }>('/claude/config', { method: 'POST', body: JSON.stringify(data) }),
   deleteClaudeConfig: () => request<{ ok: boolean }>('/claude/config', { method: 'DELETE' }),
