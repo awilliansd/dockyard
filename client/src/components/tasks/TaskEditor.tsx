@@ -13,11 +13,12 @@ import { toast } from 'sonner'
 interface TaskEditorProps {
   projectId: string
   task?: Task | null
+  milestoneId?: string
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorProps) {
+export function TaskEditor({ projectId, task, milestoneId, open, onOpenChange }: TaskEditorProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<string>('medium')
@@ -72,7 +73,7 @@ export function TaskEditor({ projectId, task, open, onOpenChange }: TaskEditorPr
       )
     } else {
       createTask.mutate(
-        { projectId, title, description, priority, status, prompt: prompt || undefined, subtasks: subtasks.length > 0 ? subtasks : undefined },
+        { projectId, title, description, priority, status, prompt: prompt || undefined, milestoneId: milestoneId && milestoneId !== 'default' ? milestoneId : undefined, subtasks: subtasks.length > 0 ? subtasks : undefined },
         {
           onSuccess: () => {
             if (quickCreate) {

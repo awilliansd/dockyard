@@ -32,6 +32,7 @@ export interface Task {
   id: string;
   number?: number;        // Human-friendly sequential number per project (#1, #2, ...)
   projectId: string;
+  milestoneId?: string;   // References Milestone.id; undefined/'default' = default milestone
   title: string;
   description: string;
   priority: 'urgent' | 'high' | 'medium' | 'low';
@@ -48,12 +49,24 @@ export interface Task {
   subtasks?: Subtask[];
 }
 
+export interface Milestone {
+  id: string;             // nanoid(10) or 'default'
+  projectId: string;
+  name: string;
+  description?: string;
+  status: 'active' | 'closed';
+  createdAt: string;
+  updatedAt: string;
+  order: number;
+}
+
 export interface ProjectsCache {
   projects: Project[];
   lastScannedAt: string;
 }
 
 export interface TasksFile {
+  milestones?: Milestone[];
   tasks: Task[];
 }
 

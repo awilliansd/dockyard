@@ -42,9 +42,19 @@ export const api = {
   refreshProjects: () => request<{ projects: any[] }>('/projects/refresh', { method: 'POST' }),
   updateProject: (id: string, data: any) => request(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
+  // Milestones
+  getMilestones: (projectId: string) => request<{ milestones: any[] }>(`/projects/${projectId}/milestones`),
+  createMilestone: (projectId: string, data: { name: string; description?: string }) =>
+    request(`/projects/${projectId}/milestones`, { method: 'POST', body: JSON.stringify(data) }),
+  updateMilestone: (projectId: string, milestoneId: string, data: { name?: string; description?: string; status?: string }) =>
+    request(`/projects/${projectId}/milestones/${milestoneId}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteMilestone: (projectId: string, milestoneId: string) =>
+    request(`/projects/${projectId}/milestones/${milestoneId}`, { method: 'DELETE' }),
+
   // Tasks
   getAllTasks: () => request<{ tasks: any[] }>('/tasks/all'),
-  getTasks: (projectId: string) => request<{ tasks: any[] }>(`/projects/${projectId}/tasks`),
+  getTasks: (projectId: string, milestoneId?: string) =>
+    request<{ tasks: any[] }>(`/projects/${projectId}/tasks${milestoneId ? `?milestone=${encodeURIComponent(milestoneId)}` : ''}`),
   createTask: (projectId: string, data: any) => request(`/projects/${projectId}/tasks`, { method: 'POST', body: JSON.stringify(data) }),
   updateTask: (projectId: string, taskId: string, data: any) => request(`/projects/${projectId}/tasks/${taskId}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteTask: (projectId: string, taskId: string) => request(`/projects/${projectId}/tasks/${taskId}`, { method: 'DELETE' }),
@@ -53,8 +63,8 @@ export const api = {
   importAllTasks: (tasks: any[]) => request<{ imported: number }>('/tasks/import', { method: 'POST', body: JSON.stringify({ tasks }) }),
   applyCsvChanges: (projectId: string, changes: { update: any[]; create: any[]; remove: string[] }) =>
     request<{ updated: number; created: number; removed: number }>(`/projects/${projectId}/tasks/csv-apply`, { method: 'POST', body: JSON.stringify(changes) }),
-  replaceTasks: (projectId: string, tasks: any[]) =>
-    request<{ tasks: any[] }>(`/projects/${projectId}/tasks/replace`, { method: 'POST', body: JSON.stringify({ tasks }) }),
+  replaceTasks: (projectId: string, tasks: any[], milestoneId?: string) =>
+    request<{ tasks: any[] }>(`/projects/${projectId}/tasks/replace`, { method: 'POST', body: JSON.stringify({ tasks, milestoneId }) }),
 
   // Sync (stateless proxy)
   syncProxy: (url: string, method: 'GET' | 'POST', payload?: unknown, action?: string) =>

@@ -11,15 +11,59 @@ export async function taskRoutes(app: FastifyInstance) {
     return { tasks };
   });
 
+  // ── Milestone CRUD ──────────────────────────────
   app.get<{ Params: { projectId: string } }>(
+    '/api/projects/:projectId/milestones',
+    async (request) => {
+      const milestones = await taskStore.getMilestones(request.params.projectId);
+      return { milestones };
+    }
+  );
+
+  app.post<{ Params: { projectId: string }; Body: { name: string; description?: string } }>(
+    '/api/projects/:projectId/milestones',
+    async (request) => {
+      const milestone = await taskStore.createMilestone(request.params.projectId, {
+        name: request.body.name,
+        description: request.body.description,
+      });
+      return milestone;
+    }
+  );
+
+  app.put<{ Params: { projectId: string; milestoneId: string }; Body: { name?: string; description?: string; status?: string } }>(
+    '/api/projects/:projectId/milestones/:milestoneId',
+    async (request, reply) => {
+      const milestone = await taskStore.updateMilestone(
+        request.params.projectId,
+        request.params.milestoneId,
+        request.body as any,
+      );
+      if (!milestone) return reply.status(404).send({ error: 'Milestone not found' });
+      return milestone;
+    }
+  );
+
+  app.delete<{ Params: { projectId: string; milestoneId: string } }>(
+    '/api/projects/:projectId/milestones/:milestoneId',
+    async (request, reply) => {
+      const deleted = await taskStore.deleteMilestone(request.params.projectId, request.params.milestoneId);
+      if (!deleted) return reply.status(404).send({ error: 'Milestone not found' });
+      return { success: true };
+    }
+  );
+
+  // ── Tasks ───────────────────────────────────────
+
+  app.get<{ Params: { projectId: string }; Querystring: { milestone?: string } }>(
     '/api/projects/:projectId/tasks',
     async (request) => {
-      const tasks = await taskStore.getTasks(request.params.projectId);
+      const tasks = await taskStore.getTasks(request.params.projectId, request.query.milestone);
       return { tasks };
     }
   );
 
-  app.post<{ Params: { projectId: string }; Body: { title: string; description?: string; priority?: string; status?: string; prompt?: string } }>(
+  app.post<{ Params: { projectId: string }; Body: { title: string; description?: string; priority?: string; status?: string; prompt?: string; milestoneId?: string } }>(
     '/api/projects/:projectId/tasks',
     async (request) => {
       const task = await taskStore.createTask(request.params.projectId, {
@@ -28,6 +72,7 @@ export async function taskRoutes(app: FastifyInstance) {
         priority: (request.body.priority as any) || 'medium',
         status: (request.body.status as any) || 'todo',
         prompt: request.body.prompt,
+        milestoneId: request.body.milestoneId,
       });
       return task;
     }
@@ -92,10 +137,10 @@ export async function taskRoutes(app: FastifyInstance) {
   );
 
   // Replace all tasks (used by Google Sheets sync pull)
-  app.post<{ Params: { projectId: string }; Body: { tasks: any[] } }>(
+  app.post<{ Params: { projectId: string }; Body: { tasks: any[]; milestoneId?: string } }>(
     '/api/projects/:projectId/tasks/replace',
     async (request) => {
-      const tasks = await taskStore.replaceTasks(request.params.projectId, request.body.tasks);
+      const tasks = await taskStore.replaceTasks(request.params.projectId, request.body.tasks, request.body.milestoneId);
       return { tasks };
     }
   );

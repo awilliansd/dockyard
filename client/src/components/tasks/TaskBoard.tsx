@@ -24,6 +24,7 @@ import { TaskListView } from './TaskListView'
 import { CsvReviewDialog } from './CsvReviewDialog'
 import { BulkImportDialog } from './BulkImportDialog'
 import { SheetSyncPanel } from './SheetSyncPanel'
+import { MilestoneSelector } from './MilestoneSelector'
 import { SyncPanelExports } from '@/components/sync/SyncPanel'
 import { useTasks, useUpdateTask, useReorderTasks, useCreateTask, type Task } from '@/hooks/useTasks'
 import { useTerminalStatus } from '@/hooks/useTerminal'
@@ -66,7 +67,7 @@ function sortTasks(tasks: Task[], sort: SortOption): Task[] {
   })
 }
 
-function InlineTaskInput({ projectId, status, onClose }: { projectId: string; status: Task['status']; onClose: () => void }) {
+function InlineTaskInput({ projectId, status, milestoneId, onClose }: { projectId: string; status: Task['status']; milestoneId?: string; onClose: () => void }) {
   const [value, setValue] = useState('')
   const createTask = useCreateTask()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -74,7 +75,7 @@ function InlineTaskInput({ projectId, status, onClose }: { projectId: string; st
   const handleSubmit = () => {
     if (!value.trim()) return
     createTask.mutate(
-      { projectId, title: value.trim(), description: '', priority: 'medium', status },
+      { projectId, title: value.trim(), description: '', priority: 'medium', status, milestoneId: milestoneId && milestoneId !== 'default' ? milestoneId : undefined },
       {
         onSuccess: () => {
           toast.success(`Task created: ${value.trim()}`)
@@ -106,6 +107,8 @@ interface TaskBoardProps {
   projectId: string
   projectName: string
   projectPath?: string
+  milestoneId?: string
+  onMilestoneChange?: (milestoneId: string) => void
 }
 
 interface ColumnConfig {
@@ -168,9 +171,9 @@ const itemsFirstCollision: CollisionDetection = (args) => {
   return closestCenter(args)
 }
 
-function DroppableColumn({ col, children, count, taskIds, onCopy, projectId, onAddingChange, isAdding, hiddenCount, onShowMore, headerExtra }: {
+function DroppableColumn({ col, children, count, taskIds, onCopy, projectId, milestoneId, onAddingChange, isAdding, hiddenCount, onShowMore, headerExtra }: {
   col: ColumnConfig; children: React.ReactNode; count: number; taskIds: string[]
-  onCopy?: () => void; projectId?: string; onAddingChange?: (adding: boolean) => void; isAdding?: boolean
+  onCopy?: () => void; projectId?: string; milestoneId?: string; onAddingChange?: (adding: boolean) => void; isAdding?: boolean
   hiddenCount?: number; onShowMore?: () => void; headerExtra?: React.ReactNode
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.key })
@@ -227,6 +230,7 @@ function DroppableColumn({ col, children, count, taskIds, onCopy, projectId, onA
           <InlineTaskInput
             projectId={projectId}
             status={col.dropStatus}
+            milestoneId={milestoneId}
             onClose={() => onAddingChange?.(false)}
           />
         )}
@@ -278,8 +282,8 @@ function SortableTaskItem({ task, projectName, projectPath, onEdit, onView, onAi
   )
 }
 
-export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProps) {
-  const { data: tasks, isLoading } = useTasks(projectId)
+export function TaskBoard({ projectId, projectName, projectPath, milestoneId, onMilestoneChange }: TaskBoardProps) {
+  const { data: tasks, isLoading } = useTasks(projectId, milestoneId)
   const { isSyncing } = useAutoSync(projectId)
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
   const { data: terminalStatus } = useTerminalStatus()
@@ -509,6 +513,12 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
         <h2 className="text-sm font-semibold flex items-center gap-1.5">
           Tasks ({tasks?.length || 0})
           {isSyncing && <Loader className="h-3 w-3 animate-spin text-muted-foreground" />}
+          {onMilestoneChange && (
+            <>
+              <span className="text-muted-foreground/30 font-normal">·</span>
+              <MilestoneSelector projectId={projectId} milestoneId={milestoneId || 'default'} onMilestoneChange={onMilestoneChange} />
+            </>
+          )}
         </h2>
         <div className="flex flex-wrap items-center gap-1">
           <Tooltip>
@@ -619,6 +629,7 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
                   key={col.key} col={col} count={colTasks.length} taskIds={taskIds}
                   onCopy={() => handleCopyColumn(col.key)}
                   projectId={projectId}
+                  milestoneId={milestoneId}
                   isAdding={addingInColumn === col.key}
                   onAddingChange={(adding) => setAddingInColumn(adding ? col.key : null)}
                   hiddenCount={hiddenCount}
@@ -736,6 +747,7 @@ export function TaskBoard({ projectId, projectName, projectPath }: TaskBoardProp
       <TaskEditor
         projectId={projectId}
         task={editingTask}
+        milestoneId={milestoneId}
         open={editorOpen}
         onOpenChange={setEditorOpen}
       />

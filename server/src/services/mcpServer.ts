@@ -21,6 +21,7 @@ function slimTask(t: Task) {
   return {
     id: t.id,
     projectId: t.projectId,
+    ...(t.milestoneId ? { milestoneId: t.milestoneId } : {}),
     title: t.title,
     status: t.status,
     priority: t.priority,
@@ -58,8 +59,8 @@ export async function getProject(projectId: string): Promise<McpToolResult> {
   return { content: [{ type: 'text', text: compact({ id, name, path, category, techStack, gitBranch, gitDirty, gitAhead, gitBehind, gitStaged, gitUnstaged, gitUntracked, lastCommitMessage, favorite, externalLink }) }] };
 }
 
-export async function listTasks(projectId: string, status?: string): Promise<McpToolResult> {
-  const tasks = await taskStore.getTasks(projectId);
+export async function listTasks(projectId: string, status?: string, milestoneId?: string): Promise<McpToolResult> {
+  const tasks = await taskStore.getTasks(projectId, milestoneId);
   const filtered = status ? tasks.filter(t => t.status === status) : tasks;
   // Slim list — use get_task for description/prompt
   return { content: [{ type: 'text', text: compact(filtered.map(slimTask)) }] };
@@ -77,8 +78,8 @@ export async function getTask(projectId: string, taskId: string): Promise<McpToo
     return { content: [{ type: 'text', text: `Task "${taskId}" not found` }], isError: true };
   }
   // Full task details (this is the tool for getting description/prompt)
-  const { id, title, description, priority, status, prompt, createdAt, updatedAt } = task;
-  return { content: [{ type: 'text', text: compact({ id, projectId, title, description, priority, status, prompt, createdAt, updatedAt }) }] };
+  const { id, title, description, priority, status, prompt, milestoneId, createdAt, updatedAt } = task;
+  return { content: [{ type: 'text', text: compact({ id, projectId, ...(milestoneId ? { milestoneId } : {}), title, description, priority, status, prompt, createdAt, updatedAt }) }] };
 }
 
 export async function createTask(projectId: string, data: {
@@ -87,6 +88,7 @@ export async function createTask(projectId: string, data: {
   priority?: string;
   status?: string;
   prompt?: string;
+  milestoneId?: string;
 }): Promise<McpToolResult> {
   const task = await taskStore.createTask(projectId, {
     title: data.title,
@@ -94,6 +96,7 @@ export async function createTask(projectId: string, data: {
     priority: (data.priority as Task['priority']) || 'medium',
     status: (data.status as Task['status']) || 'todo',
     prompt: data.prompt,
+    milestoneId: data.milestoneId,
   });
   // Mutation response: just confirmation
   return { content: [{ type: 'text', text: compact({ ok: true, id: task.id, title: task.title, status: task.status }) }] };
@@ -178,6 +181,11 @@ export async function getGitLog(projectId: string, limit?: number): Promise<McpT
   }
 }
 
+export async function listMilestones(projectId: string): Promise<McpToolResult> {
+  const milestones = await taskStore.getMilestones(projectId);
+  return { content: [{ type: 'text', text: compact(milestones.map(m => ({ id: m.id, name: m.name, status: m.status }))) }] };
+}
+
 export async function searchTasks(query: string): Promise<McpToolResult> {
   const all = await taskStore.getAllTasks();
   const q = query.toLowerCase();
@@ -208,6 +216,17 @@ export const MCP_TOOLS = [
     },
   },
   {
+    name: 'list_milestones',
+    description: 'List milestones for a project (id, name, status). Default "General" is always included.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        projectId: { type: 'string', description: 'The project ID' },
+      },
+      required: ['projectId'],
+    },
+  },
+  {
     name: 'list_tasks',
     description: 'List tasks for a project (slim: id, title, status, priority). Use get_task for description/prompt.',
     inputSchema: {
@@ -215,6 +234,7 @@ export const MCP_TOOLS = [
       properties: {
         projectId: { type: 'string', description: 'The project ID' },
         status: { type: 'string', description: 'Filter by status', enum: ['backlog', 'todo', 'in_progress', 'done'] },
+        milestoneId: { type: 'string', description: 'Filter by milestone ID (default = General)' },
       },
       required: ['projectId'],
     },
@@ -254,6 +274,7 @@ export const MCP_TOOLS = [
         priority: { type: 'string', enum: ['urgent', 'high', 'medium', 'low'] },
         status: { type: 'string', enum: ['backlog', 'todo', 'in_progress', 'done'] },
         prompt: { type: 'string', description: 'Technical details and implementation notes' },
+        milestoneId: { type: 'string', description: 'Milestone ID to assign the task to' },
       },
       required: ['projectId', 'title'],
     },
@@ -327,14 +348,16 @@ export async function handleToolCall(name: string, args: Record<string, any>): P
       return listProjects();
     case 'get_project':
       return getProject(args.projectId);
+    case 'list_milestones':
+      return listMilestones(args.projectId);
     case 'list_tasks':
-      return listTasks(args.projectId, args.status);
+      return listTasks(args.projectId, args.status, args.milestoneId);
     case 'get_all_tasks':
       return getAllTasks(args.status);
     case 'get_task':
       return getTask(args.projectId, args.taskId);
     case 'create_task':
-      return createTask(args.projectId, { title: args.title, description: args.description, priority: args.priority, status: args.status, prompt: args.prompt });
+      return createTask(args.projectId, { title: args.title, description: args.description, priority: args.priority, status: args.status, prompt: args.prompt, milestoneId: args.milestoneId });
     case 'update_task':
       return updateTask(args.projectId, args.taskId, args);
     case 'delete_task':

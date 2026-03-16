@@ -43,6 +43,7 @@ async function runAutoSync(projectId: string) {
         // This is triggered by local mutations (create/update/delete),
         // so local is the source of truth. Merging would resurrect
         // tasks that were just deleted locally.
+        // Note: auto-sync pushes all tasks for the project (not milestone-scoped)
         const { tasks: localTasks } = await api.getTasks(projectId)
         await provider.push(sheetsConfig, localTasks as Task[])
 

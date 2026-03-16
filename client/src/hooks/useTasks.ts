@@ -6,6 +6,7 @@ export interface Task {
   id: string
   number?: number
   projectId: string
+  milestoneId?: string
   title: string
   description: string
   priority: 'urgent' | 'high' | 'medium' | 'low'
@@ -32,12 +33,12 @@ export function useAllTasks() {
   })
 }
 
-export function useTasks(projectId: string | undefined) {
+export function useTasks(projectId: string | undefined, milestoneId?: string) {
   return useQuery({
-    queryKey: ['tasks', projectId],
+    queryKey: ['tasks', projectId, milestoneId || 'all'],
     queryFn: async () => {
       if (!projectId) return []
-      const data = await api.getTasks(projectId)
+      const data = await api.getTasks(projectId, milestoneId)
       return data.tasks as Task[]
     },
     enabled: !!projectId,
@@ -48,9 +49,10 @@ export function useTasks(projectId: string | undefined) {
 export function useCreateTask() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ projectId, ...data }: { projectId: string; title: string; description?: string; priority?: string; status?: string; prompt?: string; subtasks?: { id: string; title: string; done: boolean }[] }) =>
+    mutationFn: ({ projectId, ...data }: { projectId: string; title: string; description?: string; priority?: string; status?: string; prompt?: string; milestoneId?: string; subtasks?: { id: string; title: string; done: boolean }[] }) =>
       api.createTask(projectId, data),
     onSuccess: (_, variables) => {
+      // Invalidate all task queries for this project (including milestone-scoped)
       queryClient.invalidateQueries({ queryKey: ['tasks', variables.projectId] })
       queryClient.invalidateQueries({ queryKey: ['tasks', 'all'] })
       scheduleAutoSyncPush(variables.projectId)

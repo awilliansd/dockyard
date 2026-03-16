@@ -62,6 +62,8 @@ shipyard/
 │   │   │   │   ├── TaskItem.tsx       # Card de tarefa com prioridade, status, acoes
 │   │   │   │   │   ├── TaskEditor.tsx     # Dialog criar/editar tarefa
 │   │   │   │   ├── TaskSummary.tsx    # Resumo global na Dashboard (counters + listas)
+│   │   │   │   ├── MilestoneSelector.tsx  # Dropdown seletor de milestone no TaskBoard header
+│   │   │   │   ├── MilestoneDialog.tsx    # Dialog criar/editar milestone
 │   │   │   │   └── SheetSyncPanel.tsx # Google Sheets sync: config, push, pull (localStorage)
 │   │   │   ├── sync/
 │   │   │   │   ├── SyncSettingsCard.tsx  # Card de integrações na pagina Settings
@@ -99,6 +101,7 @@ shipyard/
 │   │   │   ├── useTerminal.ts     # Hook para sessoes de terminal integrado
 │   │   │   ├── useClaude.ts       # Claude API hooks + SSE streaming chat
 │   │   │   ├── useMcp.ts          # MCP server status/config hooks
+│   │   │   ├── useMilestones.ts   # Milestone CRUD hooks + active milestone (localStorage)
 │   │   │   ├── useEditorTabs.ts    # Estado de abas do editor (open/close/dirty/save)
 │   │   │   └── useFiles.ts        # File tree, content, delete, open-folder, save hooks
 │   │   ├── lib/
@@ -162,7 +165,7 @@ shipyard/
 │   ├── mcp-config.json            # { enabled, requireAuth }
 │   ├── mcp-auth.json              # JWT secret, OAuth clients, auth codes, refresh tokens
 │   └── tasks/                     # Um JSON por projeto
-│       └── {projectId}.json       # { tasks: Task[] }
+│       └── {projectId}.json       # { milestones?: Milestone[], tasks: Task[] }
 │
 ├── electron/                      # Electron desktop wrapper
 │   ├── main.ts                    # Main process: server spawn, window, tray
@@ -210,9 +213,21 @@ interface Project {
   externalLink?: string;   // URL para documento externo (Notion, Google Sheets, etc.)
 }
 
+interface Milestone {
+  id: string;               // nanoid(10) or 'default' (virtual)
+  projectId: string;
+  name: string;
+  description?: string;
+  status: 'active' | 'closed';
+  createdAt: string;
+  updatedAt: string;
+  order: number;
+}
+
 interface Task {
   id: string;               // nanoid(10)
   projectId: string;
+  milestoneId?: string;     // References Milestone.id; undefined/'default' = default milestone
   title: string;
   description: string;
   priority: 'urgent' | 'high' | 'medium' | 'low';
@@ -252,9 +267,15 @@ interface McpConfig {
 - `POST /api/projects/add` - Adiciona projetos por paths[]
 - `POST /api/projects/remove` - Remove projeto por path
 
+### Milestones
+- `GET /api/projects/:id/milestones` - Lista milestones (inclui virtual "General" default)
+- `POST /api/projects/:id/milestones` - Criar milestone { name, description? }
+- `PUT /api/projects/:id/milestones/:milestoneId` - Atualizar { name?, description?, status? }
+- `DELETE /api/projects/:id/milestones/:milestoneId` - Deletar (move tasks para "General")
+
 ### Tarefas
 - `GET /api/tasks/all` - Todas as tarefas de todos os projetos
-- `GET /api/projects/:id/tasks` - Tarefas de um projeto
+- `GET /api/projects/:id/tasks?milestone=xxx` - Tarefas de um projeto (filtro opcional por milestone)
 - `POST /api/projects/:id/tasks` - Criar tarefa
 - `PUT /api/projects/:id/tasks/:taskId` - Atualizar tarefa
 - `DELETE /api/projects/:id/tasks/:taskId` - Deletar tarefa
@@ -483,6 +504,21 @@ interface McpConfig {
 - Sidebar (collapsed) tooltips incluem git info
 - Backend: `projectDiscovery.ts` detecta `gitAhead`, `gitBehind`, `gitStaged`, `gitUnstaged`, `gitUntracked`
 - Todos os botoes de acao tem tooltips explicativos
+
+### Milestones
+- Organiza tarefas em fases/sprints dentro de um projeto
+- Cada milestone tem seu proprio kanban board + tarefas isoladas
+- **Default milestone** ("General"): virtual, nao armazenado no arquivo — tarefas sem milestoneId pertencem a ele
+- Selector dropdown no header do TaskBoard para alternar entre milestones
+- Criar, editar, fechar e reabrir milestones via popover e dialog
+- Deletar milestone move tasks para "General"
+- **Zero migration**: projetos existentes funcionam sem mudanças — tudo aparece em "General"
+- Milestone ativo persistido em localStorage por projeto (`shipyard:milestone:{projectId}`)
+- Dados armazenados no mesmo `{projectId}.json` em campo `milestones[]`
+- `milestoneId` adicionado ao modelo Task (campo opcional)
+- **MCP tools**: `list_milestones`, `list_tasks` (com filtro milestoneId), `create_task` (com milestoneId)
+- Tarefas criadas via inline input ou TaskEditor herdam o milestone ativo
+- Arquivos: `MilestoneSelector.tsx`, `MilestoneDialog.tsx`, `useMilestones.ts`, `taskStore.ts`
 
 ### Command Palette (Ctrl+K)
 - Atalho global **Ctrl+K / Cmd+K** abre command palette (cmdk)

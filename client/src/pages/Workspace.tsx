@@ -12,6 +12,7 @@ import { ProjectSettingsDialog } from '@/components/projects/ProjectSettingsDial
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useEditorTabs } from '@/hooks/useEditorTabs'
+import { useActiveMilestone } from '@/hooks/useMilestones'
 
 export function Workspace() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -20,6 +21,7 @@ export function Workspace() {
   const project = projects?.find(p => p.id === projectId)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [workspaceMode, setWorkspaceMode] = useState<'tasks' | 'editor'>('tasks')
+  const { milestoneId, setMilestoneId } = useActiveMilestone(projectId || '')
 
   const editor = useEditorTabs(projectId || '')
 
@@ -150,7 +152,7 @@ export function Workspace() {
 
           {/* Content area */}
           {workspaceMode === 'tasks' ? (
-            <TaskBoard projectId={project.id} projectName={project.name} projectPath={project.path} />
+            <TaskBoard projectId={project.id} projectName={project.name} projectPath={project.path} milestoneId={milestoneId} onMilestoneChange={setMilestoneId} />
           ) : (
             <EditorPanel
               projectId={project.id}

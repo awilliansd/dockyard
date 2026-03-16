@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { nanoid } from 'nanoid';
-import type { Task, TasksFile } from '../types/index.js';
+import type { Task, Milestone, TasksFile } from '../types/index.js';
 import { DATA_DIR } from './dataDir.js';
 
 export const TASKS_DIR = join(DATA_DIR, 'tasks');
@@ -14,20 +14,30 @@ function getTasksFilePath(projectId: string): string {
   return join(TASKS_DIR, `${projectId}.json`);
 }
 
-async function readTasks(projectId: string): Promise<Task[]> {
+async function readFile_(projectId: string): Promise<TasksFile> {
   try {
     const data = await readFile(getTasksFilePath(projectId), 'utf-8');
-    const file: TasksFile = JSON.parse(data);
-    return file.tasks;
+    return JSON.parse(data);
   } catch {
-    return [];
+    return { tasks: [] };
   }
 }
 
-async function writeTasks(projectId: string, tasks: Task[]): Promise<void> {
+async function readTasks(projectId: string): Promise<Task[]> {
+  const file = await readFile_(projectId);
+  return file.tasks;
+}
+
+async function writeFile_(projectId: string, file: TasksFile): Promise<void> {
   await ensureTasksDir();
-  const file: TasksFile = { tasks };
   await writeFile(getTasksFilePath(projectId), JSON.stringify(file, null, 2), 'utf-8');
+}
+
+async function writeTasks(projectId: string, tasks: Task[]): Promise<void> {
+  // Preserve milestones when writing tasks
+  const file = await readFile_(projectId);
+  file.tasks = tasks;
+  await writeFile_(projectId, file);
 }
 
 function getNextNumber(tasks: Task[]): number {
@@ -51,7 +61,16 @@ function backfillNumbers(tasks: Task[]): boolean {
   return true;
 }
 
-export async function getTasks(projectId: string): Promise<Task[]> {
+// Filter tasks by milestoneId: 'default' or undefined matches tasks with no milestoneId
+function filterByMilestone(tasks: Task[], milestoneId?: string): Task[] {
+  if (!milestoneId) return tasks;
+  if (milestoneId === 'default') {
+    return tasks.filter(t => !t.milestoneId || t.milestoneId === 'default');
+  }
+  return tasks.filter(t => t.milestoneId === milestoneId);
+}
+
+export async function getTasks(projectId: string, milestoneId?: string): Promise<Task[]> {
   const tasks = await readTasks(projectId);
   for (const t of tasks) {
     if (!t.projectId) t.projectId = projectId;
@@ -62,7 +81,7 @@ export async function getTasks(projectId: string): Promise<Task[]> {
   if (backfillNumbers(tasks)) {
     await writeTasks(projectId, tasks);
   }
-  return tasks;
+  return filterByMilestone(tasks, milestoneId);
 }
 
 export async function getAllTasks(): Promise<Task[]> {
@@ -184,6 +203,7 @@ export async function importTasks(projectId: string, importedTasks: Partial<Task
       priority: (t.priority as Task['priority']) || 'medium',
       status,
       prompt: t.prompt,
+      milestoneId: t.milestoneId,
       id: nanoid(10),
       number: nextNum++,
       projectId,
@@ -264,7 +284,7 @@ export async function applyCsvChanges(
   return { updated: updatedCount, created: changes.create.length, removed: removedCount };
 }
 
-export async function replaceTasks(projectId: string, incoming: Partial<Task>[]): Promise<Task[]> {
+export async function replaceTasks(projectId: string, incoming: Partial<Task>[], milestoneId?: string): Promise<Task[]> {
   // Read existing tasks to preserve timestamps that aren't in the incoming data
   // (sync payloads like SheetRow don't carry createdAt/inboxAt/inProgressAt/doneAt)
   const existingTasks = await readTasks(projectId);
@@ -284,6 +304,7 @@ export async function replaceTasks(projectId: string, incoming: Partial<Task>[])
       priority: (t.priority as Task['priority']) || 'medium',
       status,
       prompt: t.prompt,
+      milestoneId: t.milestoneId || milestoneId || existing?.milestoneId,
       id: t.id || nanoid(10),
       number,
       projectId,
@@ -297,7 +318,18 @@ export async function replaceTasks(projectId: string, incoming: Partial<Task>[])
       }),
     };
   });
-  await writeTasks(projectId, tasks);
+
+  if (milestoneId && milestoneId !== 'default') {
+    // Scoped replace: only replace tasks for this milestone, keep others
+    const otherTasks = existingTasks.filter(t => t.milestoneId !== milestoneId);
+    await writeTasks(projectId, [...otherTasks, ...tasks]);
+  } else if (milestoneId === 'default') {
+    // Scoped replace: only replace tasks with no milestoneId
+    const otherTasks = existingTasks.filter(t => t.milestoneId && t.milestoneId !== 'default');
+    await writeTasks(projectId, [...otherTasks, ...tasks]);
+  } else {
+    await writeTasks(projectId, tasks);
+  }
   return tasks;
 }
 
@@ -322,4 +354,76 @@ export async function reorderTasks(projectId: string, taskIds: string[]): Promis
 
   await writeTasks(projectId, reordered);
   return reordered;
+}
+
+// ── Milestone CRUD ─────────────────────────────────────────
+
+const DEFAULT_MILESTONE: Milestone = {
+  id: 'default',
+  projectId: '',
+  name: 'General',
+  status: 'active',
+  createdAt: '',
+  updatedAt: '',
+  order: 0,
+};
+
+export async function getMilestones(projectId: string): Promise<Milestone[]> {
+  const file = await readFile_(projectId);
+  const milestones = (file.milestones || []).map(m => ({ ...m, projectId }));
+  // Always prepend virtual "default" milestone
+  return [{ ...DEFAULT_MILESTONE, projectId }, ...milestones];
+}
+
+export async function createMilestone(projectId: string, data: { name: string; description?: string }): Promise<Milestone> {
+  const file = await readFile_(projectId);
+  const milestones = file.milestones || [];
+  const now = new Date().toISOString();
+  const milestone: Milestone = {
+    id: nanoid(10),
+    projectId,
+    name: data.name,
+    description: data.description,
+    status: 'active',
+    createdAt: now,
+    updatedAt: now,
+    order: milestones.length + 1,
+  };
+  milestones.push(milestone);
+  file.milestones = milestones;
+  await writeFile_(projectId, file);
+  return milestone;
+}
+
+export async function updateMilestone(projectId: string, milestoneId: string, data: { name?: string; description?: string; status?: 'active' | 'closed' }): Promise<Milestone | null> {
+  if (milestoneId === 'default') return null; // Cannot edit virtual default
+  const file = await readFile_(projectId);
+  const milestones = file.milestones || [];
+  const idx = milestones.findIndex(m => m.id === milestoneId);
+  if (idx === -1) return null;
+  milestones[idx] = {
+    ...milestones[idx],
+    ...data,
+    updatedAt: new Date().toISOString(),
+  };
+  file.milestones = milestones;
+  await writeFile_(projectId, file);
+  return { ...milestones[idx], projectId };
+}
+
+export async function deleteMilestone(projectId: string, milestoneId: string): Promise<boolean> {
+  if (milestoneId === 'default') return false; // Cannot delete virtual default
+  const file = await readFile_(projectId);
+  const milestones = file.milestones || [];
+  const filtered = milestones.filter(m => m.id !== milestoneId);
+  if (filtered.length === milestones.length) return false;
+  // Move tasks from deleted milestone to default
+  for (const t of file.tasks) {
+    if (t.milestoneId === milestoneId) {
+      delete t.milestoneId;
+    }
+  }
+  file.milestones = filtered;
+  await writeFile_(projectId, file);
+  return true;
 }
