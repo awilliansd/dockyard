@@ -7,13 +7,14 @@ import { FolderBrowser } from '@/components/ui/folder-browser'
 import { SyncSettingsCard } from '@/components/sync/SyncSettingsCard'
 import { ClaudeSettingsCard } from '@/components/claude/ClaudeSettingsCard'
 import { McpSettingsCard } from '@/components/mcp/McpSettingsCard'
-import { Search, Plus, FolderOpen, Check, Loader2, GitBranch, X, FolderSearch, Download, Upload } from 'lucide-react'
+import { Search, Plus, FolderOpen, Check, Loader2, GitBranch, X, FolderSearch, Download, Upload, Volume2, VolumeX } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useProjects } from '@/hooks/useProjects'
 import { useAllTasks, useImportAllTasks } from '@/hooks/useTasks'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { isSoundEnabled, setSoundEnabled, playAiCompleteSound } from '@/lib/sounds'
 
 interface ScannedProject {
   path: string
@@ -36,6 +37,7 @@ export function Settings() {
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set())
   const [scannedDir, setScannedDir] = useState('')
 
+  const [soundOn, setSoundOn] = useState(isSoundEnabled)
   const [exportOptions, setExportOptions] = useState<Set<ExportOption>>(new Set(['settings', 'tasks']))
   const [importing, setImporting] = useState(false)
 
@@ -354,6 +356,41 @@ export function Settings() {
                   No projects yet. Use the buttons above to add some.
                 </p>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Preferences */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Preferences</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <button
+                onClick={() => {
+                  const next = !soundOn
+                  setSoundOn(next)
+                  setSoundEnabled(next)
+                  if (next) playAiCompleteSound()
+                }}
+                className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg border hover:bg-accent/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  {soundOn ? <Volume2 className="h-4 w-4 text-muted-foreground" /> : <VolumeX className="h-4 w-4 text-muted-foreground" />}
+                  <div className="text-left">
+                    <span className="text-sm font-medium">AI completion sound</span>
+                    <p className="text-xs text-muted-foreground">Play a chime when AI operations finish</p>
+                  </div>
+                </div>
+                <div className={cn(
+                  'w-9 h-5 rounded-full transition-colors relative',
+                  soundOn ? 'bg-primary' : 'bg-muted'
+                )}>
+                  <div className={cn(
+                    'absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform',
+                    soundOn ? 'translate-x-4' : 'translate-x-0.5'
+                  )} />
+                </div>
+              </button>
             </CardContent>
           </Card>
 

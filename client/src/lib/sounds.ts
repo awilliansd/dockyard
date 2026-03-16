@@ -1,3 +1,5 @@
+const SOUND_KEY = 'shipyard:ai-sound-enabled'
+
 let audioCtx: AudioContext | null = null
 
 function getAudioContext(): AudioContext {
@@ -7,11 +9,21 @@ function getAudioContext(): AudioContext {
   return audioCtx
 }
 
+export function isSoundEnabled(): boolean {
+  return localStorage.getItem(SOUND_KEY) !== 'false'
+}
+
+export function setSoundEnabled(enabled: boolean) {
+  localStorage.setItem(SOUND_KEY, String(enabled))
+}
+
 /**
  * Play a subtle two-tone chime when AI operations complete.
  * Uses Web Audio API — no audio files needed.
  */
 export function playAiCompleteSound() {
+  if (!isSoundEnabled()) return
+
   try {
     const ctx = getAudioContext()
     const now = ctx.currentTime
