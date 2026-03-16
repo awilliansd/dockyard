@@ -23,6 +23,7 @@ export function useGitLog(projectId: string | undefined) {
     queryKey: ['git-log', projectId],
     queryFn: () => api.getGitLog(projectId!),
     enabled: !!projectId,
+    refetchInterval: 10_000,
   })
 }
 
