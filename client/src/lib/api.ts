@@ -92,7 +92,7 @@ export const api = {
   undoCommit: (projectId: string) =>
     request(`/projects/${projectId}/git/undo-commit`, { method: 'POST' }),
   generateCommitMessage: (projectId: string) =>
-    request<{ message: string; source: 'cli' | 'api' }>(`/projects/${projectId}/git/generate-commit-message`, { method: 'POST', timeout: 150_000 }),
+    request<{ message: string; source: 'cli' | 'api' }>(`/projects/${projectId}/git/generate-commit-message`, { method: 'POST', timeout: 70_000 }),
 
   // Terminals (native launchers)
   launchTerminal: (projectId: string, type: string) => request('/terminals/launch', { method: 'POST', body: JSON.stringify({ projectId, type }) }),

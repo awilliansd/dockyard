@@ -48,6 +48,8 @@ export interface RunPromptOptions {
   maxTurns?: number;
   outputFormat?: 'text' | 'json';
   timeout?: number;
+  /** Absolute deadline — kills the process after this many ms regardless of activity */
+  hardTimeout?: number;
   cwd?: string;
 }
 
@@ -80,6 +82,9 @@ export async function runPrompt(prompt: string, options?: RunPromptOptions): Pro
   const env = buildCliEnv();
 
   return new Promise<string>((resolve, reject) => {
+    let settled = false;
+    const settle = (fn: () => void) => { if (!settled) { settled = true; fn(); } };
+
     const proc = spawn(cliPath, args, {
       env,
       cwd: options?.cwd,
@@ -97,24 +102,35 @@ export async function runPrompt(prompt: string, options?: RunPromptOptions): Pro
       clearTimeout(timer);
       timer = setTimeout(() => {
         proc.kill();
-        reject(new Error(`Claude CLI timed out (no output for ${Math.round(timeout / 1000)}s)`));
+        settle(() => reject(new Error(`Claude CLI timed out (no output for ${Math.round(timeout / 1000)}s)`)));
       }, timeout);
     };
     resetTimer();
 
+    // Hard timeout: absolute deadline that kills the process regardless of activity
+    let hardTimer: NodeJS.Timeout | undefined;
+    if (options?.hardTimeout) {
+      hardTimer = setTimeout(() => {
+        proc.kill();
+        settle(() => reject(new Error(`Claude CLI exceeded hard timeout (${Math.round(options.hardTimeout! / 1000)}s)`)));
+      }, options.hardTimeout);
+    }
+
+    const cleanup = () => { clearTimeout(timer); if (hardTimer) clearTimeout(hardTimer); };
+
     proc.stdout.on('data', (data: Buffer) => { stdout += data.toString(); resetTimer(); });
     proc.stderr.on('data', (data: Buffer) => { stderr += data.toString(); resetTimer(); });
     proc.on('close', (code) => {
-      clearTimeout(timer);
+      cleanup();
       if (code === 0) {
-        resolve(stdout.trim());
+        settle(() => resolve(stdout.trim()));
       } else {
-        reject(new Error(stderr.trim() || `Claude CLI exited with code ${code}`));
+        settle(() => reject(new Error(stderr.trim() || `Claude CLI exited with code ${code}`)));
       }
     });
     proc.on('error', (err) => {
-      clearTimeout(timer);
-      reject(err);
+      cleanup();
+      settle(() => reject(err));
     });
 
     // Pipe prompt (+ optional input) via stdin
