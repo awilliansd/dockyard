@@ -84,7 +84,7 @@ function TaskRow({ task, projectName, projectPath, showProjectBadge, projectMap,
 
   return (
     <div className={cn(
-      'group relative flex items-center gap-3 px-3 py-1.5 hover:bg-accent/50 rounded transition-colors',
+      'group relative flex items-center gap-3 px-3 py-1.5 pr-10 hover:bg-accent/50 rounded transition-colors',
       task.status === 'done' && !task.needsReview && 'opacity-60',
       task.needsReview && 'bg-purple-500/5'
     )}>
@@ -131,7 +131,7 @@ function TaskRow({ task, projectName, projectPath, showProjectBadge, projectMap,
 
       <span className="text-[10px] text-muted-foreground shrink-0 w-12 text-right">{age}</span>
 
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+      <div className="hidden group-hover:flex items-center gap-0.5 absolute right-2 top-1/2 -translate-y-1/2 bg-card rounded-md shadow-sm border px-0.5 py-0.5 z-10">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopyPrompt}><Copy className="h-3 w-3" /></Button>
