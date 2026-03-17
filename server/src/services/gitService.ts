@@ -87,6 +87,11 @@ export async function getBranches(projectPath: string) {
   return git.branch();
 }
 
+export async function checkoutBranch(projectPath: string, branch: string): Promise<void> {
+  const git = getGit(projectPath);
+  await git.checkout(branch);
+}
+
 export async function discardFile(projectPath: string, file: string, type: 'staged' | 'unstaged' | 'untracked'): Promise<void> {
   const git = getGit(projectPath);
   if (type === 'staged') {

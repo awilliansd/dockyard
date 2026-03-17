@@ -84,6 +84,8 @@ export const api = {
   gitPull: (projectId: string) => request(`/projects/${projectId}/git/pull`, { method: 'POST' }),
   getGitLog: (projectId: string) => request<any>(`/projects/${projectId}/git/log`),
   getGitBranches: (projectId: string) => request<any>(`/projects/${projectId}/git/branches`),
+  checkoutBranch: (projectId: string, branch: string) =>
+    request<{ success: boolean; branch: string }>(`/projects/${projectId}/git/checkout`, { method: 'POST', body: JSON.stringify({ branch }) }),
   getGitMainCommit: (projectId: string) => request<{ commit: { hash: string; message: string; date: string; author_name: string; isMerged: boolean } | null }>(`/projects/${projectId}/git/main-commit`),
   discardFile: (projectId: string, file: string, type: 'staged' | 'unstaged' | 'untracked') =>
     request(`/projects/${projectId}/git/discard`, { method: 'POST', body: JSON.stringify({ file, type }) }),
@@ -208,5 +210,10 @@ export const api = {
     request<{ success: boolean; size: number }>(
       `/projects/${projectId}/files/content`,
       { method: 'PUT', body: JSON.stringify({ path: relPath, content }) }
+    ),
+  renameFile: (projectId: string, relPath: string, newName: string) =>
+    request<{ success: boolean; newPath: string }>(
+      `/projects/${projectId}/files/rename`,
+      { method: 'POST', body: JSON.stringify({ path: relPath, newName }) }
     ),
 };

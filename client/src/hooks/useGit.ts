@@ -45,6 +45,20 @@ export function useGitMainCommit(projectId: string | undefined, currentBranch?: 
   })
 }
 
+export function useCheckoutBranch() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ projectId, branch }: { projectId: string; branch: string }) =>
+      api.checkoutBranch(projectId, branch),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['git-status', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: ['git-branches', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: ['git-log', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: ['git-main-commit', variables.projectId] })
+    },
+  })
+}
+
 export function useStageFile() {
   const queryClient = useQueryClient()
   return useMutation({

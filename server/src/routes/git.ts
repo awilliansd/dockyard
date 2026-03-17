@@ -207,6 +207,28 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
+  app.post<{ Params: { projectId: string }; Body: { branch: string } }>(
+    '/api/projects/:projectId/git/checkout',
+    async (request, reply) => {
+      const path = await getProjectPath(request.params.projectId);
+      if (!path) return reply.status(404).send({ error: 'Project not found' });
+
+      const { branch } = request.body;
+      if (!branch || typeof branch !== 'string') {
+        return reply.status(400).send({ error: 'Branch name is required' });
+      }
+
+      try {
+        await gitService.checkoutBranch(path, branch);
+        log.info('git', `Switched to branch: ${branch}`, undefined, request.params.projectId);
+        return { success: true, branch };
+      } catch (err: any) {
+        log.error('git', `Checkout failed: ${branch}`, err.message, request.params.projectId);
+        return reply.status(500).send({ error: err.message });
+      }
+    }
+  );
+
   app.post<{ Params: { projectId: string }; Body: { file: string; type: 'staged' | 'unstaged' | 'untracked' } }>(
     '/api/projects/:projectId/git/discard',
     async (request, reply) => {

@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { GitBranch, RefreshCw, Upload, Download, ChevronDown, ChevronRight, GitCommit, ArrowUp, ArrowDown, Trash2, Undo2, Loader2 } from 'lucide-react'
+import { GitBranch, RefreshCw, Upload, Download, ChevronDown, ChevronRight, GitCommit, ArrowUp, ArrowDown, Trash2, Undo2, Loader2, Check } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { FileChange } from './FileChange'
 import { CommitForm } from './CommitForm'
-import { useGitStatus, useGitLog, useGitMainCommit, useStageAll, useUnstageAll, useGitPush, useGitPull, useDiscardAll, useUndoCommit } from '@/hooks/useGit'
+import { useGitStatus, useGitLog, useGitMainCommit, useGitBranches, useCheckoutBranch, useStageAll, useUnstageAll, useGitPush, useGitPull, useDiscardAll, useUndoCommit } from '@/hooks/useGit'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -18,6 +19,9 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
   const { data: status, isLoading, isFetching, refetch } = useGitStatus(projectId)
   const { data: logData } = useGitLog(projectId)
   const { data: mainCommitData } = useGitMainCommit(projectId, status?.current)
+  const { data: branchData } = useGitBranches(projectId)
+  const checkoutBranch = useCheckoutBranch()
+  const [branchOpen, setBranchOpen] = useState(false)
   const stageAll = useStageAll()
   const unstageAll = useUnstageAll()
   const gitPush = useGitPush()
@@ -97,10 +101,41 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
       {/* Branch + sync status */}
       <div className="flex items-center gap-2 flex-wrap">
         {status.current && (
-          <Badge variant="outline" className="text-[10px] gap-1">
-            <GitBranch className="h-3 w-3" />
-            {status.current}
-          </Badge>
+          <Popover open={branchOpen} onOpenChange={setBranchOpen}>
+            <PopoverTrigger asChild>
+              <button className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium hover:bg-accent transition-colors cursor-pointer">
+                {checkoutBranch.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <GitBranch className="h-3 w-3" />}
+                {status.current}
+                <ChevronDown className="h-2.5 w-2.5 opacity-50" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-1 max-h-64 overflow-y-auto" align="start">
+              {branchData?.all
+                ?.filter((b: string) => !b.startsWith('remotes/'))
+                .map((branch: string) => (
+                  <button
+                    key={branch}
+                    className={cn(
+                      'flex items-center gap-2 w-full rounded px-2 py-1.5 text-xs text-left hover:bg-accent transition-colors',
+                      branch === status.current && 'text-primary font-medium'
+                    )}
+                    disabled={branch === status.current || checkoutBranch.isPending}
+                    onClick={() => {
+                      checkoutBranch.mutate({ projectId, branch }, {
+                        onSuccess: () => { setBranchOpen(false); toast.success(`Switched to ${branch}`) },
+                        onError: (err) => toast.error(`Checkout failed: ${err.message}`),
+                      })
+                    }}
+                  >
+                    {branch === status.current ? <Check className="h-3 w-3" /> : <span className="w-3" />}
+                    <span className="truncate">{branch}</span>
+                  </button>
+                ))}
+              {(!branchData?.all || branchData.all.filter((b: string) => !b.startsWith('remotes/')).length === 0) && (
+                <div className="text-xs text-muted-foreground px-2 py-1.5">No branches found</div>
+              )}
+            </PopoverContent>
+          </Popover>
         )}
         {ahead > 0 && (
           <Badge variant="secondary" className="text-[10px] gap-1">
