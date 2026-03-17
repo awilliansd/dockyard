@@ -77,7 +77,7 @@ export function TaskEditor({ projectId, task, milestoneId, open, onOpenChange }:
         {
           onSuccess: () => {
             if (quickCreate) {
-              toast.success(`Task created: ${title}`)
+              toast.success(`Task created: ${title.length > 50 ? title.slice(0, 50) + '…' : title}`)
               resetForm()
             } else {
               onOpenChange(false)

@@ -78,7 +78,7 @@ function InlineTaskInput({ projectId, status, milestoneId, onClose }: { projectI
       { projectId, title: value.trim(), description: '', priority: 'medium', status, milestoneId: milestoneId && milestoneId !== 'default' ? milestoneId : undefined },
       {
         onSuccess: () => {
-          toast.success(`Task created: ${value.trim()}`)
+          toast.success(`Task created: ${value.trim().length > 50 ? value.trim().slice(0, 50) + '…' : value.trim()}`)
           setValue('')
           inputRef.current?.focus()
         },
