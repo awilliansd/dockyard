@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import { join } from 'path';
 import * as gitService from '../services/gitService.js';
 import * as claudeCliService from '../services/claudeCliService.js';
 import * as claudeService from '../services/claudeService.js';
@@ -33,20 +34,26 @@ function compactGitDiff(diff: string, maxLen: number): string {
   return kept.join('\n');
 }
 
-async function getProjectPath(projectId: string): Promise<string | null> {
+async function getProjectPath(projectId: string, subrepo?: string): Promise<string | null> {
   const projects = await getProjects();
   const project = projects.find(p => p.id === projectId);
-  return project?.path || null;
+  if (!project?.path) return null;
+  if (subrepo) {
+    // Validate subrepo is in the allowed list
+    if (!project.subRepos?.includes(subrepo)) return null;
+    return join(project.path, subrepo);
+  }
+  return project.path;
 }
 
 export async function gitRoutes(app: FastifyInstance) {
   // Track last fetch time per project to avoid fetching too often
   const lastFetch = new Map<string, number>();
 
-  app.get<{ Params: { projectId: string } }>(
+  app.get<{ Params: { projectId: string }; Querystring: { subrepo?: string } }>(
     '/api/projects/:projectId/git/status',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, request.query.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
 
       try {
@@ -66,10 +73,10 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  app.get<{ Params: { projectId: string }; Querystring: { file?: string; staged?: string } }>(
+  app.get<{ Params: { projectId: string }; Querystring: { file?: string; staged?: string; subrepo?: string } }>(
     '/api/projects/:projectId/git/diff',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, request.query.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
 
       try {
@@ -82,10 +89,10 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  app.post<{ Params: { projectId: string }; Body: { file: string } }>(
+  app.post<{ Params: { projectId: string }; Body: { file: string; subrepo?: string } }>(
     '/api/projects/:projectId/git/stage',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, request.body.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
 
       await gitService.stageFile(path, request.body.file);
@@ -93,10 +100,10 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  app.post<{ Params: { projectId: string } }>(
+  app.post<{ Params: { projectId: string }; Body: { subrepo?: string } }>(
     '/api/projects/:projectId/git/stage-all',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, (request.body as any)?.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
 
       await gitService.stageAll(path);
@@ -104,10 +111,10 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  app.post<{ Params: { projectId: string }; Body: { file: string } }>(
+  app.post<{ Params: { projectId: string }; Body: { file: string; subrepo?: string } }>(
     '/api/projects/:projectId/git/unstage',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, request.body.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
 
       await gitService.unstageFile(path, request.body.file);
@@ -115,10 +122,10 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  app.post<{ Params: { projectId: string } }>(
+  app.post<{ Params: { projectId: string }; Body: { subrepo?: string } }>(
     '/api/projects/:projectId/git/unstage-all',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, (request.body as any)?.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
 
       await gitService.unstageAll(path);
@@ -126,10 +133,10 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  app.post<{ Params: { projectId: string }; Body: { message: string } }>(
+  app.post<{ Params: { projectId: string }; Body: { message: string; subrepo?: string } }>(
     '/api/projects/:projectId/git/commit',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, request.body.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
 
       try {
@@ -143,10 +150,10 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  app.post<{ Params: { projectId: string } }>(
+  app.post<{ Params: { projectId: string }; Body: { subrepo?: string } }>(
     '/api/projects/:projectId/git/push',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, (request.body as any)?.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
 
       try {
@@ -160,10 +167,10 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  app.post<{ Params: { projectId: string } }>(
+  app.post<{ Params: { projectId: string }; Body: { subrepo?: string } }>(
     '/api/projects/:projectId/git/pull',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, (request.body as any)?.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
 
       try {
@@ -177,10 +184,10 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  app.get<{ Params: { projectId: string } }>(
+  app.get<{ Params: { projectId: string }; Querystring: { subrepo?: string } }>(
     '/api/projects/:projectId/git/log',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, request.query.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
 
       try {
@@ -192,10 +199,10 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  app.get<{ Params: { projectId: string } }>(
+  app.get<{ Params: { projectId: string }; Querystring: { subrepo?: string } }>(
     '/api/projects/:projectId/git/branches',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, request.query.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
 
       try {
@@ -207,10 +214,10 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  app.post<{ Params: { projectId: string }; Body: { branch: string } }>(
+  app.post<{ Params: { projectId: string }; Body: { branch: string; subrepo?: string } }>(
     '/api/projects/:projectId/git/checkout',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, request.body.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
 
       const { branch } = request.body;
@@ -229,10 +236,10 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  app.post<{ Params: { projectId: string }; Body: { file: string; type: 'staged' | 'unstaged' | 'untracked' } }>(
+  app.post<{ Params: { projectId: string }; Body: { file: string; type: 'staged' | 'unstaged' | 'untracked'; subrepo?: string } }>(
     '/api/projects/:projectId/git/discard',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, request.body.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
       try {
         await gitService.discardFile(path, request.body.file, request.body.type);
@@ -243,10 +250,10 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  app.post<{ Params: { projectId: string }; Body: { section: 'staged' | 'unstaged' } }>(
+  app.post<{ Params: { projectId: string }; Body: { section: 'staged' | 'unstaged'; subrepo?: string } }>(
     '/api/projects/:projectId/git/discard-all',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, request.body.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
       try {
         await gitService.discardAll(path, request.body.section);
@@ -257,10 +264,10 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  app.post<{ Params: { projectId: string } }>(
+  app.post<{ Params: { projectId: string }; Body: { subrepo?: string } }>(
     '/api/projects/:projectId/git/undo-commit',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, (request.body as any)?.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
 
       try {
@@ -273,10 +280,10 @@ export async function gitRoutes(app: FastifyInstance) {
   );
 
   // Generate commit message via CLI (priority) or configured API key (fallback)
-  app.post<{ Params: { projectId: string } }>(
+  app.post<{ Params: { projectId: string }; Body: { subrepo?: string } }>(
     '/api/projects/:projectId/git/generate-commit-message',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, (request.body as any)?.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
 
       // Hard deadline for the entire handler — prevents infinite waits
@@ -352,10 +359,10 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
-  app.get<{ Params: { projectId: string } }>(
+  app.get<{ Params: { projectId: string }; Querystring: { subrepo?: string } }>(
     '/api/projects/:projectId/git/main-commit',
     async (request, reply) => {
-      const path = await getProjectPath(request.params.projectId);
+      const path = await getProjectPath(request.params.projectId, request.query.subrepo);
       if (!path) return reply.status(404).send({ error: 'Project not found' });
 
       try {

@@ -21,17 +21,18 @@ interface FileChangeProps {
   file: string
   status: string
   staged: boolean
+  subrepo?: string
   onOpenInEditor?: (path: string, name: string, extension: string) => void
 }
 
-export function FileChange({ projectId, file, status, staged, onOpenInEditor }: FileChangeProps) {
+export function FileChange({ projectId, file, status, staged, subrepo, onOpenInEditor }: FileChangeProps) {
   const [showDiff, setShowDiff] = useState(false)
   const [expandDiff, setExpandDiff] = useState(false)
   const [previewPath, setPreviewPath] = useState<string | null>(null)
   const stageFile = useStageFile()
   const unstageFile = useUnstageFile()
   const discardFile = useDiscardFile()
-  const { data: diffData } = useGitDiff(showDiff ? projectId : undefined, file, staged)
+  const { data: diffData } = useGitDiff(showDiff ? projectId : undefined, file, staged, subrepo)
 
   const statusColors: Record<string, string> = {
     M: 'text-yellow-500',
@@ -87,7 +88,7 @@ export function FileChange({ projectId, file, status, staged, onOpenInEditor }: 
             variant="ghost"
             size="icon"
             className="h-6 w-6 shrink-0"
-            onClick={() => unstageFile.mutate({ projectId, file })}
+            onClick={() => unstageFile.mutate({ projectId, file, subrepo })}
             title="Unstage"
           >
             <Minus className="h-3 w-3" />
@@ -97,7 +98,7 @@ export function FileChange({ projectId, file, status, staged, onOpenInEditor }: 
             variant="ghost"
             size="icon"
             className="h-6 w-6 shrink-0"
-            onClick={() => stageFile.mutate({ projectId, file })}
+            onClick={() => stageFile.mutate({ projectId, file, subrepo })}
             title="Stage"
           >
             <Plus className="h-3 w-3" />
@@ -111,7 +112,7 @@ export function FileChange({ projectId, file, status, staged, onOpenInEditor }: 
           onClick={() => {
             const type = staged ? 'staged' : status === '?' ? 'untracked' : 'unstaged'
             if (type === 'untracked' && !window.confirm(`Delete untracked file "${file}"?\nThis cannot be undone.`)) return
-            discardFile.mutate({ projectId, file, type })
+            discardFile.mutate({ projectId, file, type, subrepo })
           }}
         >
           <Trash2 className="h-3 w-3" />

@@ -186,8 +186,8 @@ export function Workspace() {
         <div className="w-64 lg:w-72 xl:w-80 2xl:w-[22rem] border-l overflow-y-auto p-4 space-y-6 shrink-0 bg-card/50 scrollbar-dark">
           <TerminalLauncher projectId={project.id} projectPath={project.path} projectName={project.name} />
           <FileExplorer projectId={project.id} projectPath={project.path} onOpenInEditor={handleOpenInEditor} />
-          {project.isGitRepo && (
-            <GitPanel projectId={project.id} onOpenInEditor={handleOpenInEditor} />
+          {(project.isGitRepo || (project.subRepos && project.subRepos.length > 0)) && (
+            <GitPanel projectId={project.id} subRepos={project.subRepos} isGitRepo={project.isGitRepo} onOpenInEditor={handleOpenInEditor} />
           )}
         </div>
       </div>

@@ -20,6 +20,7 @@ export interface Project {
   externalLink?: string;
   notes?: string;
   links?: { label: string; url: string }[];
+  subRepos?: string[];   // Relative paths to sub-directories that are git repos (e.g. ['client', 'server'])
 }
 
 export interface Subtask {

@@ -10,9 +10,10 @@ import { playAiCompleteSound } from '@/lib/sounds'
 interface CommitFormProps {
   projectId: string
   hasStagedChanges: boolean
+  subrepo?: string
 }
 
-export function CommitForm({ projectId, hasStagedChanges }: CommitFormProps) {
+export function CommitForm({ projectId, hasStagedChanges, subrepo }: CommitFormProps) {
   const [message, setMessage] = useState('')
   const gitCommit = useGitCommit()
   const gitPush = useGitPush()
@@ -23,7 +24,7 @@ export function CommitForm({ projectId, hasStagedChanges }: CommitFormProps) {
   const isBusy = gitCommit.isPending || gitPush.isPending
 
   const handleGenerate = () => {
-    generateMsg.mutate(projectId, {
+    generateMsg.mutate({ projectId, subrepo }, {
       onSuccess: (data) => {
         setMessage(data.message)
         playAiCompleteSound()
@@ -37,7 +38,7 @@ export function CommitForm({ projectId, hasStagedChanges }: CommitFormProps) {
   const handleCommit = () => {
     if (!message.trim()) return
     gitCommit.mutate(
-      { projectId, message },
+      { projectId, message, subrepo },
       {
         onSuccess: () => {
           toast.success('Committed successfully')
@@ -51,11 +52,11 @@ export function CommitForm({ projectId, hasStagedChanges }: CommitFormProps) {
   const handleCommitAndPush = () => {
     if (!message.trim()) return
     gitCommit.mutate(
-      { projectId, message },
+      { projectId, message, subrepo },
       {
         onSuccess: () => {
           setMessage('')
-          gitPush.mutate(projectId, {
+          gitPush.mutate({ projectId, subrepo }, {
             onSuccess: () => toast.success('Committed and pushed'),
             onError: (err) => toast.error(`Push failed: ${err.message}`),
           })

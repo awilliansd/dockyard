@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { GitBranch, RefreshCw, Upload, Download, ChevronDown, ChevronRight, GitCommit, ArrowUp, ArrowDown, Trash2, Undo2, Loader2, Check } from 'lucide-react'
+import { GitBranch, RefreshCw, Upload, Download, ChevronDown, ChevronRight, GitCommit, ArrowUp, ArrowDown, Trash2, Undo2, Loader2, Check, FolderGit2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,14 +12,16 @@ import { cn } from '@/lib/utils'
 
 interface GitPanelProps {
   projectId: string
+  subRepos?: string[]
+  isGitRepo?: boolean
   onOpenInEditor?: (path: string, name: string, extension: string) => void
 }
 
-export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
-  const { data: status, isLoading, isFetching, refetch } = useGitStatus(projectId)
-  const { data: logData } = useGitLog(projectId)
-  const { data: mainCommitData } = useGitMainCommit(projectId, status?.current)
-  const { data: branchData } = useGitBranches(projectId)
+function SingleRepoPanel({ projectId, subrepo, onOpenInEditor }: { projectId: string; subrepo?: string; onOpenInEditor?: (path: string, name: string, extension: string) => void }) {
+  const { data: status, isLoading, isFetching, refetch } = useGitStatus(projectId, subrepo)
+  const { data: logData } = useGitLog(projectId, subrepo)
+  const { data: mainCommitData } = useGitMainCommit(projectId, status?.current, subrepo)
+  const { data: branchData } = useGitBranches(projectId, subrepo)
   const checkoutBranch = useCheckoutBranch()
   const [branchOpen, setBranchOpen] = useState(false)
   const stageAll = useStageAll()
@@ -44,7 +46,6 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
   const deleted = status.deleted || []
   const created = status.created || []
 
-  // Use status.files for accurate staged status (A/M/D/R instead of always 'M')
   const stagedFiles = (status.files || [])
     .filter((f: any) => f.index && f.index !== ' ' && f.index !== '?')
     .map((f: any) => ({ file: f.path, status: f.index as string }))
@@ -75,7 +76,7 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
             size="icon"
             className="h-7 w-7"
             disabled={gitPull.isPending || gitPush.isPending}
-            onClick={() => gitPull.mutate(projectId, {
+            onClick={() => gitPull.mutate({ projectId, subrepo }, {
               onSuccess: () => toast.success('Pulled'),
               onError: (err) => toast.error(`Pull failed: ${err.message}`),
             })}
@@ -88,7 +89,7 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
             size="icon"
             className="h-7 w-7"
             disabled={gitPush.isPending || gitPull.isPending}
-            onClick={() => gitPush.mutate(projectId, {
+            onClick={() => gitPush.mutate({ projectId, subrepo }, {
               onSuccess: () => toast.success('Pushed'),
               onError: (err) => toast.error(`Push failed: ${err.message}`),
             })}
@@ -122,7 +123,7 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
                     )}
                     disabled={branch === status.current || checkoutBranch.isPending}
                     onClick={() => {
-                      checkoutBranch.mutate({ projectId, branch }, {
+                      checkoutBranch.mutate({ projectId, branch, subrepo }, {
                         onSuccess: () => { setBranchOpen(false); toast.success(`Switched to ${branch}`) },
                         onError: (err) => toast.error(`Checkout failed: ${err.message}`),
                       })
@@ -155,7 +156,7 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
         )}
       </div>
 
-      {/* Main branch info — only show when current branch is behind main */}
+      {/* Main branch info */}
       {mainCommitData?.commit && !mainCommitData.commit.isMerged && status?.current && status.current !== 'main' && status.current !== 'master' && (
         <div className="rounded border border-dashed border-muted-foreground/20 p-2 space-y-1">
           <div className="flex items-center gap-1.5">
@@ -191,7 +192,7 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
                 <span className="text-[10px] text-red-400">Discard all?</span>
                 <Button variant="ghost" size="sm" className="h-5 text-[9px] text-red-400 hover:text-red-300 px-1.5 gap-1"
                   disabled={discardAll.isPending}
-                  onClick={() => discardAll.mutate({ projectId, section: 'staged' }, {
+                  onClick={() => discardAll.mutate({ projectId, section: 'staged', subrepo }, {
                     onSuccess: () => { setConfirmDiscard(null); toast.success('Staged changes discarded') },
                     onError: (err) => { setConfirmDiscard(null); toast.error(err.message) },
                   })}>
@@ -203,7 +204,7 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
               </div>
             ) : (
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="sm" className="h-6 text-[10px] gap-1" disabled={unstageAll.isPending} onClick={() => unstageAll.mutate(projectId)}>
+                <Button variant="ghost" size="sm" className="h-6 text-[10px] gap-1" disabled={unstageAll.isPending} onClick={() => unstageAll.mutate({ projectId, subrepo })}>
                   {unstageAll.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
                   Unstage All
                 </Button>
@@ -217,7 +218,7 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
           {stagedOpen && (
             <div className="space-y-1">
               {stagedFiles.map(({ file, status: s }: { file: string; status: string }) => (
-                <FileChange key={`staged-${file}`} projectId={projectId} file={file} status={s} staged onOpenInEditor={onOpenInEditor} />
+                <FileChange key={`staged-${file}`} projectId={projectId} file={file} status={s} staged subrepo={subrepo} onOpenInEditor={onOpenInEditor} />
               ))}
             </div>
           )}
@@ -240,7 +241,7 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
                 <span className="text-[10px] text-red-400">Discard all?</span>
                 <Button variant="ghost" size="sm" className="h-5 text-[9px] text-red-400 hover:text-red-300 px-1.5 gap-1"
                   disabled={discardAll.isPending}
-                  onClick={() => discardAll.mutate({ projectId, section: 'unstaged' }, {
+                  onClick={() => discardAll.mutate({ projectId, section: 'unstaged', subrepo }, {
                     onSuccess: () => { setConfirmDiscard(null); toast.success('Changes discarded') },
                     onError: (err) => { setConfirmDiscard(null); toast.error(err.message) },
                   })}>
@@ -252,7 +253,7 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
               </div>
             ) : (
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="sm" className="h-6 text-[10px] gap-1" disabled={stageAll.isPending} onClick={() => stageAll.mutate(projectId)}>
+                <Button variant="ghost" size="sm" className="h-6 text-[10px] gap-1" disabled={stageAll.isPending} onClick={() => stageAll.mutate({ projectId, subrepo })}>
                   {stageAll.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
                   Stage All
                 </Button>
@@ -266,7 +267,7 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
           {unstagedOpen && (
             <div className="space-y-1">
               {unstagedFiles.map(({ file, status: s }) => (
-                <FileChange key={`unstaged-${file}`} projectId={projectId} file={file} status={s} staged={false} onOpenInEditor={onOpenInEditor} />
+                <FileChange key={`unstaged-${file}`} projectId={projectId} file={file} status={s} staged={false} subrepo={subrepo} onOpenInEditor={onOpenInEditor} />
               ))}
             </div>
           )}
@@ -280,7 +281,7 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
       )}
 
       {/* Commit form */}
-      <CommitForm key={projectId} projectId={projectId} hasStagedChanges={hasStagedChanges} />
+      <CommitForm key={`${projectId}-${subrepo || ''}`} projectId={projectId} hasStagedChanges={hasStagedChanges} subrepo={subrepo} />
 
       {/* Recent commits */}
       {commits.length > 0 && (
@@ -292,7 +293,7 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
                 <span className="text-[10px] text-orange-400">Undo commit?</span>
                 <Button variant="ghost" size="sm" className="h-5 text-[9px] text-orange-400 hover:text-orange-300 px-1.5 gap-1"
                   disabled={undoCommit.isPending}
-                  onClick={() => undoCommit.mutate(projectId, {
+                  onClick={() => undoCommit.mutate({ projectId, subrepo }, {
                     onSuccess: () => { setConfirmUndo(false); toast.success('Commit undone — changes are back in staging') },
                     onError: (err) => { setConfirmUndo(false); toast.error(err.message) },
                   })}>
@@ -347,6 +348,59 @@ export function GitPanel({ projectId, onOpenInEditor }: GitPanelProps) {
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+export function GitPanel({ projectId, subRepos, isGitRepo, onOpenInEditor }: GitPanelProps) {
+  const hasSubRepos = subRepos && subRepos.length > 0
+
+  // Build list of repo tabs
+  const repoTabs: { key: string | undefined; label: string }[] = []
+  if (isGitRepo) {
+    repoTabs.push({ key: undefined, label: 'root' })
+  }
+  if (hasSubRepos) {
+    for (const sr of subRepos) {
+      repoTabs.push({ key: sr, label: sr })
+    }
+  }
+
+  const [activeRepo, setActiveRepo] = useState<string | undefined>(repoTabs[0]?.key)
+
+  // If only one repo (root or single sub-repo), render directly without tabs
+  if (repoTabs.length <= 1) {
+    return <SingleRepoPanel projectId={projectId} subrepo={repoTabs[0]?.key} onOpenInEditor={onOpenInEditor} />
+  }
+
+  return (
+    <div className="space-y-2">
+      {/* Sub-repo tabs */}
+      <div className="flex items-center gap-1 overflow-x-auto pb-1">
+        <FolderGit2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        {repoTabs.map(tab => (
+          <button
+            key={tab.key ?? '__root__'}
+            className={cn(
+              'px-2 py-1 text-[10px] font-medium rounded-md border transition-colors whitespace-nowrap',
+              activeRepo === tab.key
+                ? 'bg-accent border-accent-foreground/20 text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/50'
+            )}
+            onClick={() => setActiveRepo(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Active repo panel */}
+      <SingleRepoPanel
+        key={activeRepo ?? '__root__'}
+        projectId={projectId}
+        subrepo={activeRepo}
+        onOpenInEditor={onOpenInEditor}
+      />
     </div>
   )
 }

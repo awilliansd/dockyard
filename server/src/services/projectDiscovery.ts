@@ -107,14 +107,36 @@ async function detectTechStack(projectPath: string): Promise<string[]> {
   return [...stack];
 }
 
+async function detectSubRepos(projectPath: string): Promise<string[]> {
+  const subRepos: string[] = [];
+  try {
+    const entries = await readdir(projectPath);
+    for (const entry of entries) {
+      if (IGNORE_DIRS.has(entry) || entry.startsWith('.')) continue;
+      const fullPath = join(projectPath, entry);
+      if (!(await isDirectory(fullPath))) continue;
+      if (await fileExists(join(fullPath, '.git'))) {
+        subRepos.push(entry);
+      }
+    }
+  } catch {}
+  return subRepos;
+}
+
 async function detectGitInfo(projectPath: string): Promise<{
   isGitRepo: boolean; gitBranch?: string; gitDirty?: boolean;
   gitAhead?: number; gitBehind?: number;
   gitStaged?: number; gitUnstaged?: number; gitUntracked?: number;
   lastCommitDate?: string; lastCommitMessage?: string; gitRemoteUrl?: string;
+  subRepos?: string[];
 }> {
   const gitDir = join(projectPath, '.git');
   if (!(await fileExists(gitDir))) {
+    // Check for sub-repos (subdirectories with their own .git)
+    const subRepos = await detectSubRepos(projectPath);
+    if (subRepos.length > 0) {
+      return { isGitRepo: false, subRepos };
+    }
     return { isGitRepo: false };
   }
 
@@ -137,6 +159,9 @@ async function detectGitInfo(projectPath: string): Promise<{
       }
     } catch {}
 
+    // Also check for sub-repos (subdirectories with their own .git)
+    const subRepos = await detectSubRepos(projectPath);
+
     return {
       isGitRepo: true,
       gitBranch: branchSummary.current,
@@ -149,6 +174,7 @@ async function detectGitInfo(projectPath: string): Promise<{
       lastCommitDate: log?.latest?.date,
       lastCommitMessage: log?.latest?.message,
       gitRemoteUrl,
+      ...(subRepos.length > 0 ? { subRepos } : {}),
     };
   } catch {
     return { isGitRepo: true };
@@ -314,7 +340,7 @@ export async function getProjects(): Promise<Project[]> {
 export async function refreshGitStatus(): Promise<Project[]> {
   const updated = await Promise.all(
     projectsCache.map(async (p) => {
-      if (!p.isGitRepo) return p;
+      if (!p.isGitRepo && (!p.subRepos || p.subRepos.length === 0)) return p;
       try {
         const gitInfo = await detectGitInfo(p.path);
         return { ...p, ...gitInfo };

@@ -79,6 +79,7 @@ interface Project {
   gitBranch?: string;  gitAhead?: number;  gitBehind?: number;
   gitStaged?: number;  gitUnstaged?: number;  gitUntracked?: number;
   externalLink?: string;  lastOpenedAt?: string;
+  subRepos?: string[];   // Relative paths to sub-directories with their own .git
 }
 ```
 
@@ -87,7 +88,7 @@ interface Project {
 **Projetos**: GET /api/projects, PATCH /:id, POST scan/add/remove/refresh
 **Milestones**: GET/POST /:id/milestones, PUT/DELETE /:id/milestones/:mid
 **Tarefas**: GET /api/tasks/all, GET/POST /:id/tasks, PUT/DELETE /:id/tasks/:tid, POST /:id/tasks/reorder, POST /:id/tasks/replace
-**Git**: GET /:id/git/status|diff|log|branches, POST /:id/git/stage|stage-all|unstage|commit|push|pull|discard|discard-all
+**Git**: GET /:id/git/status|diff|log|branches, POST /:id/git/stage|stage-all|unstage|commit|push|pull|discard|discard-all (all accept optional `subrepo` param for multi-repo projects)
 **Files**: GET /:id/files/tree|content, PUT /:id/files/content, DELETE /:id/files, POST /:id/files/open-folder
 **Terminais**: POST /api/terminals/launch|folder (nativos), GET/POST/DELETE /api/terminal/sessions (integrado), WS /ws/terminal/:id
 **Claude AI**: GET /api/claude/status, POST config|config/test|chat(SSE)|analyze-task|summarize, DELETE config
@@ -115,6 +116,14 @@ Os timestamps sao cascading — etapas posteriores preenchem as anteriores autom
 - `done` → define `inboxAt` + `inProgressAt` + `doneAt`
 
 **NUNCA remova timestamps existentes** ao editar tarefas. Ao mover entre colunas, adicione o novo sem apagar anteriores. Formato: ISO 8601 (`new Date().toISOString()`). Implementado via `buildCascadingTimestamps()` em taskStore.ts.
+
+### Multi-repo Git (sub-repositorios)
+- Projeto pode conter sub-pastas com `.git` proprio (ex: `client/` e `server/` dentro de `Sistema01/`)
+- `detectSubRepos()` em projectDiscovery.ts escaneia 1 nivel de profundidade
+- `subRepos` armazena caminhos relativos dos sub-repos encontrados
+- Todas rotas git aceitam parametro opcional `subrepo` (query para GET, body para POST)
+- GitPanel mostra tabs para selecionar sub-repo quando ha mais de um
+- Query keys incluem `subrepo`: `['git-status', projectId, subrepo]`
 
 ### Cache e Invalidacao (react-query)
 - refetchInterval: 15s (tasks), 30s (projects), 5s (git status)

@@ -73,28 +73,28 @@ export const api = {
     request<{ ok: boolean; error?: string; data?: any }>('/sync/test', { method: 'POST', body: JSON.stringify({ url }) }),
 
   // Git
-  getGitStatus: (projectId: string) => request<any>(`/projects/${projectId}/git/status`),
-  getGitDiff: (projectId: string, file?: string, staged = false) => request<{ diff: string }>(`/projects/${projectId}/git/diff?${file ? `file=${encodeURIComponent(file)}&` : ''}staged=${staged}`),
-  stageFile: (projectId: string, file: string) => request(`/projects/${projectId}/git/stage`, { method: 'POST', body: JSON.stringify({ file }) }),
-  stageAll: (projectId: string) => request(`/projects/${projectId}/git/stage-all`, { method: 'POST' }),
-  unstageFile: (projectId: string, file: string) => request(`/projects/${projectId}/git/unstage`, { method: 'POST', body: JSON.stringify({ file }) }),
-  unstageAll: (projectId: string) => request(`/projects/${projectId}/git/unstage-all`, { method: 'POST' }),
-  gitCommit: (projectId: string, message: string) => request(`/projects/${projectId}/git/commit`, { method: 'POST', body: JSON.stringify({ message }) }),
-  gitPush: (projectId: string) => request(`/projects/${projectId}/git/push`, { method: 'POST' }),
-  gitPull: (projectId: string) => request(`/projects/${projectId}/git/pull`, { method: 'POST' }),
-  getGitLog: (projectId: string) => request<any>(`/projects/${projectId}/git/log`),
-  getGitBranches: (projectId: string) => request<any>(`/projects/${projectId}/git/branches`),
-  checkoutBranch: (projectId: string, branch: string) =>
-    request<{ success: boolean; branch: string }>(`/projects/${projectId}/git/checkout`, { method: 'POST', body: JSON.stringify({ branch }) }),
-  getGitMainCommit: (projectId: string) => request<{ commit: { hash: string; message: string; date: string; author_name: string; isMerged: boolean } | null }>(`/projects/${projectId}/git/main-commit`),
-  discardFile: (projectId: string, file: string, type: 'staged' | 'unstaged' | 'untracked') =>
-    request(`/projects/${projectId}/git/discard`, { method: 'POST', body: JSON.stringify({ file, type }) }),
-  discardAll: (projectId: string, section: 'staged' | 'unstaged') =>
-    request(`/projects/${projectId}/git/discard-all`, { method: 'POST', body: JSON.stringify({ section }) }),
-  undoCommit: (projectId: string) =>
-    request(`/projects/${projectId}/git/undo-commit`, { method: 'POST' }),
-  generateCommitMessage: (projectId: string) =>
-    request<{ message: string; source: 'cli' | 'api' }>(`/projects/${projectId}/git/generate-commit-message`, { method: 'POST', timeout: 70_000 }),
+  getGitStatus: (projectId: string, subrepo?: string) => request<any>(`/projects/${projectId}/git/status${subrepo ? `?subrepo=${encodeURIComponent(subrepo)}` : ''}`),
+  getGitDiff: (projectId: string, file?: string, staged = false, subrepo?: string) => request<{ diff: string }>(`/projects/${projectId}/git/diff?${file ? `file=${encodeURIComponent(file)}&` : ''}staged=${staged}${subrepo ? `&subrepo=${encodeURIComponent(subrepo)}` : ''}`),
+  stageFile: (projectId: string, file: string, subrepo?: string) => request(`/projects/${projectId}/git/stage`, { method: 'POST', body: JSON.stringify({ file, subrepo }) }),
+  stageAll: (projectId: string, subrepo?: string) => request(`/projects/${projectId}/git/stage-all`, { method: 'POST', body: JSON.stringify({ subrepo }) }),
+  unstageFile: (projectId: string, file: string, subrepo?: string) => request(`/projects/${projectId}/git/unstage`, { method: 'POST', body: JSON.stringify({ file, subrepo }) }),
+  unstageAll: (projectId: string, subrepo?: string) => request(`/projects/${projectId}/git/unstage-all`, { method: 'POST', body: JSON.stringify({ subrepo }) }),
+  gitCommit: (projectId: string, message: string, subrepo?: string) => request(`/projects/${projectId}/git/commit`, { method: 'POST', body: JSON.stringify({ message, subrepo }) }),
+  gitPush: (projectId: string, subrepo?: string) => request(`/projects/${projectId}/git/push`, { method: 'POST', body: JSON.stringify({ subrepo }) }),
+  gitPull: (projectId: string, subrepo?: string) => request(`/projects/${projectId}/git/pull`, { method: 'POST', body: JSON.stringify({ subrepo }) }),
+  getGitLog: (projectId: string, subrepo?: string) => request<any>(`/projects/${projectId}/git/log${subrepo ? `?subrepo=${encodeURIComponent(subrepo)}` : ''}`),
+  getGitBranches: (projectId: string, subrepo?: string) => request<any>(`/projects/${projectId}/git/branches${subrepo ? `?subrepo=${encodeURIComponent(subrepo)}` : ''}`),
+  checkoutBranch: (projectId: string, branch: string, subrepo?: string) =>
+    request<{ success: boolean; branch: string }>(`/projects/${projectId}/git/checkout`, { method: 'POST', body: JSON.stringify({ branch, subrepo }) }),
+  getGitMainCommit: (projectId: string, subrepo?: string) => request<{ commit: { hash: string; message: string; date: string; author_name: string; isMerged: boolean } | null }>(`/projects/${projectId}/git/main-commit${subrepo ? `?subrepo=${encodeURIComponent(subrepo)}` : ''}`),
+  discardFile: (projectId: string, file: string, type: 'staged' | 'unstaged' | 'untracked', subrepo?: string) =>
+    request(`/projects/${projectId}/git/discard`, { method: 'POST', body: JSON.stringify({ file, type, subrepo }) }),
+  discardAll: (projectId: string, section: 'staged' | 'unstaged', subrepo?: string) =>
+    request(`/projects/${projectId}/git/discard-all`, { method: 'POST', body: JSON.stringify({ section, subrepo }) }),
+  undoCommit: (projectId: string, subrepo?: string) =>
+    request(`/projects/${projectId}/git/undo-commit`, { method: 'POST', body: JSON.stringify({ subrepo }) }),
+  generateCommitMessage: (projectId: string, subrepo?: string) =>
+    request<{ message: string; source: 'cli' | 'api' }>(`/projects/${projectId}/git/generate-commit-message`, { method: 'POST', body: JSON.stringify({ subrepo }), timeout: 70_000 }),
 
   // Terminals (native launchers)
   launchTerminal: (projectId: string, type: string) => request('/terminals/launch', { method: 'POST', body: JSON.stringify({ projectId, type }) }),

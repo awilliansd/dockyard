@@ -23,6 +23,7 @@ export interface Project {
   externalLink?: string
   notes?: string
   links?: { label: string; url: string }[]
+  subRepos?: string[]
 }
 
 export function useProjects() {
