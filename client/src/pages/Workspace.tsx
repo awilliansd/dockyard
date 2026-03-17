@@ -20,7 +20,22 @@ export function Workspace() {
   const updateProject = useUpdateProject()
   const project = projects?.find(p => p.id === projectId)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [workspaceMode, setWorkspaceMode] = useState<'tasks' | 'editor'>('tasks')
+  const [workspaceMode, _setWorkspaceMode] = useState<'tasks' | 'editor'>(() => {
+    const saved = localStorage.getItem(`shipyard:workspace-mode:${projectId}`)
+    return saved === 'editor' ? 'editor' : 'tasks'
+  })
+
+  const setWorkspaceMode = useCallback((mode: 'tasks' | 'editor') => {
+    _setWorkspaceMode(mode)
+    if (projectId) localStorage.setItem(`shipyard:workspace-mode:${projectId}`, mode)
+  }, [projectId])
+
+  // Restore workspace mode when switching projects
+  useEffect(() => {
+    if (!projectId) return
+    const saved = localStorage.getItem(`shipyard:workspace-mode:${projectId}`)
+    _setWorkspaceMode(saved === 'editor' ? 'editor' : 'tasks')
+  }, [projectId])
   const { milestoneId, setMilestoneId } = useActiveMilestone(projectId || '')
 
   const editor = useEditorTabs(projectId || '')
