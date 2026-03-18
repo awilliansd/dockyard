@@ -1,6 +1,6 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
-import { keymap } from '@codemirror/view'
+import { keymap, EditorView } from '@codemirror/view'
 import { javascript } from '@codemirror/lang-javascript'
 import { css } from '@codemirror/lang-css'
 import { html } from '@codemirror/lang-html'
@@ -53,21 +53,36 @@ function getLanguageExtension(ext: string): Extension[] {
 }
 
 export function CodeMirrorEditor({ value, extension, onChange, onSave, readOnly }: CodeMirrorEditorProps) {
+  const [wordWrap, setWordWrap] = useState(false)
+
   const handleChange = useCallback((val: string) => {
     onChange(val)
   }, [onChange])
 
   const extensions = useMemo(() => {
     const lang = getLanguageExtension(extension)
-    const saveKeymap = keymap.of([{
-      key: 'Mod-s',
-      run: () => {
-        onSave()
-        return true
+    const keymaps = keymap.of([
+      {
+        key: 'Mod-s',
+        run: () => {
+          onSave()
+          return true
+        },
       },
-    }])
-    return [...lang, saveKeymap]
-  }, [extension, onSave])
+      {
+        key: 'Alt-z',
+        run: () => {
+          setWordWrap(prev => !prev)
+          return true
+        },
+      },
+    ])
+    const exts: Extension[] = [...lang, keymaps]
+    if (wordWrap) {
+      exts.push(EditorView.lineWrapping)
+    }
+    return exts
+  }, [extension, onSave, wordWrap])
 
   return (
     <CodeMirror
