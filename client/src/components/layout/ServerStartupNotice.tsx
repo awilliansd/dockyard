@@ -10,6 +10,12 @@ export function ServerStartupNotice() {
   const [status, setStatus] = useState<Status>('checking')
 
   useEffect(() => {
+    // Only show this notice inside the Electron app
+    if (!(window as any).electronAPI) {
+      setStatus('ready')
+      return
+    }
+
     let cancelled = false
     const slowTimer = setTimeout(() => {
       if (!cancelled) setStatus((prev) => (prev === 'ready' ? prev : 'slow'))

@@ -8,8 +8,21 @@ import http from 'http';
 
 const isDev = !app.isPackaged;
 
+const DEV_ROOT = (() => {
+  const candidates = [
+    resolve(__dirname, '..', '..'), // electron/dist -> repo root
+    resolve(__dirname, '..'),       // electron -> repo root
+  ];
+  for (const c of candidates) {
+    if (existsSync(join(c, 'package.json')) && existsSync(join(c, 'client')) && existsSync(join(c, 'server'))) {
+      return c;
+    }
+  }
+  return resolve(__dirname, '..');
+})();
+
 const ROOT_DIR = isDev
-  ? resolve(__dirname, '..')
+  ? DEV_ROOT
   : resolve(process.resourcesPath);
 
 const CLIENT_DIST = isDev
@@ -41,6 +54,7 @@ let serverProcess: ChildProcess | null = null;
 
 function startServer(): Promise<void> {
   return new Promise((res, reject) => {
+    lastServerErrorHint = null;
     const env: Record<string, string> = {
       ...process.env as Record<string, string>,
       SHIPYARD_ELECTRON: '1',
@@ -60,7 +74,12 @@ function startServer(): Promise<void> {
 
     if (isDev) {
       // In dev, use tsx to run TypeScript directly
-      const tsxBin = resolve(ROOT_DIR, 'node_modules', '.bin', 'tsx');
+      const tsxBin = resolve(
+        ROOT_DIR,
+        'node_modules',
+        '.bin',
+        process.platform === 'win32' ? 'tsx.cmd' : 'tsx'
+      );
       const { fork } = require('child_process');
       serverProcess = fork(SERVER_ENTRY, [], {
         env,
@@ -101,7 +120,11 @@ function startServer(): Promise<void> {
     });
 
     proc.stderr?.on('data', (data: Buffer) => {
-      console.error('[Server:err]', data.toString().trim());
+      const msg = data.toString();
+      console.error('[Server:err]', msg.trim());
+      if (isPortInUseError(msg)) {
+        lastServerErrorHint = msg.trim();
+      }
     });
 
     proc.on('error', (err) => {
@@ -123,6 +146,14 @@ function startServer(): Promise<void> {
         return;
       }
       if (!isQuitting) {
+        if (lastServerErrorHint) {
+          logElectron('[Electron] Server exited due to port conflict:', lastServerErrorHint);
+          dialog.showErrorBox(
+            'Shipyard - Port In Use',
+            `The Shipyard server could not start because the port is already in use.\n\nDetails:\n${lastServerErrorHint}\n\nClose other instances or free the port and try again.`
+          );
+          return;
+        }
         restartServerWithBackoff();
       }
     });
@@ -143,6 +174,8 @@ let tray: Tray | null = null;
 let isQuitting = false;
 let splashWindow: BrowserWindow | null = null;
 let restartInProgress = false;
+let restartTimestamps: number[] = [];
+let lastServerErrorHint: string | null = null;
 
 function delay(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
@@ -162,6 +195,11 @@ function logElectron(msg: string, err?: unknown) {
   console.log(msg, err ?? '');
 }
 
+function isPortInUseError(msg: string) {
+  const lower = msg.toLowerCase();
+  return lower.includes('eaddrinuse') || lower.includes('already in use') || (lower.includes('port') && lower.includes('in use'));
+}
+
 function getTargetUrl() {
   if (isDev && process.env.VITE_DEV_SERVER) {
     return process.env.VITE_DEV_SERVER;
@@ -172,6 +210,19 @@ function getTargetUrl() {
 async function restartServerWithBackoff() {
   if (restartInProgress || isQuitting) return;
   restartInProgress = true;
+
+  const now = Date.now();
+  restartTimestamps = restartTimestamps.filter((t) => now - t < 30000);
+  restartTimestamps.push(now);
+  if (restartTimestamps.length > 3) {
+    logElectron('[Electron] Server keeps crashing. Aborting auto-restart.');
+    dialog.showErrorBox(
+      'Shipyard - Server Failure',
+      `The server crashed multiple times during startup.\n\nCheck logs at:\n${getElectronLogPath()}`
+    );
+    restartInProgress = false;
+    return;
+  }
 
   const backoffMs = 1500;
   logElectron(`[Electron] Server exited. Restarting in ${backoffMs}ms...`);
