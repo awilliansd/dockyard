@@ -1,7 +1,8 @@
 import { app, BrowserWindow, Tray, Menu, nativeImage, shell, dialog, MenuItemConstructorOptions } from 'electron';
 import { join, resolve } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, appendFileSync, readFileSync } from 'fs';
 import { spawn, type ChildProcess } from 'child_process';
+import http from 'http';
 
 // ── Paths ──────────────────────────────────────────────────────────
 
@@ -119,6 +120,10 @@ function startServer(): Promise<void> {
         started = true;
         clearTimeout(timeout);
         reject(new Error(`Server exited with code ${code}`));
+        return;
+      }
+      if (!isQuitting) {
+        restartServerWithBackoff();
       }
     });
   });
@@ -136,6 +141,243 @@ function stopServer() {
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
+let splashWindow: BrowserWindow | null = null;
+let restartInProgress = false;
+
+function delay(ms: number) {
+  return new Promise((res) => setTimeout(res, ms));
+}
+
+function getElectronLogPath() {
+  return join(app.getPath('userData'), 'electron.log');
+}
+
+function logElectron(msg: string, err?: unknown) {
+  const line = `[${new Date().toISOString()}] ${msg}${err ? ` | ${String(err)}` : ''}\n`;
+  try {
+    appendFileSync(getElectronLogPath(), line, 'utf-8');
+  } catch {
+    // best-effort logging only
+  }
+  console.log(msg, err ?? '');
+}
+
+function getTargetUrl() {
+  if (isDev && process.env.VITE_DEV_SERVER) {
+    return process.env.VITE_DEV_SERVER;
+  }
+  return `http://127.0.0.1:${PORT}`;
+}
+
+async function restartServerWithBackoff() {
+  if (restartInProgress || isQuitting) return;
+  restartInProgress = true;
+
+  const backoffMs = 1500;
+  logElectron(`[Electron] Server exited. Restarting in ${backoffMs}ms...`);
+  await delay(backoffMs);
+
+  try {
+    await startServer();
+    const targetUrl = getTargetUrl();
+    try {
+      await waitForServerReady(targetUrl, 12000, 400);
+    } catch (err) {
+      logElectron('[Electron] Server readiness check failed after restart:', err);
+    }
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.reload();
+      mainWindow.show();
+    }
+  } catch (err) {
+    logElectron('[Electron] Server restart failed:', err);
+  } finally {
+    restartInProgress = false;
+  }
+}
+
+async function waitForServerReady(url: string, timeoutMs = 15000, intervalMs = 300): Promise<void> {
+  const start = Date.now();
+  const urlObj = new URL(url);
+
+  logElectron(`[Electron] Waiting for server at ${url} (timeout ${timeoutMs}ms)`);
+  while (Date.now() - start < timeoutMs) {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const req = http.get(
+          {
+            hostname: urlObj.hostname,
+            port: urlObj.port,
+            path: '/',
+            timeout: 1500,
+          },
+          (res) => {
+            res.resume();
+            resolve();
+          }
+        );
+        req.on('error', reject);
+        req.on('timeout', () => {
+          req.destroy(new Error('timeout'));
+        });
+      });
+      return;
+    } catch {
+      await delay(intervalMs);
+    }
+  }
+
+  throw new Error(`Server did not respond within ${timeoutMs}ms`);
+}
+
+function createSplashWindow() {
+  if (splashWindow) return;
+
+  let logoDataUrl = '';
+  try {
+    if (existsSync(ICON_PATH)) {
+      const buf = readFileSync(ICON_PATH);
+      logoDataUrl = `data:image/png;base64,${buf.toString('base64')}`;
+    }
+  } catch {
+    // ignore logo load failures
+  }
+
+  splashWindow = new BrowserWindow({
+    width: 520,
+    height: 320,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    frame: false,
+    show: true,
+    backgroundColor: '#0b0b0f',
+    alwaysOnTop: true,
+    transparent: false,
+    webPreferences: {
+      sandbox: true,
+      contextIsolation: true,
+    },
+  });
+
+  const logoMarkup = logoDataUrl
+    ? `<img src="${logoDataUrl}" alt="Shipyard" style="width:64px;height:64px;margin:0 auto 8px;display:block;filter: drop-shadow(0 6px 18px rgba(0,0,0,0.5));" />`
+    : '';
+
+  const html = `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Shipyard</title>
+        <style>
+          :root { color-scheme: dark; }
+          body {
+            margin: 0;
+            background: radial-gradient(120% 120% at 20% 10%, #1a1a22 0%, #0b0b0f 55%, #08080c 100%);
+            color: #e5e7eb;
+            font-family: "Segoe UI", system-ui, sans-serif;
+            display: grid;
+            place-items: center;
+            height: 100vh;
+          }
+          .card {
+            text-align: center;
+            padding: 24px 28px;
+            border: 1px solid #1f1f2a;
+            border-radius: 14px;
+            background: rgba(12, 12, 18, 0.8);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+          }
+          .logo {
+            font-size: 20px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+          .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #2a2a36;
+            border-top-color: #7dd3fc;
+            border-radius: 50%;
+            margin: 16px auto 4px;
+            animation: spin 0.9s linear infinite;
+          }
+          .sub {
+            font-size: 12px;
+            color: #94a3b8;
+          }
+          @keyframes spin { to { transform: rotate(360deg); } }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          ${logoMarkup}
+          <div class="logo">Shipyard</div>
+          <div class="spinner"></div>
+          <div class="sub">Carregando...</div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  splashWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+  splashWindow.on('closed', () => {
+    splashWindow = null;
+  });
+}
+
+function closeSplashWindow() {
+  if (splashWindow) {
+    splashWindow.close();
+    splashWindow = null;
+  }
+}
+
+function loadWindowWithRetry(win: BrowserWindow, url: string) {
+  let shown = false;
+  let retries = 0;
+  const maxRetries = 12;
+
+  const showOnce = () => {
+    if (shown) return;
+    shown = true;
+    win.show();
+    if (isDev) {
+      win.webContents.openDevTools({ mode: 'detach' });
+    }
+    closeSplashWindow();
+  };
+
+  const tryLoad = () => {
+    win.loadURL(url).catch((err) => {
+      console.warn('[Electron] loadURL failed:', err);
+    });
+  };
+
+  win.webContents.on('did-fail-load', (_e, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    if (!isMainFrame) return;
+    if (validatedURL !== url) return;
+    // Ignore ERR_ABORTED (navigation cancelled)
+    if (errorCode === -3) return;
+
+    if (retries < maxRetries) {
+      const delayMs = Math.min(2000, 200 + retries * 200);
+      retries += 1;
+      logElectron(`[Electron] Load failed (${errorDescription}). Retrying in ${delayMs}ms...`);
+      setTimeout(tryLoad, delayMs);
+    } else {
+      logElectron('[Electron] Load failed too many times, showing window anyway.');
+      showOnce();
+    }
+  });
+
+  win.webContents.once('did-finish-load', () => {
+    showOnce();
+  });
+
+  tryLoad();
+}
 
 function createAppMenu() {
   const isMac = process.platform === 'darwin';
@@ -255,7 +497,7 @@ function createAppMenu() {
   Menu.setApplicationMenu(menu);
 }
 
-function createWindow() {
+function createWindow(targetUrl: string) {
   createAppMenu();
 
   mainWindow = new BrowserWindow({
@@ -275,19 +517,7 @@ function createWindow() {
     },
   });
 
-  // In dev mode with Vite, load from dev server; otherwise from Fastify
-  if (isDev && process.env.VITE_DEV_SERVER) {
-    mainWindow.loadURL(process.env.VITE_DEV_SERVER);
-  } else {
-    mainWindow.loadURL(`http://127.0.0.1:${PORT}`);
-  }
-
-  mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
-    if (isDev) {
-      mainWindow?.webContents.openDevTools({ mode: 'detach' });
-    }
-  });
+  loadWindowWithRetry(mainWindow, targetUrl);
 
   // Open external links in default browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -365,11 +595,20 @@ if (!gotTheLock) {
 
   app.whenReady().then(async () => {
     try {
+      createSplashWindow();
       await startServer();
-      createWindow();
+      const targetUrl = getTargetUrl();
+      if (!isDev || !process.env.VITE_DEV_SERVER) {
+        try {
+          await waitForServerReady(targetUrl);
+        } catch (err) {
+          logElectron('[Electron] Server readiness check failed, will rely on load retries:', err);
+        }
+      }
+      createWindow(targetUrl);
       createTray();
     } catch (err) {
-      console.error('[Electron] Failed to start:', err);
+      logElectron('[Electron] Failed to start:', err);
       dialog.showErrorBox(
         'Shipyard - Failed to Start',
         `Could not start the server.\n\n${err instanceof Error ? err.message : String(err)}`
@@ -384,7 +623,7 @@ if (!gotTheLock) {
 
   app.on('activate', () => {
     if (mainWindow === null) {
-      createWindow();
+      createWindow(getTargetUrl());
     } else {
       mainWindow.show();
     }

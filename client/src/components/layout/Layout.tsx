@@ -6,6 +6,7 @@ import { GlobalSearch } from './GlobalSearch'
 import { FileContentSearch } from './FileContentSearch'
 import { TabsProvider } from '@/hooks/useTabs'
 import { TerminalPanel } from '@/components/terminals/TerminalPanel'
+import { ServerStartupNotice } from './ServerStartupNotice'
 
 const SIDEBAR_KEY = 'shipyard-sidebar-collapsed'
 
@@ -32,6 +33,7 @@ export function Layout() {
           <TerminalPanel />
         </main>
       </div>
+      <ServerStartupNotice />
       <GlobalSearch />
       <FileContentSearch />
     </TabsProvider>
