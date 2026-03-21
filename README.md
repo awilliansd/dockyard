@@ -1,3 +1,10 @@
+> [!IMPORTANT]
+> **Active Fork Notice:** This repository is a fork of the original [Shipyard](https://github.com/defremont/Shipyard) by **defremont**. 
+> It is maintained by **awilliansd** to include new features, bug fixes, and improvements that are not present in the upstream version.
+
+---
+
+
 <p align="center">
   <img src="assets/icon.png" width="120" height="120" alt="Shipyard" />
 </p>
