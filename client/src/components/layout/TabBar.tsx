@@ -25,11 +25,18 @@ function ProjectTab({ tabId, project, isActive, onSwitch, onClose }: {
   return (
     <div
       className={cn(
-        'flex items-center gap-1 pl-3 pr-1 h-8 rounded-t-md transition-colors shrink-0 group max-w-[200px]',
+        'flex items-center gap-1 pl-3 pr-1 h-8 rounded-t-md transition-colors shrink-0 group max-w-[200px] user-select-none',
         isActive
           ? 'bg-background border border-b-0 text-foreground'
           : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
       )}
+      onMouseUp={(e) => {
+        if (e.button === 1) {
+          e.preventDefault()
+          e.stopPropagation()
+          onClose()
+        }
+      }}
     >
       <button
         className="text-xs truncate font-medium"

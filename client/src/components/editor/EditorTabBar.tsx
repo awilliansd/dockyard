@@ -19,13 +19,20 @@ export function EditorTabBar({ tabs, activeTabPath, onSelectTab, onCloseTab }: E
         <div
           key={tab.path}
           className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 text-xs border-r cursor-pointer group min-w-0 max-w-[180px]',
+            'flex items-center gap-1.5 px-3 py-1.5 text-xs border-r cursor-pointer group min-w-0 max-w-[180px] user-select-none',
             'hover:bg-accent/50 transition-colors',
             tab.path === activeTabPath
               ? 'bg-background text-foreground border-b-2 border-b-blue-500'
               : 'text-muted-foreground'
           )}
           onClick={() => onSelectTab(tab.path)}
+          onMouseUp={(e) => {
+            if (e.button === 1) {
+              e.preventDefault()
+              e.stopPropagation()
+              onCloseTab(tab.path)
+            }
+          }}
         >
           <FileIcon
             name={tab.name}
