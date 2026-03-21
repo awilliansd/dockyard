@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, RefreshCw, Settings, ClipboardList, PanelLeftClose, PanelLeft,
-  ArrowUp, ArrowDown, FileEdit, Search, ChevronRight, Loader, GitBranch, ScrollText
+  ArrowUp, ArrowDown, FileEdit, Search, ChevronRight, Loader, GitBranch, ScrollText, HelpCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -384,6 +384,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
+              <Link to="/help">
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right">Help</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Link to="/settings">
                 <Button variant="ghost" size="icon" className="h-7 w-7">
                   <Settings className="h-3.5 w-3.5 text-muted-foreground" />
@@ -565,6 +575,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 </Link>
               </TooltipTrigger>
               <TooltipContent side="top">Logs</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to="/help">
+                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                    <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="top">Help</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
