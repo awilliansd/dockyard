@@ -162,13 +162,14 @@ function SectionHeader({ label, count, isOpen, onToggle }: {
 interface SidebarProps {
   collapsed: boolean
   onToggle: () => void
+  width?: number
 }
 
 function openGlobalSearch() {
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, width }: SidebarProps) {
   const location = useLocation()
   const { data: projects } = useProjects()
   const { data: tasks } = useAllTasks()
@@ -335,7 +336,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   // --- Expanded ---
   return (
-    <aside className="w-52 border-r bg-card/30 flex flex-col h-screen shrink-0">
+    <aside
+      className="border-r bg-card/30 flex flex-col h-screen shrink-0"
+      style={width ? { width } : undefined}
+    >
       {/* Header */}
       <div className="h-9 px-3 flex items-center justify-between shrink-0">
         <Link to="/" className="flex items-center gap-1.5 text-[13px] font-semibold text-foreground/80 hover:text-foreground transition-colors">

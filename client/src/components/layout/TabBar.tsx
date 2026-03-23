@@ -91,7 +91,7 @@ export function TabBar() {
   }, [navigate])
 
   return (
-    <div className="h-9 bg-muted/30 border-b flex items-end px-1 gap-0.5 shrink-0 overflow-x-auto scrollbar-dark">
+    <div className="h-9 bg-card/60 border-b border-border/80 flex items-end px-1 gap-0.5 shrink-0 overflow-x-auto scrollbar-dark">
       <div className="flex-1 flex items-end gap-0.5 min-w-0">
         {/* Home tab */}
         <button
