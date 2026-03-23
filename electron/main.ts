@@ -223,6 +223,17 @@ function createWindow() {
     return { action: 'deny' };
   });
 
+  // Intercept in-page navigation (e.g. clicking <a href="..."> without target="_blank")
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    // Allow same-origin navigation (e.g. React Router, hash changes)
+    const currentURL = mainWindow?.webContents.getURL() || '';
+    const isSameOrigin = new URL(url).origin === new URL(currentURL).origin;
+    if (!isSameOrigin && url.startsWith('http')) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
+  });
+
   // Minimize to tray instead of closing
   mainWindow.on('close', (e) => {
     if (!isQuitting) {

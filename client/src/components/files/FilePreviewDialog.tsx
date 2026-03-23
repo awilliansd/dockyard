@@ -105,7 +105,7 @@ export function FilePreviewDialog({ projectId, filePath, onClose }: FilePreviewD
     if (data.mimeHint === 'text/markdown') {
       return (
         <div className="prose prose-invert prose-sm max-w-none p-4 overflow-auto h-full scrollbar-dark">
-          <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{data.content}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{ a: ({ children, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer">{children}</a> }}>{data.content}</Markdown>
         </div>
       )
     }
