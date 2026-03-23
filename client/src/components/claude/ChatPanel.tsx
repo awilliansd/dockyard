@@ -149,7 +149,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
               )}>
                 {msg.role === 'assistant' ? (
                   <div className="prose prose-xs prose-invert max-w-none [&_p]:mb-1 [&_p]:mt-0 [&_pre]:text-[10px] [&_code]:text-[10px] [&_li]:my-0">
-                    <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                    <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{ a: ({ children, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer">{children}</a> }}>
                       {msg.content || (isStreaming && i === messages.length - 1 ? '...' : '')}
                     </Markdown>
                   </div>

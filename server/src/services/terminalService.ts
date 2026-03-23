@@ -96,8 +96,10 @@ export async function createSession(
     // Linux/macOS: interactive login shell (enables readline + history)
     shellArgs = ['-il'];
     if (type === 'claude') {
+      env['CLAUDECODE'] = '';
       initialCommand = 'claude';
     } else if (type === 'claude-yolo' || type === 'ai-resolve' || type === 'ai-manage') {
+      env['CLAUDECODE'] = '';
       initialCommand = 'claude --dangerously-skip-permissions';
     } else if (type === 'dev') {
       initialCommand = await detectDevCommand(projectPath);

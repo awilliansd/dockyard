@@ -1,6 +1,6 @@
 import { useMemo, useRef, useEffect } from 'react'
 import { EditorView, basicSetup } from 'codemirror'
-import { EditorState } from '@codemirror/state'
+import { EditorState, Compartment } from '@codemirror/state'
 import { MergeView } from '@codemirror/merge'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { javascript } from '@codemirror/lang-javascript'
@@ -54,28 +54,54 @@ interface DiffEditorProps {
 export function DiffEditor({ original, modified, extension }: DiffEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<MergeView | null>(null)
+  const wrapCompartmentA = useRef(new Compartment())
+  const wrapCompartmentB = useRef(new Compartment())
+  const wordWrapRef = useRef(false)
 
   const langExtensions = useMemo(() => getLanguageExtension(extension), [extension])
+
+  // DOM-level Alt+Z handler so word wrap works regardless of editor focus
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.altKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        const mv = viewRef.current
+        if (!mv) return
+        wordWrapRef.current = !wordWrapRef.current
+        const ext = wordWrapRef.current ? EditorView.lineWrapping : []
+        mv.a.dispatch({ effects: wrapCompartmentA.current.reconfigure(ext) })
+        mv.b.dispatch({ effects: wrapCompartmentB.current.reconfigure(ext) })
+      }
+    }
+    container.addEventListener('keydown', handler)
+    return () => container.removeEventListener('keydown', handler)
+  }, [])
 
   useEffect(() => {
     if (!containerRef.current) return
 
-    const sharedExtensions: Extension[] = [
+    const compA = wrapCompartmentA.current
+    const compB = wrapCompartmentB.current
+
+    const makeExtensions = (wrapComp: Compartment): Extension[] => [
       basicSetup,
       oneDark,
       EditorState.readOnly.of(true),
       EditorView.editable.of(false),
+      wrapComp.of([]),
       ...langExtensions,
     ]
 
     const view = new MergeView({
       a: {
         doc: original,
-        extensions: sharedExtensions,
+        extensions: makeExtensions(compA),
       },
       b: {
         doc: modified,
-        extensions: sharedExtensions,
+        extensions: makeExtensions(compB),
       },
       parent: containerRef.current,
       collapseUnchanged: { margin: 3, minSize: 4 },
@@ -86,14 +112,16 @@ export function DiffEditor({ original, modified, extension }: DiffEditorProps) {
     return () => {
       view.destroy()
       viewRef.current = null
+      wordWrapRef.current = false
     }
   }, [original, modified, langExtensions])
 
   return (
     <div
       ref={containerRef}
-      className="h-full [&_.cm-mergeView]:h-full [&_.cm-mergeViewEditors]:h-full [&_.cm-mergeViewEditor]:overflow-auto [&_.cm-editor]:h-full [&_.cm-scroller]:!font-mono"
-      style={{ height: '100%' }}
+      tabIndex={0}
+      className="h-full [&_.cm-mergeView]:h-full [&_.cm-mergeView]:overflow-auto [&_.cm-scroller]:!font-mono"
+      style={{ height: '100%', outline: 'none' }}
     />
   )
 }

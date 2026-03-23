@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Header } from '@/components/layout/Header'
 import {
   LayoutDashboard, ClipboardList, GitBranch, Terminal, Settings, FolderOpen,
   Star, ArrowUp, ArrowDown, FileEdit, Cloud, Download, Keyboard, ChevronDown,
@@ -33,9 +32,7 @@ export function Help() {
   const [active, setActive] = useState<SectionId>('overview')
 
   return (
-    <>
-      <Header title="Help" />
-      <div className="flex-1 overflow-hidden flex">
+    <div className="flex-1 overflow-hidden flex">
         {/* Nav sidebar */}
         <nav className="w-52 shrink-0 border-r overflow-y-auto p-3 space-y-0.5 scrollbar-dark">
           {sections.map(s => (
@@ -75,8 +72,7 @@ export function Help() {
             {active === 'electron' && <SectionElectron />}
           </div>
         </div>
-      </div>
-    </>
+    </div>
   )
 }
 
@@ -174,40 +170,28 @@ function SectionDashboard() {
     <>
       <H2>Dashboard (Home)</H2>
       <P>
-        The dashboard is the landing page, oriented toward action. It highlights active work
-        and provides quick access to all your projects.
+        The dashboard is the landing page. It shows a summary of your task activity and
+        provides quick access to all your projects.
       </P>
 
-      <H3>Working On</H3>
+      <H3>Stats & Working On</H3>
       <P>
-        At the top, tasks currently in progress are grouped by project. Each task shows quick
-        launch buttons (Claude, VS Code) so you can jump right into work. Click any task to
-        open its project workspace.
+        The header shows task counts (inbox, active, done) at a glance. Below, the "Working On"
+        banner lists tasks currently in progress. Click any to open its project workspace.
       </P>
 
-      <H3>Needs Attention</H3>
+      <H3>Project Cards</H3>
       <P>
-        Below the active work, urgent and high-priority tasks in the inbox are highlighted.
-        These are tasks that haven't been started yet but need attention.
+        Each project card shows name, git branch, last commit, tech stack, and task counts.
+        Quick action buttons (Claude, Dev Server, Shell, Open Folder) let you launch directly
+        from the dashboard without entering the workspace.
       </P>
 
-      <H3>Recent Projects</H3>
+      <H3>Search & Filters</H3>
       <P>
-        A compact list of your most recent and favorite projects appears in the sidebar column.
-        Click any project to open it as a tab.
-      </P>
-
-      <H3>Search</H3>
-      <P>
-        The search bar at the top filters projects by name. Results update as you type and
-        appear inline. You can also use <Kbd>Ctrl + K</Kbd> for global search across
-        projects, tasks, and files.
-      </P>
-
-      <H3>Sorting & Filters</H3>
-      <P>
-        Sort by name, recent activity, or task count. Filter by category (parent folder name).
-        Favorites appear first when sorting by recent.
+        Filter projects by name or tech stack. Sort by name, recent commit, last opened,
+        category, or task count. Category badges filter by parent folder. Use <Kbd>Ctrl + K</Kbd>
+        for global search across projects, tasks, and files.
       </P>
     </>
   )
@@ -221,17 +205,24 @@ function SectionWorkspace() {
         Click any project to open it as a tab. Each workspace has three areas:
       </P>
 
-      <H3>Main Area (left, 3/4 width)</H3>
-      <Bullet title="Info bar">Project path, git branch badge, favorite star, external link.</Bullet>
+      <H3>Header Bar</H3>
+      <P>
+        The project header bar provides quick access to everything you need:
+      </P>
+      <Bullet title="Project info">Favorite star, project name, git branch badge, and project path.</Bullet>
+      <Bullet title="External links">Repository link and quick link (configurable in project settings).</Bullet>
+      <Bullet title="Launch shortcuts">Claude Code, Dev Server, Shell, and Open Folder buttons — all one click away.</Bullet>
+      <Bullet title="Mode toggle">Switch between Tasks (Kanban/List) and Code Editor views.</Bullet>
+      <Bullet title="Settings gear">Opens project settings dialog with General, Links & Notes, and Launch tabs.</Bullet>
+
+      <H3>Main Area (left)</H3>
       <Bullet title="Kanban board">Three columns: Inbox, In Progress, Done. Drag tasks between them.</Bullet>
       <Bullet title="List view">Toggle between Kanban and List views using the toolbar buttons.</Bullet>
       <Bullet title="Code editor">Toggle to editor mode to edit project files with syntax highlighting. See the Code Editor section for details.</Bullet>
 
-      <H3>Sidebar (right, 1/4 width)</H3>
-      <Bullet title="Project details">Collapsible panel with project notes and custom links. Click to expand/collapse.</Bullet>
-      <Bullet title="Claude context">Copy project context (path, tasks) to clipboard. "Open Claude + Copy Context" opens a terminal with context ready.</Bullet>
-      <Bullet title="Quick Launch">Buttons to open Claude Code, Dev Server, Shell, VS Code, and Folder.</Bullet>
-      <Bullet title="File explorer">Collapsible tree view for browsing project files (lazy-loaded). Supports preview, edit, delete, copy path, and open in system explorer.</Bullet>
+      <H3>Sidebar (right)</H3>
+      <Bullet title="AI Launcher">AI Task Manager and Claude Code integration with context building.</Bullet>
+      <Bullet title="File explorer">Tree view for browsing project files (lazy-loaded). Supports preview, edit, rename, delete, copy path.</Bullet>
       <Bullet title="Git panel">Full git operations (details in Git section).</Bullet>
 
       <H3>Terminal Panel (bottom)</H3>
@@ -244,18 +235,15 @@ function SectionWorkspace() {
       <P>
         The tab bar at the top shows all open projects. Home tab is always present. Click a project
         anywhere (sidebar, dashboard, task badge) to open it as a new tab. Close tabs with the X button.
-        Switching between tabs is instant thanks to cached data.
       </P>
 
-      <H3>Project Notes & Links</H3>
+      <H3>Project Settings</H3>
       <P>
-        The "Details" panel in the sidebar lets you add freeform notes and multiple external
-        links to each project. Notes are useful for project context, reminders, or quick references.
-        Links support custom labels and open in the default browser.
+        Click the gear icon in the header bar to open the project settings dialog.
       </P>
-      <Bullet title="Notes">Click the edit button to write or update project notes. Saved server-side.</Bullet>
-      <Bullet title="Links">Add multiple labeled URLs (Notion, Figma, Jira, etc.). Each link has a label and URL.</Bullet>
-      <Bullet title="Info bar link">The link icon in the info bar is a quick shortcut to a single primary external URL.</Bullet>
+      <Bullet title="General">Edit project name, toggle favorite, view path and tech stack.</Bullet>
+      <Bullet title="Links & Notes">Add a quick link (shown in header), project notes, and multiple labeled URLs.</Bullet>
+      <Bullet title="Launch">Configure Claude Code launch preferences (YOLO mode).</Bullet>
 
       <H3>File Content Search</H3>
       <P>

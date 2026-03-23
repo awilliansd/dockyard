@@ -24,6 +24,9 @@
     --input: 240 5.9% 90%;
     --ring: 240 5.9% 10%;
     --radius: 0.5rem;
+    --sidebar: 240 4.8% 95.9%;
+    --sidebar-foreground: 240 5.9% 10%;
+    --sidebar-border: 240 5.9% 90%;
   }
 
   .dark {
@@ -46,6 +49,9 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
+    --sidebar: 240 6% 6%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-border: 240 3.7% 12%;
   }
 }
 
@@ -56,20 +62,22 @@
   body {
     @apply bg-background text-foreground;
     font-family: system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* Dark scrollbar - applied globally */
+/* Scrollbar */
 *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 *::-webkit-scrollbar-track {
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
   background: hsl(240 3.7% 20%);
-  border-radius: 4px;
+  border-radius: 3px;
 }
 *::-webkit-scrollbar-thumb:hover {
   background: hsl(240 3.7% 28%);
@@ -77,4 +85,14 @@
 * {
   scrollbar-color: hsl(240 3.7% 20%) transparent;
   scrollbar-width: thin;
+}
+
+/* Page layout utilities */
+@layer utilities {
+  .page-container {
+    @apply flex-1 overflow-y-auto;
+  }
+  .page-padding {
+    @apply px-6 py-5;
+  }
 }

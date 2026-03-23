@@ -209,7 +209,7 @@ export function EditorPanel({
               ) : showPreview ? (
                 <div className="h-full overflow-auto scrollbar-dark p-6">
                   <div className="prose prose-invert prose-sm max-w-none">
-                    <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{tab.content}</Markdown>
+                    <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{ a: ({ children, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer">{children}</a> }}>{tab.content}</Markdown>
                   </div>
                 </div>
               ) : (
