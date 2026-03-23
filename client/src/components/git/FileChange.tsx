@@ -69,11 +69,18 @@ export function FileChange({ projectId, file, status, staged, subrepo, onOpenInE
         </button>
         <FileIcon name={fileName} extension={ext} type="file" className="h-3.5 w-3.5 shrink-0" />
         <button
-          className="text-xs flex-1 truncate font-mono text-left hover:text-primary transition-colors"
+          className="text-xs flex-1 min-w-0 font-mono text-left hover:text-primary transition-colors"
           onClick={handleFileClick}
-          title={status === 'D' ? 'File deleted' : isPreviewOnly ? 'Click to preview' : 'Click to open in editor'}
+          title={file}
         >
-          {file}
+          <span className="flex items-baseline gap-1 min-w-0">
+            <span className="shrink-0">{fileName}</span>
+            {file.includes('/') || file.includes('\\') ? (
+              <span className="text-muted-foreground text-[10px] truncate">
+                {file.slice(0, file.length - fileName.length).replace(/[/\\]$/, '')}
+              </span>
+            ) : null}
+          </span>
         </button>
         <span className={cn('text-xs font-bold shrink-0', statusColors[status] || 'text-muted-foreground')}>
           {statusLabel}
