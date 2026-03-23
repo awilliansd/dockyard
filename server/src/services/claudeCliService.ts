@@ -1,5 +1,8 @@
 import { execFile, spawn } from 'child_process';
 import { promisify } from 'util';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
+import { homedir } from 'os';
 
 const execFileAsync = promisify(execFile);
 const isWindows = process.platform === 'win32';
@@ -41,6 +44,82 @@ export async function getCliStatus(): Promise<boolean> {
   return cliAvailable;
 }
 
+/**
+ * Read the Claude CLI's OAuth token from ~/.claude/.credentials.json.
+ * Returns the access token if valid, null otherwise.
+ * This allows us to call the Anthropic API directly using the Max subscription
+ * without spawning the CLI process (which has Windows stdout piping issues).
+ */
+let cachedOAuthToken: string | null = null;
+let oauthTokenExpiry = 0;
+
+export async function getOAuthToken(): Promise<string | null> {
+  // Return cached token if still valid (with 5min buffer)
+  if (cachedOAuthToken && Date.now() < oauthTokenExpiry - 5 * 60_000) {
+    return cachedOAuthToken;
+  }
+  try {
+    const credPath = join(homedir(), '.claude', '.credentials.json');
+    const raw = await readFile(credPath, 'utf-8');
+    const creds = JSON.parse(raw);
+    const oauth = creds.claudeAiOauth;
+    if (!oauth?.accessToken || !oauth?.expiresAt) return null;
+    if (Date.now() > new Date(oauth.expiresAt).getTime()) return null;
+    cachedOAuthToken = oauth.accessToken;
+    oauthTokenExpiry = new Date(oauth.expiresAt).getTime();
+    return cachedOAuthToken;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Call the Anthropic API directly using the CLI's OAuth token.
+ * This is faster and more reliable than spawning the CLI process,
+ * especially on Windows where the CLI has stdout buffering issues.
+ */
+export async function callApiWithOAuth(
+  systemPrompt: string,
+  userMessage: string,
+  options?: { model?: string; maxTokens?: number; timeout?: number }
+): Promise<string> {
+  const token = await getOAuthToken();
+  if (!token) throw new Error('No OAuth token available');
+
+  const controller = new AbortController();
+  const timeout = options?.timeout ?? 30_000;
+  const timer = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': token,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: options?.model ?? 'claude-haiku-4-5-20251001',
+        max_tokens: options?.maxTokens ?? 1024,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMessage }],
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`API error ${response.status}: ${body.slice(0, 200)}`);
+    }
+
+    const data = await response.json() as any;
+    const text = data.content?.[0]?.type === 'text' ? data.content[0].text : '';
+    return text.trim();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export interface RunPromptOptions {
   input?: string;
   model?: string;
@@ -49,6 +128,8 @@ export interface RunPromptOptions {
   /** Absolute deadline — kills the process after this many ms regardless of activity */
   hardTimeout?: number;
   cwd?: string;
+  /** Skip hooks, LSP, CLAUDE.md discovery — faster for simple prompts */
+  bare?: boolean;
 }
 
 /**
@@ -60,6 +141,7 @@ function buildCliArgs(prompt: string, options?: RunPromptOptions): string[] {
   const args: string[] = ['-p'];
   if (options?.model) args.push('--model', options.model);
   if (options?.outputFormat) args.push('--output-format', options.outputFormat);
+  if (options?.bare) args.push('--bare');
   args.push('--no-session-persistence');
   // Prompt as positional argument — must come after all flags
   args.push(prompt);
@@ -72,6 +154,7 @@ function buildCliEnv(): NodeJS.ProcessEnv {
   delete env.ANTHROPIC_API_KEY;
   return env;
 }
+
 
 /**
  * Run a prompt and return the full response. Uses activity-based timeout

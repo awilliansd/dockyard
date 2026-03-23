@@ -329,10 +329,10 @@ export async function gitRoutes(app: FastifyInstance) {
           } catch { /* ignore — new repo with no commits */ }
 
           // Strip context lines (lines not starting with +/-) to reduce token count
-          const compactDiff = compactGitDiff(diff, 15000);
+          const compactDiff = compactGitDiff(diff, 12000);
 
-          // Build a VS Code extension-style prompt with context
-          const prompt = [
+          // Build prompt instructions (without diff — diff goes via temp file for CLI)
+          const instructions = [
             'You are a git commit message generator. Write a commit message for the staged changes.',
             '',
             'Rules:',
@@ -341,47 +341,43 @@ export async function gitRoutes(app: FastifyInstance) {
             '- If multiple unrelated changes, add a blank line then bullet points in the body',
             '- Output ONLY the raw commit message — no quotes, no markdown fences, no explanation',
             '- Language: match the language of the recent commits below (if available)',
-            recentMessages ? `\nRecent commits (match this style):\n${recentMessages}` : '',
-          ].filter(Boolean).join('\n');
+          ];
+          if (recentMessages) {
+            instructions.push('', `Recent commits (match this style):\n${recentMessages}`);
+          }
+          const systemPrompt = instructions.join('\n');
 
-          const commitModel = 'claude-haiku-4-5-20251001';
+          const cleanMsg = (s: string) => s.replace(/^["'`]+|["'`]+$/g, '').replace(/^```\w*\n?|\n?```$/g, '').trim();
 
-          // Priority: CLI first (uses Max subscription) → configured API key → error
-          const cliOk = await claudeCliService.getCliStatus();
-          if (cliOk) {
+          // Priority 1: CLI OAuth token → direct API call (fastest, uses Max subscription)
+          const oauthToken = await claudeCliService.getOAuthToken();
+          if (oauthToken) {
             try {
-              const message = await claudeCliService.runPrompt(prompt, {
-                input: compactDiff,
-                model: commitModel,
-                outputFormat: 'text',
-                timeout: 30_000,
-                hardTimeout: 45_000,
-                cwd: path,
-              });
-              // Clean up: remove any wrapping quotes or markdown fences the AI might add
-              const cleaned = message.replace(/^["'`]+|["'`]+$/g, '').replace(/^```\w*\n?|\n?```$/g, '').trim();
-              return { message: cleaned, source: 'cli' as const };
-            } catch (cliErr: any) {
-              log.warn('git', 'Commit message CLI failed, trying API', cliErr.message, request.params.projectId);
-              // Fall through to configured API key
+              const text = await claudeCliService.callApiWithOAuth(
+                systemPrompt,
+                compactDiff,
+                { model: 'claude-haiku-4-5-20251001', maxTokens: 256, timeout: 20_000 }
+              );
+              return { message: cleanMsg(text), source: 'cli' as const };
+            } catch (oauthErr: any) {
+              log.warn('git', `Commit message OAuth failed: ${oauthErr.message}`, undefined, request.params.projectId);
             }
           }
 
-          // Fallback: configured API key only (not env key)
+          // Priority 2: Configured API key (not env key)
           const apiKey = (await claudeService.loadClaudeConfig())?.apiKey;
           if (apiKey) {
             try {
               const { default: Anthropic } = await import('@anthropic-ai/sdk');
               const client = new Anthropic({ apiKey, timeout: 20_000 });
               const response = await client.messages.create({
-                model: commitModel,
+                model: 'claude-haiku-4-5-20251001',
                 max_tokens: 256,
-                system: prompt,
+                system: systemPrompt,
                 messages: [{ role: 'user', content: compactDiff }],
               });
               const text = response.content[0].type === 'text' ? response.content[0].text : '';
-              const cleaned = text.replace(/^["'`]+|["'`]+$/g, '').replace(/^```\w*\n?|\n?```$/g, '').trim();
-              return { message: cleaned, source: 'api' as const };
+              return { message: cleanMsg(text), source: 'api' as const };
             } catch (apiErr: any) {
               log.error('git', 'Commit message API also failed', apiErr.message, request.params.projectId);
               throw apiErr;
