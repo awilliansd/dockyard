@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type SectionId = 'overview' | 'dashboard' | 'workspace' | 'editor' | 'tasks' | 'milestones' | 'terminal' | 'git' | 'sync' | 'claude' | 'mcp' | 'settings' | 'shortcuts' | 'data' | 'electron'
+type SectionId = 'overview' | 'dashboard' | 'workspace' | 'editor' | 'tasks' | 'milestones' | 'terminal' | 'git' | 'sync' | 'ai' | 'mcp' | 'settings' | 'shortcuts' | 'data' | 'electron'
 
 const sections: { id: SectionId; label: string; icon: React.ReactNode }[] = [
   { id: 'overview', label: 'Overview', icon: <HelpCircle className="h-4 w-4" /> },
@@ -20,7 +20,7 @@ const sections: { id: SectionId; label: string; icon: React.ReactNode }[] = [
   { id: 'terminal', label: 'Terminal', icon: <Terminal className="h-4 w-4" /> },
   { id: 'git', label: 'Git', icon: <GitBranch className="h-4 w-4" /> },
   { id: 'sync', label: 'Sync & Export', icon: <Cloud className="h-4 w-4" /> },
-  { id: 'claude', label: 'Claude AI', icon: <Sparkles className="h-4 w-4" /> },
+  { id: 'ai', label: 'AI Providers', icon: <Sparkles className="h-4 w-4" /> },
   { id: 'mcp', label: 'MCP Server', icon: <Server className="h-4 w-4" /> },
   { id: 'settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> },
   { id: 'shortcuts', label: 'Shortcuts', icon: <Keyboard className="h-4 w-4" /> },
@@ -64,7 +64,7 @@ export function Help() {
             {active === 'terminal' && <SectionTerminal />}
             {active === 'git' && <SectionGit />}
             {active === 'sync' && <SectionSync />}
-            {active === 'claude' && <SectionClaude />}
+            {active === 'ai' && <SectionAiProviders />}
             {active === 'mcp' && <SectionMcp />}
             {active === 'settings' && <SectionSettings />}
             {active === 'shortcuts' && <SectionShortcuts />}
@@ -144,9 +144,9 @@ function SectionOverview() {
       <Bullet title="Milestones">Group tasks into phases or sprints within each project.</Bullet>
       <Bullet title="Subtasks">Break tasks into smaller subtasks with checkboxes and progress tracking.</Bullet>
       <Bullet title="Code editor">Edit files with syntax highlighting for 11+ languages, multi-tab, and <Kbd>Ctrl + S</Kbd> save.</Bullet>
-      <Bullet title="Integrated terminal">Run shells, dev servers, and Claude Code inside the dashboard.</Bullet>
+      <Bullet title="Integrated terminal">Run shells, dev servers, and your AI assistant inside the dashboard.</Bullet>
       <Bullet title="Git panel">Stage, commit, push, pull, discard, and view diffs without leaving the browser.</Bullet>
-      <Bullet title="Claude AI">Chat with Claude, auto-analyze tasks, bulk import, AI task resolution, and AI Task Manager.</Bullet>
+      <Bullet title="AI Providers">Chat, auto-analyze tasks, bulk import, AI task resolution, and AI Task Manager.</Bullet>
       <Bullet title="Global search">Search projects, tasks, and files with <Kbd>Ctrl + K</Kbd>. Search file contents with <Kbd>Ctrl + Shift + F</Kbd>.</Bullet>
       <Bullet title="Google Sheets sync">Bidirectional sync of tasks via Google Apps Script.</Bullet>
       <Bullet title="Export/Import">JSON, Markdown, and CSV export. Full backup/restore in Settings.</Bullet>
@@ -183,7 +183,7 @@ function SectionDashboard() {
       <H3>Project Cards</H3>
       <P>
         Each project card shows name, git branch, last commit, tech stack, and task counts.
-        Quick action buttons (Claude, Dev Server, Shell, Open Folder) let you launch directly
+        Quick action buttons (AI Assistant, Dev Server, Shell, Open Folder) let you launch directly
         from the dashboard without entering the workspace.
       </P>
 
@@ -211,7 +211,7 @@ function SectionWorkspace() {
       </P>
       <Bullet title="Project info">Favorite star, project name, git branch badge, and project path.</Bullet>
       <Bullet title="External links">Repository link and quick link (configurable in project settings).</Bullet>
-      <Bullet title="Launch shortcuts">Claude Code, Dev Server, Shell, and Open Folder buttons — all one click away.</Bullet>
+      <Bullet title="Launch shortcuts">AI Assistant, Dev Server, Shell, and Open Folder buttons — all one click away.</Bullet>
       <Bullet title="Mode toggle">Switch between Tasks (Kanban/List) and Code Editor views.</Bullet>
       <Bullet title="Settings gear">Opens project settings dialog with General, Links & Notes, and Launch tabs.</Bullet>
 
@@ -221,7 +221,7 @@ function SectionWorkspace() {
       <Bullet title="Code editor">Toggle to editor mode to edit project files with syntax highlighting. See the Code Editor section for details.</Bullet>
 
       <H3>Sidebar (right)</H3>
-      <Bullet title="AI Launcher">AI Task Manager and Claude Code integration with context building.</Bullet>
+      <Bullet title="AI Launcher">AI Task Manager and AI assistant integration with context building.</Bullet>
       <Bullet title="File explorer">Tree view for browsing project files (lazy-loaded). Supports preview, edit, rename, delete, copy path.</Bullet>
       <Bullet title="Git panel">Full git operations (details in Git section).</Bullet>
 
@@ -243,7 +243,7 @@ function SectionWorkspace() {
       </P>
       <Bullet title="General">Edit project name, toggle favorite, view path and tech stack.</Bullet>
       <Bullet title="Links & Notes">Add a quick link (shown in header), project notes, and multiple labeled URLs.</Bullet>
-      <Bullet title="Launch">Configure Claude Code launch preferences (YOLO mode).</Bullet>
+      <Bullet title="Launch">Configure AI assistant launch preferences (skip permissions for Claude Code).</Bullet>
 
       <H3>File Content Search</H3>
       <P>
@@ -391,7 +391,7 @@ function SectionTasks() {
       </P>
       <Bullet title="Title">Short description of the task.</Bullet>
       <Bullet title="Description">What needs to be done (user-facing, plain language).</Bullet>
-      <Bullet title="Details (Prompt)">Technical details, causes, files, solutions. This is copied along with context for Claude.</Bullet>
+      <Bullet title="Details (Prompt)">Technical details, causes, files, solutions. This is copied along with context for your AI assistant.</Bullet>
       <Bullet title="Priority">Urgent, High, Medium, or Low. Affects visual indicators.</Bullet>
       <Bullet title="Subtasks">Add a checklist of smaller steps within the task.</Bullet>
 
@@ -423,14 +423,14 @@ function SectionTasks() {
       <Bullet title="Duplicate">Create a copy of the task.</Bullet>
       <Bullet title="Delete">Remove the task permanently.</Bullet>
       <Bullet title="Toggle status">Click the status icon on the card to cycle through states.</Bullet>
-      <Bullet title="AI Improve">Use the wand button to have Claude improve the task's title, description, and details.</Bullet>
-      <Bullet title="Resolve with AI">For in-progress tasks, click the sparkles button to open Claude Code with the task context pre-loaded. A pulsing purple indicator appears while the AI session is active. When the task is completed by AI, it's flagged for human review.</Bullet>
+      <Bullet title="AI Improve">Use the wand button to have your AI provider improve the task's title, description, and details.</Bullet>
+      <Bullet title="Resolve with AI">For in-progress tasks, click the sparkles button to open your AI assistant with the task context pre-loaded. A pulsing indicator appears while the AI session is active. When the task is completed by AI, it's flagged for human review.</Bullet>
       <Bullet title="Mark all as read">In the Done column header, click the checkmark button to dismiss all completed tasks from the visible list.</Bullet>
 
       <H3>Column Actions</H3>
       <P>
         Each kanban column has a copy button in its header. This copies all tasks in the column
-        as a formatted prompt for Claude with context-specific instructions (e.g., "organize and
+        as a formatted prompt for your AI assistant with context-specific instructions (e.g., "organize and
         detail" for Inbox, "resolve them" for In Progress, "verify completion" for Done).
       </P>
 
@@ -439,7 +439,7 @@ function SectionTasks() {
         Click the "Import" button in the task toolbar to open the bulk import dialog. Paste
         unstructured text or a list, then choose how to process it:
       </P>
-      <Bullet title="AI Analyze">Claude organizes the text into properly structured tasks with titles, descriptions, and priorities. Requires Claude API key or CLI installed.</Bullet>
+      <Bullet title="AI Analyze">Your AI provider organizes the text into properly structured tasks with titles, descriptions, and priorities. Requires a configured provider.</Bullet>
       <Bullet title="Basic Parse">A simple fallback that splits bullet points or numbered lists into individual tasks without AI.</Bullet>
       <P>
         Review the parsed tasks before importing — you can select/deselect individual tasks.
@@ -449,10 +449,10 @@ function SectionTasks() {
       <P>
         The AI Task Manager (wrench icon in the toolbar) is a more powerful alternative to bulk import.
         Paste any text — meeting notes, bug reports, task lists, or even natural language instructions
-        like "mark all design tasks as done". Claude runs in the integrated terminal and directly
+        like "mark all design tasks as done". The AI assistant runs in the integrated terminal and directly
         creates, updates, or reorganizes tasks in the project.
       </P>
-      <Bullet title="Requires">Integrated terminal (node-pty) and either Claude CLI installed or API key configured.</Bullet>
+      <Bullet title="Requires">Integrated terminal (node-pty) and a configured AI provider.</Bullet>
       <Bullet title="Deduplication">AI detects existing tasks to avoid creating duplicates.</Bullet>
 
       <H3>CSV Import & Export</H3>
@@ -504,8 +504,8 @@ function SectionTerminal() {
       </P>
       <Bullet title="Shell">Opens a shell in the project directory (PowerShell on Windows, bash/zsh on Linux/macOS).</Bullet>
       <Bullet title="Dev">Runs <code>pnpm dev</code> (or npm/yarn) in the project directory.</Bullet>
-      <Bullet title="Claude">Opens Claude Code (<code>claude</code> command) in the project directory.</Bullet>
-      <Bullet title="Claude YOLO">Opens Claude Code with auto-accept (<code>claude --dangerously-skip-permissions</code>).</Bullet>
+      <Bullet title="AI Assistant">Opens your AI assistant in the project directory.</Bullet>
+      <Bullet title="Skip permissions">Opens Claude Code with auto-accept (<code>claude --dangerously-skip-permissions</code>).</Bullet>
 
       <H3>Native Terminal Fallback</H3>
       <P>
@@ -674,10 +674,10 @@ function SectionSettings() {
         Currently available: Google Sheets, JSON Export, Markdown Export.
       </P>
 
-      <H3>Claude AI</H3>
+      <H3>AI Providers</H3>
       <P>
-        Configure your Anthropic API key, choose a model, and set max tokens. The API key
-        is encrypted and stored server-side only. See the Claude AI section for details.
+        Configure your AI provider, choose a model, and set max tokens. Provider configs
+        are encrypted and stored server-side only. See the AI Providers section for details.
       </P>
 
       <H3>MCP Server</H3>
@@ -764,8 +764,10 @@ function SectionData() {
         <p>data/</p>
         <p className="pl-4">settings.json <span className="text-muted-foreground">— selected project paths</span></p>
         <p className="pl-4">projects.json <span className="text-muted-foreground">— cache (auto-generated)</span></p>
-        <p className="pl-4">claude.json <span className="text-muted-foreground">— encrypted API key + model config</span></p>
-        <p className="pl-4">.claude-key <span className="text-muted-foreground">— AES-256-GCM encryption key</span></p>
+        <p className="pl-4">providers/ <span className="text-muted-foreground">— encrypted provider configs</span></p>
+        <p className="pl-8">claude.json <span className="text-muted-foreground">— example provider config</span></p>
+        <p className="pl-8">ollama.json <span className="text-muted-foreground">— example provider config</span></p>
+        <p className="pl-4">.ai-provider-key <span className="text-muted-foreground">— AES-256-GCM encryption key</span></p>
         <p className="pl-4">mcp-config.json <span className="text-muted-foreground">— MCP server config</span></p>
         <p className="pl-4">mcp-auth.json <span className="text-muted-foreground">— OAuth clients, tokens, JWT secret</span></p>
         <p className="pl-4">tasks/</p>
@@ -784,7 +786,7 @@ function SectionData() {
       <P>
         Shipyard never sends data to external servers. The only network calls are:
       </P>
-      <Bullet title="Claude AI">Only if you configure an API key. Calls go to Anthropic's API.</Bullet>
+      <Bullet title="AI Providers">Only if you configure a provider. Calls go to that provider's API or local runtime.</Bullet>
       <Bullet title="Google Sheets sync">Only if you configure it. Goes through your own Apps Script URL.</Bullet>
       <Bullet title="Git operations">Push/pull go to your configured git remotes.</Bullet>
       <P>
@@ -794,29 +796,26 @@ function SectionData() {
   )
 }
 
-function SectionClaude() {
+function SectionAiProviders() {
   return (
     <>
-      <H2>Claude AI Integration</H2>
+      <H2>AI Providers</H2>
       <P>
-        Shipyard integrates with the Anthropic Claude API to provide AI-powered features
-        directly in your dashboard. This requires an Anthropic API key (pay-per-use billing).
+        Shipyard supports multiple AI providers (e.g., Claude, OpenAI, Gemini, Ollama). Choose
+        one as the active provider to power chat, task analysis, bulk import, and other AI features.
       </P>
 
       <H3>Setup</H3>
-      <Bullet title="Get an API Key">
-        Sign up at <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">console.anthropic.com</a> and create an API key in Settings &gt; API Keys.
-      </Bullet>
       <Bullet title="Configure in Shipyard">
-        Go to Settings &gt; Claude AI and enter your key. Click "Test" to verify, then "Save".
+        Go to Settings &gt; AI Providers, pick a provider, and enter its required settings. Click "Test" to verify, then "Save".
       </Bullet>
       <Bullet title="Security">
-        Your API key is encrypted with AES-256-GCM and stored server-side only. It never reaches the browser.
+        Provider credentials are encrypted with AES-256-GCM and stored server-side only. They never reach the browser.
       </Bullet>
 
       <H3>Chat Panel</H3>
       <P>
-        Available in the workspace sidebar. Chat with Claude about your project — it has context
+        Available in the workspace sidebar. Chat with your AI provider about your project — it has context
         about your tasks, git status, and file structure. Responses stream in real-time via SSE.
       </P>
 
@@ -828,15 +827,15 @@ function SectionClaude() {
 
       <H3>AI Improve</H3>
       <P>
-        The wand button on task cards sends the task to Claude for improvement. Claude enhances
+        The wand button on task cards sends the task to your AI provider for improvement. It enhances
         the title, description, and technical details based on the project context. Available
         in the task viewer and on task cards in both Kanban and List views.
       </P>
 
       <H3>AI Task Resolution</H3>
       <P>
-        For tasks in progress, click the sparkles button to open Claude Code with the task context
-        pre-loaded. Shipyard tracks the AI session and monitors progress. When Claude completes
+        For tasks in progress, click the sparkles button to open your AI assistant with the task context
+        pre-loaded. Shipyard tracks the AI session and monitors progress. When the AI completes
         the work, the task is automatically flagged for review with a pulsing indicator.
       </P>
       <Bullet title="Session tracking">Active AI sessions show a pulsing purple indicator on the task card.</Bullet>
@@ -845,7 +844,7 @@ function SectionClaude() {
 
       <H3>Bulk Import with AI</H3>
       <P>
-        Paste unstructured text or a list into the bulk import dialog and Claude will organize
+        Paste unstructured text or a list into the bulk import dialog and your AI provider will organize
         it into properly structured tasks with titles, descriptions, and appropriate priorities.
       </P>
 
@@ -863,17 +862,14 @@ function SectionClaude() {
 
       <H3>Models</H3>
       <P>
-        Choose your preferred model in Settings. Available options:
+        Model options depend on the provider you select. For local providers like Ollama,
+        you can use any installed model name.
       </P>
-      <Bullet title="Claude Sonnet 4.5">Best balance of speed and quality (recommended)</Bullet>
-      <Bullet title="Claude Opus 4.5">Most capable, best for complex analysis</Bullet>
-      <Bullet title="Claude Haiku 4.5">Fastest, most affordable</Bullet>
 
       <H3>Configuration</H3>
       <InfoBox>
-        <p>Settings &gt; Claude AI — configure API key, model, max tokens</p>
-        <p>Data file: <code className="bg-muted px-1 rounded">data/claude.json</code> (encrypted key)</p>
-        <p>Encryption key: <code className="bg-muted px-1 rounded">data/.claude-key</code></p>
+        <p>Settings &gt; AI Providers — configure provider, model, max tokens</p>
+        <p>Data files: <code className="bg-muted px-1 rounded">data/providers/*.json</code> (encrypted)</p>
       </InfoBox>
     </>
   )
@@ -885,14 +881,14 @@ function SectionMcp() {
       <H2>MCP Server</H2>
       <P>
         Shipyard can act as a <strong>Model Context Protocol (MCP)</strong> server, allowing
-        Claude Desktop, Claude Code, or any MCP-compatible client to connect and interact with
+        MCP-compatible clients (e.g., Claude Desktop / Claude Code) to connect and interact with
         your projects and tasks from outside the dashboard.
       </P>
 
       <H3>What is MCP?</H3>
       <P>
         MCP is an open protocol by Anthropic that lets AI assistants connect to external tools
-        and data sources. When enabled, Claude can directly list your projects, create/update tasks,
+        and data sources. When enabled, a connected AI can directly list your projects, create/update tasks,
         view git status, and search across all tasks — all through natural language.
       </P>
 
@@ -903,7 +899,7 @@ function SectionMcp() {
         For local-only use, you can disable auth.
       </Bullet>
 
-      <H3>Connect from Claude Desktop</H3>
+      <H3>Connect from Claude Desktop (example)</H3>
       <P>
         Add this to your <code className="bg-muted px-1 rounded">claude_desktop_config.json</code>:
       </P>
@@ -917,7 +913,7 @@ function SectionMcp() {
 }`}</pre>
       </InfoBox>
 
-      <H3>Connect from Claude Code</H3>
+      <H3>Connect from Claude Code (example)</H3>
       <P>
         Run this command or add to <code className="bg-muted px-1 rounded">.claude/settings.json</code>:
       </P>

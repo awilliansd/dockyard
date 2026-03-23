@@ -100,7 +100,7 @@ export function TaskManagerDialog({ projectId, tasks, open, onOpenChange }: Task
               </Button>
             ) : !aiAvailable ? (
               <p className="text-xs text-muted-foreground">
-                Install Claude CLI or configure API key in Settings to use AI features
+                Configure an AI provider in Settings to use AI features
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">

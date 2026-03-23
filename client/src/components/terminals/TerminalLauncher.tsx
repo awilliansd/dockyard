@@ -21,7 +21,7 @@ interface TerminalLauncherProps {
 const priorityLabel = { urgent: 'URGENT', high: 'HIGH', medium: 'MEDIUM', low: 'LOW' }
 const statusLabel = { backlog: 'BACKLOG', todo: 'TODO', in_progress: 'IN_PROGRESS', done: 'DONE' }
 
-function buildClaudeContext(projectName: string, projectPath: string, projectId: string, tasks: Task[], tasksDir: string) {
+function buildAiContext(projectName: string, projectPath: string, projectId: string, tasks: Task[], tasksDir: string) {
   const sep = tasksDir.includes('\\') ? '\\' : '/'
   const tasksFile = `${tasksDir}${sep}${projectId}.json`
 
@@ -74,32 +74,33 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
   const { data: claudeStatus } = useClaudeStatus()
   const mcpActive = mcpStatus?.enabled ?? false
   const aiAvailable = claudeStatus?.configured || claudeStatus?.cliAvailable
+  const isClaudeActive = claudeStatus?.providerId === 'claude'
   const [taskManagerOpen, setTaskManagerOpen] = useState(false)
   const [skipPermissions, setSkipPermissions] = useState(() => {
     try { return localStorage.getItem('shipyard:skipPermissions') === 'true' } catch { return false }
   })
 
-  const claudeType = skipPermissions ? 'claude-yolo' : 'claude'
+  const assistantType = skipPermissions ? 'claude-yolo' : 'claude'
 
   const handleCopyContext = () => {
     if (!projectPath || !projectName) return
-    const context = buildClaudeContext(projectName, projectPath, projectId, tasks || [], settings?.tasksDir || '')
+    const context = buildAiContext(projectName, projectPath, projectId, tasks || [], settings?.tasksDir || '')
     navigator.clipboard.writeText(context)
-    toast.success('Context copied — paste in Claude')
+    toast.success('Context copied — paste in your AI assistant')
   }
 
-  const handleLaunchClaude = () => {
+  const handleLaunchAssistant = () => {
     // Copy context only when MCP is not active
     if (!mcpActive && projectPath && projectName) {
-      const context = buildClaudeContext(projectName, projectPath, projectId, tasks || [], settings?.tasksDir || '')
+      const context = buildAiContext(projectName, projectPath, projectId, tasks || [], settings?.tasksDir || '')
       navigator.clipboard.writeText(context)
     }
     if (hasIntegrated) {
-      openIntegratedTerminal(projectId, claudeType)
+      openIntegratedTerminal(projectId, assistantType)
     } else {
-      launchTerminal.mutate({ projectId, type: claudeType })
+      launchTerminal.mutate({ projectId, type: assistantType })
     }
-    toast.success(mcpActive ? 'Claude opened — MCP provides context' : 'Claude opened — context in clipboard, paste it')
+    toast.success(mcpActive ? 'AI assistant opened — MCP provides context' : 'AI assistant opened — context in clipboard, paste it')
   }
 
   const launch = (type: string, label: string) => {
@@ -143,16 +144,16 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
         {projectPath && projectName && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant={aiAvailable ? "outline" : "default"} className="w-full justify-start gap-2 h-8 text-xs" onClick={handleLaunchClaude}>
+              <Button variant={aiAvailable ? "outline" : "default"} className="w-full justify-start gap-2 h-8 text-xs" onClick={handleLaunchAssistant}>
                 <Sparkles className="h-3.5 w-3.5" />
-                {mcpActive ? 'Open Claude Code' : 'Open Claude + Copy Context'}
+                {mcpActive ? 'Open AI Assistant' : 'Open AI + Copy Context'}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="left">
               <p className="max-w-[200px] text-xs">
                 {mcpActive
-                  ? 'Opens Claude Code — MCP gives it access to projects and tasks automatically'
-                  : 'Copies project info + tasks to clipboard, then opens Claude Code. Just paste to give context.'}
+                  ? 'Opens your AI assistant — MCP gives it access to projects and tasks automatically'
+                  : 'Copies project info + tasks to clipboard, then opens your AI assistant. Just paste to give context.'}
               </p>
             </TooltipContent>
           </Tooltip>
@@ -201,8 +202,8 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
           </Tooltip>
         )}
 
-        {/* YOLO toggle */}
-        {projectPath && (
+        {/* Skip permissions (Claude Code) */}
+        {projectPath && isClaudeActive && (
           <Tooltip>
             <TooltipTrigger asChild>
               <label className="ml-auto flex items-center cursor-pointer select-none">
@@ -215,10 +216,10 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
                   }}
                   className="rounded border-muted-foreground/30 h-3 w-3"
                 />
-                <span className="text-[10px] text-muted-foreground ml-1.5">YOLO</span>
+                <span className="text-[10px] text-muted-foreground ml-1.5">Skip permissions (Claude Code only)</span>
               </label>
             </TooltipTrigger>
-            <TooltipContent side="bottom">--dangerously-skip-permissions</TooltipContent>
+            <TooltipContent side="bottom">Claude Code: --dangerously-skip-permissions</TooltipContent>
           </Tooltip>
         )}
       </div>

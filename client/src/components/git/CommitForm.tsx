@@ -93,7 +93,7 @@ export function CommitForm({ projectId, hasStagedChanges, subrepo }: CommitFormP
           className="h-9 w-9 shrink-0"
           disabled={!hasStagedChanges || !aiAvailable || generateMsg.isPending}
           onClick={handleGenerate}
-          title={aiAvailable ? 'Generate commit message with AI' : 'Install Claude CLI or configure API key'}
+          title={aiAvailable ? 'Generate commit message with AI' : 'Configure an AI provider in Settings'}
         >
           {generateMsg.isPending
             ? <Loader2 className="h-4 w-4 animate-spin" />

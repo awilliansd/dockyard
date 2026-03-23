@@ -126,7 +126,7 @@ export function ProjectCard({ project, taskCounts }: ProjectCardProps) {
               <Sparkles className="h-2.5 w-2.5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Claude Code</TooltipContent>
+          <TooltipContent>AI Assistant</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>

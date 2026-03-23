@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useAiProviders, useActiveProvider } from '@/hooks/useAiProvider'
+import { useAiProviders, useActiveProvider, useSetActiveProvider } from '@/hooks/useAiProvider'
 import { AiProviderConfigDialog } from './AiProviderConfigDialog'
 import { Sparkles, Settings, Check, Terminal, Cpu, Zap, Brain } from 'lucide-react'
 
@@ -25,6 +25,7 @@ const providerDescriptions = {
 export function AiProvidersSettingsCard() {
   const { data: providers, isLoading } = useAiProviders()
   const activeProvider = useActiveProvider()
+  const setActiveProvider = useSetActiveProvider()
   const [configOpen, setConfigOpen] = useState<string | null>(null)
 
   if (isLoading) {
@@ -58,7 +59,7 @@ export function AiProvidersSettingsCard() {
             )}
           </CardTitle>
           <CardDescription>
-            Configure multiple AI providers. The first configured provider will be used automatically.
+            Configure multiple AI providers and choose which one should be active.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -109,6 +110,16 @@ export function AiProvidersSettingsCard() {
                 </div>
 
                 <div className="flex gap-2">
+                  {provider.configured && !isActive && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActiveProvider(provider.id)}
+                      className="h-7 text-xs"
+                    >
+                      Use
+                    </Button>
+                  )}
                   {provider.configured ? (
                     <>
                       <Button

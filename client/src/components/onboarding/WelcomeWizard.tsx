@@ -350,7 +350,7 @@ function StepFeatures() {
         <InfoCard
           icon={<Terminal className="h-5 w-5" />}
           title="Integrated Terminal"
-          description="Run shells, dev servers, and Claude Code directly inside the dashboard. Multiple tabs, resizable panel. Ctrl+` to toggle."
+          description="Run shells, dev servers, and your AI assistant directly inside the dashboard. Multiple tabs, resizable panel. Ctrl+` to toggle."
         />
         <InfoCard
           icon={<GitBranch className="h-5 w-5" />}
@@ -401,7 +401,7 @@ function StepReady() {
         <Tip label="Click any project" description="to open it as a tab with kanban, git, and terminals" />
         <Tip label="Drag tasks" description="between Inbox, In Progress, and Done columns" />
         <Tip label="Ctrl + `" description="to toggle the integrated terminal panel" />
-        <Tip label="Quick Launch buttons" description="open Claude Code, dev server, or shell for any project" />
+        <Tip label="Quick Launch buttons" description="open AI assistant, dev server, or shell for any project" />
         <Tip label="Git indicators" description="in the sidebar show uncommitted, unpushed, and to-pull counts" />
         <Tip label="Help page" description="has a full manual — find it in Settings or sidebar" />
       </div>

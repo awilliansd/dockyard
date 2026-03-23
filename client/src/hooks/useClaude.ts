@@ -1,12 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAiProviders, useActiveProvider, getStoredActiveProviderId } from '@/hooks/useAiProvider'
 
 export function useClaudeStatus() {
-  return useQuery({
-    queryKey: ['claude', 'status'],
-    queryFn: () => api.getClaudeStatus(),
-    staleTime: 30000,
-  })
+  const { data: providers } = useAiProviders()
+  const active = useActiveProvider()
+  return {
+    data: active ? {
+      configured: active.configured,
+      model: active.config.model || null,
+      maxTokens: active.config.maxTokens || null,
+      cliAvailable: false,
+      envKeyAvailable: false,
+      providerId: active.id,
+      providerName: active.name,
+    } : undefined,
+    isLoading: !providers,
+  }
 }
 
 export function useSaveClaudeConfig() {
@@ -37,9 +47,10 @@ export function useTestClaudeKey() {
 }
 
 export function useAnalyzeTask() {
+  const active = useActiveProvider()
   return useMutation({
     mutationFn: ({ projectId, title, taskId }: { projectId: string; title: string; taskId?: string }) =>
-      api.analyzeTask(projectId, title, taskId),
+      api.analyzeTask(projectId, title, taskId, active?.id),
   })
 }
 
@@ -55,12 +66,14 @@ export async function streamChat(
   onChunk: (text: string) => void,
   onDone: () => void,
   onError: (error: string) => void,
+  providerId?: string,
 ) {
+  const activeProviderId = providerId || getStoredActiveProviderId() || 'claude'
   try {
-    const res = await fetch('/api/claude/chat', {
+    const res = await fetch('/api/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectId, messages }),
+      body: JSON.stringify({ projectId, messages, providerId: activeProviderId }),
     })
 
     if (!res.ok) {

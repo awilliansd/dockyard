@@ -94,8 +94,11 @@ export const api = {
     request(`/projects/${projectId}/git/discard-all`, { method: 'POST', body: JSON.stringify({ section, subrepo }) }),
   undoCommit: (projectId: string, subrepo?: string) =>
     request(`/projects/${projectId}/git/undo-commit`, { method: 'POST', body: JSON.stringify({ subrepo }) }),
-  generateCommitMessage: (projectId: string, subrepo?: string) =>
-    request<{ message: string; source: 'cli' | 'api' }>(`/projects/${projectId}/git/generate-commit-message`, { method: 'POST', body: JSON.stringify({ subrepo }), timeout: 70_000 }),
+  generateCommitMessage: (projectId: string, subrepo?: string, providerId?: string) =>
+    request<{ message: string; source: 'cli' | 'api' | string }>(
+      `/projects/${projectId}/git/generate-commit-message`,
+      { method: 'POST', body: JSON.stringify({ subrepo, providerId }), timeout: 70_000 }
+    ),
 
   // Terminals (native launchers)
   launchTerminal: (projectId: string, type: string) => request('/terminals/launch', { method: 'POST', body: JSON.stringify({ projectId, type }) }),

@@ -21,6 +21,21 @@ export interface ChatMessage {
 }
 
 // --- Provider Management ---
+const ACTIVE_PROVIDER_KEY = 'shipyard:ai-active-provider'
+
+export function getStoredActiveProviderId() {
+  try {
+    return localStorage.getItem(ACTIVE_PROVIDER_KEY) || undefined
+  } catch {
+    return undefined
+  }
+}
+
+export function setStoredActiveProviderId(providerId: string) {
+  try {
+    localStorage.setItem(ACTIVE_PROVIDER_KEY, providerId)
+  } catch {}
+}
 
 export function useAiProviders() {
   return useQuery({
@@ -31,8 +46,22 @@ export function useAiProviders() {
 
 export function useActiveProvider() {
   const { data: providers } = useAiProviders()
-  // For now, return the first configured provider, or Claude as fallback
+  const preferredId = getStoredActiveProviderId()
+  if (preferredId) {
+    const preferred = providers?.find(p => p.id === preferredId && p.configured)
+    if (preferred) return preferred
+  }
+  // Fallback: first configured provider, or Claude if nothing else
   return providers?.find(p => p.configured) || providers?.find(p => p.id === 'claude')
+}
+
+export function useSetActiveProvider() {
+  const queryClient = useQueryClient()
+  return (providerId: string) => {
+    setStoredActiveProviderId(providerId)
+    // Trigger re-render for any subscribers using ai/providers data
+    queryClient.invalidateQueries({ queryKey: ['ai', 'providers'] })
+  }
 }
 
 export function useSaveProviderConfig() {
@@ -90,7 +119,7 @@ export async function streamChat(
   onError: (error: string) => void,
   providerId?: string,
 ) {
-  const activeProvider = providerId || 'claude' // fallback to Claude for backward compatibility
+  const activeProvider = providerId || getStoredActiveProviderId() || 'claude' // fallback to Claude for backward compatibility
 
   try {
     const res = await fetch('/api/ai/chat', {

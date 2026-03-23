@@ -218,7 +218,7 @@ export function TaskItem({ task, projectName, projectPath, showProjectBadge, pro
                   <Sparkles className="h-3 w-3" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Resolve with AI — opens Claude Code to work on this task</TooltipContent>
+              <TooltipContent>Resolve with AI — opens your AI assistant to work on this task</TooltipContent>
             </Tooltip>
           )}
           {canAiImprove && task.status !== 'done' && (
@@ -243,7 +243,7 @@ export function TaskItem({ task, projectName, projectPath, showProjectBadge, pro
                 <Copy className="h-3 w-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Copy task as prompt — paste into Claude or any AI assistant</TooltipContent>
+            <TooltipContent>Copy task as prompt — paste into any AI assistant</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>

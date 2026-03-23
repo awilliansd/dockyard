@@ -334,11 +334,11 @@ export function ProjectSettingsDialog({ project, open, onOpenChange, defaultTab 
           <TabsContent value="launch" className="space-y-4 mt-3">
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                Launch shortcuts are available in the workspace header bar: Claude, Dev Server, Shell, and Open Folder.
+                Launch shortcuts are available in the workspace header bar: AI Assistant, Dev Server, Shell, and Open Folder.
               </p>
 
               <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Claude Code</label>
+                <label className="text-xs font-medium text-muted-foreground">AI Assistant</label>
                 <button
                   onClick={() => {
                     const next = !skipPermissions
@@ -350,7 +350,7 @@ export function ProjectSettingsDialog({ project, open, onOpenChange, defaultTab 
                   <div className="flex items-center gap-2.5">
                     <Zap className={cn('h-4 w-4', skipPermissions ? 'text-yellow-500' : 'text-muted-foreground/50')} />
                     <div className="text-left">
-                      <span className="text-xs font-medium">Skip permissions (YOLO mode)</span>
+                      <span className="text-xs font-medium">Skip permissions (Claude Code)</span>
                       <p className="text-[10px] text-muted-foreground">Uses --dangerously-skip-permissions flag</p>
                     </div>
                   </div>

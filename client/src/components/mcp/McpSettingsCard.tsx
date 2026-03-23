@@ -63,7 +63,7 @@ export function McpSettingsCard() {
           )}
         </CardTitle>
         <CardDescription>
-          Expose Shipyard as an MCP server so Claude Desktop, Claude Code, or other MCP clients can read projects, manage tasks, and view git status.
+          Expose Shipyard as an MCP server so MCP clients (e.g., Claude Desktop / Claude Code) can read projects, manage tasks, and view git status.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -119,7 +119,7 @@ export function McpSettingsCard() {
 
             {/* Claude Desktop Config */}
             <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Claude Desktop Config</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Claude Desktop Config (Example)</p>
               <p className="text-xs text-muted-foreground">
                 Add to <code className="bg-muted px-1 rounded">claude_desktop_config.json</code>:
               </p>
@@ -138,7 +138,7 @@ export function McpSettingsCard() {
 
             {/* Claude Code Config */}
             <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Claude Code Config</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Claude Code Config (Example)</p>
               <p className="text-xs text-muted-foreground">
                 Add to <code className="bg-muted px-1 rounded">.claude/settings.json</code> or run: <code className="bg-muted px-1 rounded">claude mcp add shipyard --transport http --url {serverUrl}</code>
               </p>
