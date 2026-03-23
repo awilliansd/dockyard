@@ -67,34 +67,33 @@ export function LogsPage() {
   const hasFilters = levelFilter || categoryFilter
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="border-b px-6 py-4 shrink-0">
+      <div className="px-6 py-4 shrink-0 border-b">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <ScrollText className="h-5 w-5 text-primary" />
-            <h1 className="text-lg font-semibold">System Logs</h1>
+            <h1 className="text-sm font-semibold">System Logs</h1>
             {stats && (
-              <div className="flex items-center gap-2 ml-2">
-                <Badge variant="outline" className="text-[11px] gap-1">
+              <div className="flex items-center gap-1.5">
+                <Badge variant="outline" className="text-[10px] gap-1">
                   {stats.total} total
                 </Badge>
                 {stats.errors > 0 && (
-                  <Badge variant="outline" className="text-[11px] gap-1 text-red-400 border-red-400/30">
-                    <AlertCircle className="h-3 w-3" />
+                  <Badge variant="outline" className="text-[10px] gap-1 text-red-400 border-red-400/30">
+                    <AlertCircle className="h-2.5 w-2.5" />
                     {stats.errors}
                   </Badge>
                 )}
                 {stats.warnings > 0 && (
-                  <Badge variant="outline" className="text-[11px] gap-1 text-yellow-400 border-yellow-400/30">
-                    <AlertTriangle className="h-3 w-3" />
+                  <Badge variant="outline" className="text-[10px] gap-1 text-yellow-400 border-yellow-400/30">
+                    <AlertTriangle className="h-2.5 w-2.5" />
                     {stats.warnings}
                   </Badge>
                 )}
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => refetch()}>
               <RefreshCw className="h-3 w-3" />
               Refresh
@@ -114,7 +113,7 @@ export function LogsPage() {
 
         {/* Filters */}
         <div className="flex items-center gap-2 mt-3">
-          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+          <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
 
           {/* Level filter */}
           <div className="flex items-center gap-1">

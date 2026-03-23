@@ -99,61 +99,74 @@ export function ProjectList({ projects, taskCounts }: ProjectListProps) {
     })
   }, [projects, search, categoryFilter, showFavoritesOnly, sortBy, taskCounts])
 
+  const hasFilters = search || categoryFilter || showFavoritesOnly
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
+      {/* Toolbar */}
       <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             ref={searchRef}
             placeholder="Search projects or tech..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pl-9"
+            className="h-8 pl-8 text-sm"
           />
         </div>
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 text-xs"
+          className="gap-1.5 text-xs h-8"
           onClick={cycleSortBy}
         >
-          <ArrowUpDown className="h-3.5 w-3.5" />
+          <ArrowUpDown className="h-3 w-3" />
           {sortLabels[sortBy]}
         </Button>
         <Button
           variant={showFavoritesOnly ? 'default' : 'outline'}
           size="sm"
+          className="h-8 text-xs"
           onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
         >
           Favorites
         </Button>
+        {hasFilters && (
+          <span className="text-[11px] text-muted-foreground/50 ml-1">
+            {filtered.length} of {projects.length}
+          </span>
+        )}
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
-        <Badge
-          variant={categoryFilter === null ? 'default' : 'outline'}
-          className="cursor-pointer"
-          onClick={() => setCategoryFilter(null)}
-        >
-          All ({projects.length})
-        </Badge>
-        {categories.map(cat => {
-          const count = projects.filter(p => p.category === cat).length
-          return (
-            <Badge
-              key={cat}
-              variant={categoryFilter === cat ? 'default' : 'outline'}
-              className="cursor-pointer"
-              onClick={() => setCategoryFilter(cat === categoryFilter ? null : cat)}
-            >
-              {cat} ({count})
-            </Badge>
-          )
-        })}
-      </div>
+      {/* Categories */}
+      {categories.length > 1 && (
+        <div className="flex flex-wrap gap-1">
+          <Badge
+            variant={categoryFilter === null ? 'default' : 'outline'}
+            className="cursor-pointer text-[10px]"
+            onClick={() => setCategoryFilter(null)}
+          >
+            All ({projects.length})
+          </Badge>
+          {categories.map(cat => {
+            const count = projects.filter(p => p.category === cat).length
+            return (
+              <Badge
+                key={cat}
+                variant={categoryFilter === cat ? 'default' : 'outline'}
+                className="cursor-pointer text-[10px]"
+                onClick={() => setCategoryFilter(cat === categoryFilter ? null : cat)}
+              >
+                {cat} ({count})
+              </Badge>
+            )
+          })}
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3">
+      {/* Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2.5">
         {filtered.map(project => (
           <ProjectCard
             key={project.id}
@@ -164,7 +177,7 @@ export function ProjectList({ projects, taskCounts }: ProjectListProps) {
       </div>
 
       {filtered.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
+        <div className="text-center py-12 text-sm text-muted-foreground">
           No projects found
         </div>
       )}

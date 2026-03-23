@@ -1,6 +1,5 @@
-import { GitBranch, Star, Terminal, Play, Monitor, Clock, FolderOpen, Inbox, Loader, CheckCircle2, ArrowUp, ArrowDown, FilePlus2, FileEdit } from 'lucide-react'
+import { GitBranch, Star, Sparkles, Play, Monitor, Clock, FolderOpen, ArrowUp, ArrowDown, FileEdit } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -41,212 +40,120 @@ export function ProjectCard({ project, taskCounts }: ProjectCardProps) {
     updateProject.mutate({ id: project.id, favorite: !project.favorite })
   }
 
-  // Accent border: yellow if in_progress tasks, red if urgent in inbox
-  const accentBorder = taskCounts?.hasUrgent
-    ? 'border-l-red-500'
-    : taskCounts?.inProgress
-      ? 'border-l-yellow-500'
-      : 'border-l-transparent'
-
-  // Truncate path for display
-  const displayPath = project.path.length > 50
-    ? '...' + project.path.slice(-47)
-    : project.path
+  const changes = (project.gitStaged ?? 0) + (project.gitUnstaged ?? 0) + (project.gitUntracked ?? 0)
+  const activeTasks = (taskCounts?.inbox || 0) + (taskCounts?.inProgress || 0)
 
   return (
-    <Card
-      className={cn(
-        'cursor-pointer hover:border-primary/50 transition-colors group border-l-[3px]',
-        accentBorder
-      )}
+    <div
+      className="rounded-lg border bg-card px-3 py-2.5 cursor-pointer hover:border-primary/40 transition-all group space-y-1.5"
       onClick={() => openTab(project.id)}
     >
-      <CardContent className="p-4 space-y-2.5">
-        {/* Name + favorite */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-base truncate">{project.name}</h3>
-              <button onClick={toggleFavorite} className="shrink-0">
-                <Star className={cn(
-                  'h-4 w-4 transition-colors',
-                  project.favorite
-                    ? 'fill-yellow-500 text-yellow-500'
-                    : 'text-muted-foreground/30 hover:text-yellow-500'
-                )} />
-              </button>
-            </div>
-            {project.category !== 'root' && (
-              <span className="text-xs text-muted-foreground">{project.category}/</span>
+      {/* Name + star + tasks */}
+      <div className="flex items-center gap-1.5">
+        <button onClick={toggleFavorite} className="shrink-0">
+          <Star className={cn(
+            'h-3 w-3 transition-colors',
+            project.favorite
+              ? 'fill-yellow-500 text-yellow-500'
+              : 'text-muted-foreground/20 hover:text-yellow-500'
+          )} />
+        </button>
+        <span className="text-[13px] font-medium truncate flex-1">{project.name}</span>
+        {/* Task dots */}
+        {activeTasks > 0 && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            {(taskCounts?.inProgress || 0) > 0 && (
+              <span className="flex items-center gap-0.5 text-[10px] text-yellow-500/80">
+                <span className="w-1 h-1 rounded-full bg-yellow-500" />
+                {taskCounts!.inProgress}
+              </span>
+            )}
+            {(taskCounts?.inbox || 0) > 0 && (
+              <span className="flex items-center gap-0.5 text-[10px] text-blue-500/60">
+                <span className="w-1 h-1 rounded-full bg-blue-500" />
+                {taskCounts!.inbox}
+              </span>
             )}
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Path */}
-        <p className="text-[11px] text-muted-foreground/50 truncate" title={project.path}>
-          {displayPath}
-        </p>
-
-        {/* Git info: branch + status indicators */}
+      {/* Git + time in one line */}
+      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
         {project.isGitRepo && project.gitBranch && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-            <div className="flex items-center gap-1">
-              <GitBranch className="h-3 w-3 shrink-0" />
-              <span className="truncate">{project.gitBranch}</span>
-            </div>
+          <>
+            <GitBranch className="h-2.5 w-2.5 shrink-0" />
+            <span className="font-mono truncate max-w-[80px]">{project.gitBranch}</span>
             {(project.gitAhead ?? 0) > 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="flex items-center gap-0.5 text-orange-400 cursor-default">
-                    <ArrowUp className="h-3 w-3" />
-                    {project.gitAhead}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>{project.gitAhead} commit{project.gitAhead! > 1 ? 's' : ''} not pushed to remote</TooltipContent>
-              </Tooltip>
+              <span className="text-orange-400 shrink-0"><ArrowUp className="h-2.5 w-2.5 inline" />{project.gitAhead}</span>
             )}
             {(project.gitBehind ?? 0) > 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="flex items-center gap-0.5 text-blue-400 cursor-default">
-                    <ArrowDown className="h-3 w-3" />
-                    {project.gitBehind}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>{project.gitBehind} commit{project.gitBehind! > 1 ? 's' : ''} behind remote (pull needed)</TooltipContent>
-              </Tooltip>
+              <span className="text-blue-400 shrink-0"><ArrowDown className="h-2.5 w-2.5 inline" />{project.gitBehind}</span>
             )}
-            {(project.gitStaged ?? 0) > 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-green-500/50 text-green-500 cursor-default gap-0.5">
-                    <CheckCircle2 className="h-2.5 w-2.5" />
-                    {project.gitStaged} staged
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>{project.gitStaged} file{project.gitStaged! > 1 ? 's' : ''} staged and ready to commit</TooltipContent>
-              </Tooltip>
+            {changes > 0 && (
+              <span className="text-yellow-500 shrink-0"><FileEdit className="h-2.5 w-2.5 inline" />{changes}</span>
             )}
-            {((project.gitUnstaged ?? 0) > 0 || (project.gitUntracked ?? 0) > 0) && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-yellow-500/50 text-yellow-500 cursor-default gap-0.5">
-                    <FileEdit className="h-2.5 w-2.5" />
-                    {(project.gitUnstaged ?? 0) + (project.gitUntracked ?? 0)} changes
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {(project.gitUnstaged ?? 0) > 0 && <span>{project.gitUnstaged} modified</span>}
-                  {(project.gitUnstaged ?? 0) > 0 && (project.gitUntracked ?? 0) > 0 && <span>, </span>}
-                  {(project.gitUntracked ?? 0) > 0 && <span>{project.gitUntracked} untracked</span>}
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </div>
+          </>
         )}
-
-        {/* Last commit */}
         {project.lastCommitDate && (
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <Clock className="h-3 w-3 shrink-0" />
-            <span>{formatDistanceToNow(new Date(project.lastCommitDate), { addSuffix: true })}</span>
-            {project.lastCommitMessage && (
-              <>
-                <span className="text-muted-foreground/30">·</span>
-                <span className="truncate text-muted-foreground/70">
-                  {project.lastCommitMessage.length > 60
-                    ? project.lastCommitMessage.slice(0, 60) + '...'
-                    : project.lastCommitMessage}
-                </span>
-              </>
-            )}
-          </div>
+          <>
+            {project.isGitRepo && <span className="text-muted-foreground/20">·</span>}
+            <Clock className="h-2.5 w-2.5 shrink-0" />
+            <span className="shrink-0">{formatDistanceToNow(new Date(project.lastCommitDate), { addSuffix: true })}</span>
+          </>
         )}
+      </div>
 
-        {/* Tech stack */}
-        {project.techStack.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {project.techStack.slice(0, 5).map(tech => (
-              <Badge key={tech} variant="secondary" className="text-[10px] px-1.5 py-0">
-                {tech}
-              </Badge>
-            ))}
-            {project.techStack.length > 5 && (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                +{project.techStack.length - 5}
-              </Badge>
-            )}
-          </div>
-        )}
-
-        {/* Task counts */}
-        {taskCounts && taskCounts.total > 0 && (
-          <div className="flex items-center gap-3 text-[11px]">
-            {taskCounts.inbox > 0 && (
-              <span className="flex items-center gap-1 text-blue-500">
-                <Inbox className="h-3 w-3" />
-                {taskCounts.inbox}
-              </span>
-            )}
-            {taskCounts.inProgress > 0 && (
-              <span className="flex items-center gap-1 text-yellow-500">
-                <Loader className="h-3 w-3" />
-                {taskCounts.inProgress}
-              </span>
-            )}
-            {taskCounts.done > 0 && (
-              <span className="flex items-center gap-1 text-green-500">
-                <CheckCircle2 className="h-3 w-3" />
-                {taskCounts.done}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Action buttons - always visible, with separator */}
-        <div className="flex items-center gap-1 pt-1 border-t border-border/50">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => handleLaunch(e, 'claude')}>
-                <Terminal className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Open Claude Code in terminal</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => handleLaunch(e, 'dev')}>
-                <Play className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Launch dev server (npm run dev)</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => handleLaunch(e, 'shell')}>
-                <Monitor className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Open terminal in project directory</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={e => {
-                  e.stopPropagation()
-                  openFolder.mutate(project.id, { onSuccess: () => toast.success('Opened folder') })
-                }}
-              >
-                <FolderOpen className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Open in file manager</TooltipContent>
-          </Tooltip>
+      {/* Tech stack */}
+      {project.techStack.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {project.techStack.slice(0, 4).map(tech => (
+            <span key={tech} className="text-[9px] text-muted-foreground/40 bg-muted/50 px-1.5 py-0 rounded">
+              {tech}
+            </span>
+          ))}
+          {project.techStack.length > 4 && (
+            <span className="text-[9px] text-muted-foreground/30">+{project.techStack.length - 4}</span>
+          )}
         </div>
-      </CardContent>
-    </Card>
+      )}
+
+      {/* Quick actions - hover only */}
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity -mb-0.5">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-purple-400" onClick={e => handleLaunch(e, 'claude')}>
+              <Sparkles className="h-2.5 w-2.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Claude Code</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-green-400" onClick={e => handleLaunch(e, 'dev')}>
+              <Play className="h-2.5 w-2.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Dev Server</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={e => handleLaunch(e, 'shell')}>
+              <Monitor className="h-2.5 w-2.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Shell</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-5 w-5"
+              onClick={e => { e.stopPropagation(); openFolder.mutate(project.id, { onSuccess: () => toast.success('Opened') }) }}>
+              <FolderOpen className="h-2.5 w-2.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Open Folder</TooltipContent>
+        </Tooltip>
+      </div>
+    </div>
   )
 }

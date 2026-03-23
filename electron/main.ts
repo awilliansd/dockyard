@@ -52,6 +52,34 @@ mkdirSync(join(DATA_DIR, 'tasks'), { recursive: true });
 const PORT = isDev ? 5420 : 5430;
 let serverProcess: ChildProcess | null = null;
 
+/** HTTP GET health check — resolves true if server responds, false on error */
+function checkServerReady(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const req = http.request(
+      { hostname: '127.0.0.1', port: PORT, path: '/api/settings', method: 'GET', timeout: 1000 },
+      (res) => {
+        res.resume(); // drain response
+        resolve(res.statusCode !== undefined && res.statusCode < 500);
+      },
+    );
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
+    req.end();
+  });
+}
+
+/** Poll the server with HTTP requests until it responds or we give up */
+async function waitForServer(maxAttempts = 30, intervalMs = 500): Promise<void> {
+  for (let i = 0; i < maxAttempts; i++) {
+    if (await checkServerReady()) {
+      console.log(`[Electron] Server confirmed ready (attempt ${i + 1})`);
+      return;
+    }
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  console.log('[Electron] Server health check timed out, proceeding anyway');
+}
+
 function startServer(): Promise<void> {
   return new Promise((res, reject) => {
     lastServerErrorHint = null;
@@ -100,13 +128,6 @@ function startServer(): Promise<void> {
 
     const proc = serverProcess!;
     let started = false;
-    const timeout = setTimeout(() => {
-      if (!started) {
-        started = true;
-        console.log('[Electron] Server ready detection timed out, proceeding anyway');
-        res();
-      }
-    }, 5000);
 
     proc.stdout?.on('data', (data: Buffer) => {
       const msg = data.toString();
@@ -114,8 +135,8 @@ function startServer(): Promise<void> {
       // Match our console.log: "Shipyard server running on http://..."
       if (!started && (msg.includes('running on') || msg.includes(`${PORT}`))) {
         started = true;
-        clearTimeout(timeout);
-        res();
+        // Server reported ready via stdout — confirm with HTTP health check
+        waitForServer(10, 300).then(() => res());
       }
     });
 
@@ -131,7 +152,6 @@ function startServer(): Promise<void> {
       console.error('[Electron] Server spawn error:', err);
       if (!started) {
         started = true;
-        clearTimeout(timeout);
         reject(err);
       }
     });
@@ -141,7 +161,6 @@ function startServer(): Promise<void> {
       serverProcess = null;
       if (!started) {
         started = true;
-        clearTimeout(timeout);
         reject(new Error(`Server exited with code ${code}`));
         return;
       }
@@ -157,6 +176,15 @@ function startServer(): Promise<void> {
         restartServerWithBackoff();
       }
     });
+
+    // Fallback: if stdout never matches, poll with HTTP health checks
+    setTimeout(() => {
+      if (!started) {
+        started = true;
+        console.log('[Electron] Stdout detection timed out, falling back to HTTP polling');
+        waitForServer().then(() => res());
+      }
+    }, 5000);
   });
 }
 
@@ -574,6 +602,17 @@ function createWindow(targetUrl: string) {
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('http')) shell.openExternal(url);
     return { action: 'deny' };
+  });
+
+  // Intercept in-page navigation (e.g. clicking <a href="..."> without target="_blank")
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    // Allow same-origin navigation (e.g. React Router, hash changes)
+    const currentURL = mainWindow?.webContents.getURL() || '';
+    const isSameOrigin = new URL(url).origin === new URL(currentURL).origin;
+    if (!isSameOrigin && url.startsWith('http')) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
   });
 
   // Minimize to tray instead of closing

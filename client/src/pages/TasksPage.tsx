@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Inbox, Loader, CheckCircle2, AlertTriangle, ArrowUp, ArrowDown, Minus, Search, ArrowUpDown, LayoutGrid, List, ChevronDown } from 'lucide-react'
+import { Inbox, Loader, CheckCircle2, AlertTriangle, ArrowUp, ArrowDown, Minus, Search, LayoutGrid, List, ChevronDown } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -15,9 +15,9 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { useAllTasks, useUpdateTask, useDeleteTask, type Task } from '@/hooks/useTasks'
 import { useProjects, type Project } from '@/hooks/useProjects'
@@ -314,144 +314,157 @@ export function TasksPage() {
 
   return (
     <>
-      <Header title="All Tasks" />
-      <div className="flex-1 overflow-hidden p-4 lg:p-6">
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search tasks..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-8 pl-8 text-sm"
-            />
+      <div className="flex-1 overflow-hidden flex flex-col">
+        {/* Page header + filters */}
+        <div className="px-6 py-4 shrink-0">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-sm font-semibold">All Tasks</h1>
+            <div className="flex items-center gap-1">
+              <div className="flex items-center border rounded-md">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => { setViewMode('kanban'); localStorage.setItem('shipyard:view:global', 'kanban') }}
+                      className={cn('p-1.5 rounded-l-md transition-colors', viewMode === 'kanban' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground')}
+                    >
+                      <LayoutGrid className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Kanban view</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => { setViewMode('list'); localStorage.setItem('shipyard:view:global', 'list') }}
+                      className={cn('p-1.5 rounded-r-md transition-colors', viewMode === 'list' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground')}
+                    >
+                      <List className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>List view</TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            {priorities.map(p => {
-              const Icon = p.icon
-              const active = priorityFilters.has(p.key)
-              return (
-                <button
-                  key={p.key}
-                  onClick={() => togglePriority(p.key)}
-                  className={cn(
-                    'flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-medium transition-colors',
-                    active ? p.color : 'border-transparent text-muted-foreground hover:bg-accent'
-                  )}
-                >
-                  <Icon className="h-3 w-3" />
-                  {p.label}
-                </button>
-              )
-            })}
-          </div>
-          <select
-            value={sortBy}
-            onChange={e => {
-              const v = e.target.value as SortOption
-              setSortBy(v)
-              localStorage.setItem('shipyard:sort:global', v)
-            }}
-            className="h-8 text-xs bg-background border rounded px-1.5 cursor-pointer outline-none"
-          >
-            {SORT_OPTIONS.map(o => (
-              <option key={o.key} value={o.key}>{o.label}</option>
-            ))}
-          </select>
-          <div className="flex items-center border rounded-md">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => { setViewMode('kanban'); localStorage.setItem('shipyard:view:global', 'kanban') }}
-                  className={cn('p-1.5 rounded-l-md transition-colors', viewMode === 'kanban' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground')}
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Kanban view</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => { setViewMode('list'); localStorage.setItem('shipyard:view:global', 'list') }}
-                  className={cn('p-1.5 rounded-r-md transition-colors', viewMode === 'list' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground')}
-                >
-                  <List className="h-3.5 w-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>List view</TooltipContent>
-            </Tooltip>
-          </div>
-          {hasFilters && (
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setSearch(''); setPriorityFilters(new Set()) }}>
-              Clear
-            </Button>
-          )}
-        </div>
 
-        {viewMode === 'kanban' ? (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={itemsFirstCollision}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            <div className="grid grid-cols-3 gap-2 lg:gap-4 h-full">
-              {columns.map(col => {
-                const colTasks = grouped[col.key] || []
-                const limit = visibleCounts[col.key] || INITIAL_VISIBLE
-                const visibleTasks = colTasks.slice(0, limit)
-                const hiddenCount = colTasks.length - visibleTasks.length
-                const taskIds = visibleTasks.map(t => t.id)
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[180px] max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search tasks..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 pl-8 text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              {priorities.map(p => {
+                const Icon = p.icon
+                const active = priorityFilters.has(p.key)
                 return (
-                  <DroppableColumn
-                    key={col.key} col={col} count={colTasks.length} taskIds={taskIds}
-                    hiddenCount={hiddenCount}
-                    onShowMore={() => handleShowMore(col.key)}
-                  >
-                    {visibleTasks.length > 0 ? (
-                      visibleTasks.map(task => (
-                        <SortableGlobalTaskItem
-                          key={task.id}
-                          task={task}
-                          project={projectMap.get(task.projectId)}
-                          onEdit={handleEdit}
-                          onView={handleView}
-                        />
-                      ))
-                    ) : (
-                      <div className="text-xs text-muted-foreground/50 py-6 text-center">
-                        No tasks
-                      </div>
+                  <button
+                    key={p.key}
+                    onClick={() => togglePriority(p.key)}
+                    className={cn(
+                      'flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-medium transition-colors',
+                      active ? p.color : 'border-transparent text-muted-foreground hover:bg-accent'
                     )}
-                  </DroppableColumn>
+                  >
+                    <Icon className="h-3 w-3" />
+                    {p.label}
+                  </button>
                 )
               })}
             </div>
+            <Select
+              value={sortBy}
+              onValueChange={(v: SortOption) => {
+                setSortBy(v)
+                localStorage.setItem('shipyard:sort:global', v)
+              }}
+            >
+              <SelectTrigger className="h-8 w-[140px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map(o => (
+                  <SelectItem key={o.key} value={o.key} className="text-xs">{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {hasFilters && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setSearch(''); setPriorityFilters(new Set()) }}>
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
 
-            <DragOverlay dropAnimation={null}>
-              {activeTask && (
-                <div className="opacity-90 rotate-2 max-w-sm">
-                  <TaskItem
-                    task={activeTask}
-                    projectName={projectMap.get(activeTask.projectId)?.name}
-                    showProjectBadge={true}
-                    onEdit={() => {}}
-                  />
-                </div>
-              )}
-            </DragOverlay>
-          </DndContext>
-        ) : (
-          <TaskListView
-            tasks={filteredTasks}
-            showProjectBadge
-            projectMap={projectMap as any}
-            onEdit={handleEdit}
-            onView={handleView}
-          />
-        )}
+        <div className="flex-1 overflow-auto px-6 pb-4 scrollbar-dark">
+          {viewMode === 'kanban' ? (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={itemsFirstCollision}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="grid grid-cols-3 gap-3 h-full">
+                {columns.map(col => {
+                  const colTasks = grouped[col.key] || []
+                  const limit = visibleCounts[col.key] || INITIAL_VISIBLE
+                  const visibleTasks = colTasks.slice(0, limit)
+                  const hiddenCount = colTasks.length - visibleTasks.length
+                  const taskIds = visibleTasks.map(t => t.id)
+                  return (
+                    <DroppableColumn
+                      key={col.key} col={col} count={colTasks.length} taskIds={taskIds}
+                      hiddenCount={hiddenCount}
+                      onShowMore={() => handleShowMore(col.key)}
+                    >
+                      {visibleTasks.length > 0 ? (
+                        visibleTasks.map(task => (
+                          <SortableGlobalTaskItem
+                            key={task.id}
+                            task={task}
+                            project={projectMap.get(task.projectId)}
+                            onEdit={handleEdit}
+                            onView={handleView}
+                          />
+                        ))
+                      ) : (
+                        <div className="text-xs text-muted-foreground/50 py-6 text-center">
+                          No tasks
+                        </div>
+                      )}
+                    </DroppableColumn>
+                  )
+                })}
+              </div>
+
+              <DragOverlay dropAnimation={null}>
+                {activeTask && (
+                  <div className="opacity-90 rotate-2 max-w-sm">
+                    <TaskItem
+                      task={activeTask}
+                      projectName={projectMap.get(activeTask.projectId)?.name}
+                      showProjectBadge={true}
+                      onEdit={() => {}}
+                    />
+                  </div>
+                )}
+              </DragOverlay>
+            </DndContext>
+          ) : (
+            <TaskListView
+              tasks={filteredTasks}
+              showProjectBadge
+              projectMap={projectMap as any}
+              onEdit={handleEdit}
+              onView={handleView}
+            />
+          )}
+        </div>
       </div>
 
       <TaskViewer

@@ -1,12 +1,15 @@
-import { useMemo } from 'react'
-import { Loader, ArrowRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Header } from '@/components/layout/Header'
+import { useState, useMemo } from 'react'
+import { Loader, ArrowRight, FolderSearch, FolderPlus, Rocket, Inbox, CheckCircle2 } from 'lucide-react'
 import { ProjectList } from '@/components/projects/ProjectList'
 import { useProjects, type Project } from '@/hooks/useProjects'
 import { useAllTasks } from '@/hooks/useTasks'
 import { useTabs } from '@/hooks/useTabs'
 import { WelcomeWizard, useOnboarding } from '@/components/onboarding/WelcomeWizard'
+import { FolderBrowser } from '@/components/ui/folder-browser'
+import { Button } from '@/components/ui/button'
+import { api } from '@/lib/api'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import type { TaskCounts } from '@/components/projects/ProjectCard'
 
 export function Dashboard() {
@@ -56,20 +59,98 @@ export function Dashboard() {
       .slice(0, 6)
   }, [tasks, projectMap])
 
+  const [scanBrowserOpen, setScanBrowserOpen] = useState(false)
+  const [addBrowserOpen, setAddBrowserOpen] = useState(false)
+  const [scanning, setScanning] = useState(false)
+  const [scannedProjects, setScannedProjects] = useState<{ path: string; name: string; techStack: string[]; isGitRepo: boolean }[]>([])
+  const queryClient = useQueryClient()
+
+  const handleScanFolder = async (path: string) => {
+    setScanBrowserOpen(false)
+    setScanning(true)
+    try {
+      const { projects: found } = await api.scanDirectory(path)
+      if (found.length === 0) {
+        toast.info('No projects found in that folder')
+      } else {
+        setScannedProjects(found)
+      }
+    } catch {
+      toast.error('Failed to scan folder')
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  const handleAddScanned = async () => {
+    const paths = scannedProjects.map(p => p.path)
+    try {
+      const { projects: added } = await api.addProjects(paths)
+      queryClient.setQueryData(['projects'], added)
+      toast.success(`Added ${added.length} project${added.length > 1 ? 's' : ''}!`)
+      setScannedProjects([])
+    } catch {
+      toast.error('Failed to add projects')
+    }
+  }
+
+  const handleAddFolders = async (paths: string[]) => {
+    setAddBrowserOpen(false)
+    try {
+      const { projects: added } = await api.addProjects(paths)
+      queryClient.setQueryData(['projects'], added)
+      toast.success(`Added ${added.length} project${added.length > 1 ? 's' : ''}!`)
+    } catch {
+      toast.error('Failed to add projects')
+    }
+  }
+
   if (onboarding.shouldShow) {
     return <WelcomeWizard onComplete={onboarding.complete} />
   }
 
+  const hasNoProjects = projects && projects.length === 0
+
+  // Quick stats
+  const totalInbox = tasks?.filter(t => t.status === 'backlog' || t.status === 'todo').length || 0
+  const totalInProgress = tasks?.filter(t => t.status === 'in_progress').length || 0
+  const totalDone = tasks?.filter(t => t.status === 'done').length || 0
+
   return (
     <>
-      <Header title="Shipyard" />
       <div className="flex-1 overflow-y-auto scrollbar-dark">
-        {/* Working On banner */}
-        {workingOn.length > 0 && (
-          <div className="px-4 lg:px-6 2xl:px-8 pt-4 pb-2">
-            <div className="flex items-center gap-3 overflow-x-auto scrollbar-dark pb-1">
+        <div className="px-6 py-5 space-y-4">
+          {/* Header + stats */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h1 className="text-sm font-semibold">Dashboard</h1>
+              {projects && projects.length > 0 && (
+                <span className="text-[11px] text-muted-foreground/40">{projects.length} projects</span>
+              )}
+            </div>
+            {tasks && tasks.length > 0 && (
+              <div className="flex items-center gap-4 text-xs">
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                  {totalInbox} inbox
+                </span>
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+                  {totalInProgress} active
+                </span>
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  {totalDone} done
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Working On banner */}
+          {workingOn.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-dark pb-0.5">
               <div className="flex items-center gap-1.5 shrink-0 text-xs text-yellow-500 font-medium">
-                <Loader className="h-3.5 w-3.5" />
+                <Loader className="h-3 w-3" />
                 Working On
               </div>
               {workingOn.map(task => (
@@ -78,26 +159,98 @@ export function Dashboard() {
                   onClick={() => openTab(task.projectId)}
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-yellow-500/10 hover:bg-yellow-500/20 transition-colors text-xs shrink-0 group"
                 >
-                  <span className="text-muted-foreground">{task.projectName}:</span>
-                  <span className="font-mono text-muted-foreground/60">{task.id}</span>
+                  <span className="text-muted-foreground">{task.projectName}</span>
+                  <span className="text-muted-foreground/30">·</span>
                   <span className="truncate max-w-[200px] 2xl:max-w-[300px]">{task.title}</span>
                   <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
                 </button>
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Main content: ProjectList */}
-        <div className="px-4 lg:px-6 2xl:px-8 py-4">
-          {projects && (
-            <ProjectList
-              projects={projects}
-              taskCounts={taskCountsByProject}
-            />
+          {/* Empty state when no projects */}
+          {hasNoProjects ? (
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="flex flex-col items-center gap-6 max-w-md text-center">
+              <div className="p-4 rounded-full bg-muted">
+                <Rocket className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold mb-2">No projects yet</h2>
+                <p className="text-sm text-muted-foreground">
+                  Add your project folders to start tracking tasks, git status, and more.
+                </p>
+              </div>
+
+              {/* Scanned results */}
+              {scannedProjects.length > 0 && (
+                <div className="w-full space-y-2">
+                  <p className="text-sm text-muted-foreground">Found {scannedProjects.length} project{scannedProjects.length > 1 ? 's' : ''}:</p>
+                  <div className="rounded-md border divide-y max-h-48 overflow-y-auto text-left">
+                    {scannedProjects.map(p => (
+                      <div key={p.path} className="px-3 py-2 text-sm">
+                        <span className="font-medium">{p.name}</span>
+                        {p.techStack.length > 0 && (
+                          <span className="ml-2 text-xs text-muted-foreground">{p.techStack.join(', ')}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 justify-center">
+                    <Button variant="outline" size="sm" onClick={() => setScannedProjects([])}>Cancel</Button>
+                    <Button size="sm" onClick={handleAddScanned}>Add all</Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              {scannedProjects.length === 0 && (
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => setScanBrowserOpen(true)}
+                    disabled={scanning}
+                  >
+                    <FolderSearch className="h-4 w-4" />
+                    {scanning ? 'Scanning...' : 'Scan a folder'}
+                  </Button>
+                  <Button
+                    className="gap-2"
+                    onClick={() => setAddBrowserOpen(true)}
+                  >
+                    <FolderPlus className="h-4 w-4" />
+                    Add project folders
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+          ) : (
+            /* Main content: ProjectList */
+            projects && (
+              <ProjectList
+                projects={projects}
+                taskCounts={taskCountsByProject}
+              />
+            )
           )}
         </div>
       </div>
+
+      <FolderBrowser
+        open={scanBrowserOpen}
+        onOpenChange={setScanBrowserOpen}
+        onSelect={handleScanFolder}
+        title="Select folder to scan for projects"
+      />
+      <FolderBrowser
+        open={addBrowserOpen}
+        onOpenChange={setAddBrowserOpen}
+        onSelectMultiple={handleAddFolders}
+        multiSelect
+        title="Select project folders"
+      />
     </>
   )
 }

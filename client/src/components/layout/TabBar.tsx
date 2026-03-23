@@ -72,7 +72,7 @@ export function TabBar() {
   const navigate = useNavigate()
   const [isAboutOpen, setIsAboutOpen] = useState(false)
 
-  const isHome = location.pathname === '/' || location.pathname === '/tasks' || location.pathname === '/settings'
+  const isHome = location.pathname === '/' || location.pathname === '/tasks' || location.pathname === '/settings' || location.pathname === '/help' || location.pathname === '/logs'
 
   useEffect(() => {
     // @ts-expect-error - electronAPI is injected
@@ -91,8 +91,8 @@ export function TabBar() {
   }, [navigate])
 
   return (
-    <div className="h-9 bg-muted/30 border-b flex items-end px-1 gap-0.5 shrink-0">
-      <div className="flex-1 flex items-end gap-0.5 overflow-x-auto min-w-0">
+    <div className="h-9 bg-muted/30 border-b flex items-end px-1 gap-0.5 shrink-0 overflow-x-auto scrollbar-dark">
+      <div className="flex-1 flex items-end gap-0.5 min-w-0">
         {/* Home tab */}
         <button
           className={cn(

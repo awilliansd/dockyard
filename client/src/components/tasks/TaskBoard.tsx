@@ -109,6 +109,7 @@ interface TaskBoardProps {
   projectPath?: string
   milestoneId?: string
   onMilestoneChange?: (milestoneId: string) => void
+  onOpenSettings?: (tab?: string) => void
 }
 
 interface ColumnConfig {
@@ -282,7 +283,7 @@ function SortableTaskItem({ task, projectName, projectPath, onEdit, onView, onAi
   )
 }
 
-export function TaskBoard({ projectId, projectName, projectPath, milestoneId, onMilestoneChange }: TaskBoardProps) {
+export function TaskBoard({ projectId, projectName, projectPath, milestoneId, onMilestoneChange, onOpenSettings }: TaskBoardProps) {
   const { data: tasks, isLoading } = useTasks(projectId, milestoneId)
   const { isSyncing } = useAutoSync(projectId)
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
@@ -521,29 +522,7 @@ export function TaskBoard({ projectId, projectName, projectPath, milestoneId, on
           )}
         </h2>
         <div className="flex flex-wrap items-center gap-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={handleCsvExport}>
-                <FileSpreadsheet className="h-3.5 w-3.5" />
-                Export CSV
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Export as CSV spreadsheet (for sharing with clients or team)</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={handleCsvImport}>
-                <FileSpreadsheet className="h-3.5 w-3.5" />
-                Import CSV
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Import CSV with diff review — compare and merge changes</TooltipContent>
-          </Tooltip>
-          <div className="w-px h-4 bg-border mx-0.5" />
-          <SyncPanelExports projectId={projectId} tasks={tasks || []} />
-          <div className="w-px h-4 bg-border mx-0.5" />
           <SheetSyncPanel projectId={projectId} tasks={tasks || []} />
-          <div className="w-px h-4 bg-border mx-0.5" />
           <div className="flex items-center border rounded-md">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -568,34 +547,29 @@ export function TaskBoard({ projectId, projectName, projectPath, milestoneId, on
               <TooltipContent>List view</TooltipContent>
             </Tooltip>
           </div>
-          <div className="w-px h-4 bg-border mx-0.5" />
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <select
-                value={sortBy}
-                onChange={e => {
-                  const v = e.target.value as SortOption
-                  setSortBy(v)
-                  localStorage.setItem(`shipyard:sort:${projectId}`, v)
-                }}
-                className="h-7 text-xs bg-background border rounded px-1.5 cursor-pointer outline-none"
-              >
-                {SORT_OPTIONS.map(o => (
-                  <option key={o.key} value={o.key}>{o.label}</option>
-                ))}
-              </select>
-            </TooltipTrigger>
-            <TooltipContent>Sort tasks within columns</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={() => setBulkImportOpen(true)}>
-                <Import className="h-3.5 w-3.5" />
-                Import
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Paste text or list — AI organizes into tasks</TooltipContent>
-          </Tooltip>
+          <select
+            value={sortBy}
+            onChange={e => {
+              const v = e.target.value as SortOption
+              setSortBy(v)
+              localStorage.setItem(`shipyard:sort:${projectId}`, v)
+            }}
+            className="h-7 text-xs bg-background border rounded px-1.5 cursor-pointer outline-none"
+          >
+            {SORT_OPTIONS.map(o => (
+              <option key={o.key} value={o.key}>{o.label}</option>
+            ))}
+          </select>
+          {onOpenSettings && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 text-muted-foreground" onClick={() => onOpenSettings('data')}>
+                  <Import className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Import / Export tasks (CSV, JSON, Markdown)</TooltipContent>
+            </Tooltip>
+          )}
           <Button size="sm" className="h-7 gap-1 text-xs" onClick={handleNew}>
             <Plus className="h-3.5 w-3.5" />
             New Task
