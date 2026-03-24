@@ -398,6 +398,23 @@ export async function gitRoutes(app: FastifyInstance) {
     }
   );
 
+  app.get<{ Params: { projectId: string }; Querystring: { hash: string; subrepo?: string } }>(
+    '/api/projects/:projectId/git/commit-diff',
+    async (request, reply) => {
+      const path = await getProjectPath(request.params.projectId, request.query.subrepo);
+      if (!path) return reply.status(404).send({ error: 'Project not found' });
+      const { hash } = request.query;
+      if (!hash || typeof hash !== 'string') return reply.status(400).send({ error: 'Commit hash is required' });
+
+      try {
+        const result = await gitService.getCommitDiff(path, hash);
+        return result;
+      } catch (err: any) {
+        return reply.status(500).send({ error: err.message });
+      }
+    }
+  );
+
   app.get<{ Params: { projectId: string }; Querystring: { subrepo?: string } }>(
     '/api/projects/:projectId/git/main-commit',
     async (request, reply) => {

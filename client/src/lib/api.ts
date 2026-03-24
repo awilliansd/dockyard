@@ -88,6 +88,10 @@ export const api = {
   checkoutBranch: (projectId: string, branch: string, subrepo?: string) =>
     request<{ success: boolean; branch: string }>(`/projects/${projectId}/git/checkout`, { method: 'POST', body: JSON.stringify({ branch, subrepo }) }),
   getGitMainCommit: (projectId: string, subrepo?: string) => request<{ commit: { hash: string; message: string; date: string; author_name: string; isMerged: boolean } | null }>(`/projects/${projectId}/git/main-commit${subrepo ? `?subrepo=${encodeURIComponent(subrepo)}` : ''}`),
+  getCommitDiff: (projectId: string, hash: string, subrepo?: string) =>
+    request<{ files: { file: string; status: string; additions: number; deletions: number }[]; diff: string }>(
+      `/projects/${projectId}/git/commit-diff?hash=${encodeURIComponent(hash)}${subrepo ? `&subrepo=${encodeURIComponent(subrepo)}` : ''}`
+    ),
   discardFile: (projectId: string, file: string, type: 'staged' | 'unstaged' | 'untracked', subrepo?: string) =>
     request(`/projects/${projectId}/git/discard`, { method: 'POST', body: JSON.stringify({ file, type, subrepo }) }),
   discardAll: (projectId: string, section: 'staged' | 'unstaged', subrepo?: string) =>
