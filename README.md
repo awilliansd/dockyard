@@ -41,7 +41,7 @@
 - **Local-first** -- runs entirely on `localhost`. No cloud services, no accounts, no telemetry. Your data stays on your machine as plain JSON files.
 - **Complements your editor** -- Shipyard is not an IDE. It sits alongside VS Code (or whatever you use) and gives you a bird's-eye view of all your projects, tasks, and git status in one place.
 - **Cross-platform** -- works on Linux, macOS, and Windows. Launches native terminals, file managers, and VS Code with one click.
-- **AI-ready** -- optional Claude integration for task analysis and chat, plus an MCP server so Claude Desktop or Claude Code can read your projects and tasks directly.
+- **AI-ready** -- built-in, provider-agnostic AI assistant (OpenAI, Claude, Gemini, Ollama) for task analysis and file edits, plus an MCP server so external clients can read projects and tasks.
 
 ## Features
 
@@ -51,11 +51,11 @@
 
 **Git Panel** -- Stage, unstage, commit, push, pull, view diffs, and browse commit history without leaving the browser. Live indicators show unpushed commits, unstaged changes, and untracked files.
 
-**Terminal Integration** -- Launch Claude Code, dev servers, shells, VS Code, or your file manager with one click. Optionally run terminals directly in the browser via xterm.js (requires `node-pty`).
+**Terminal Integration** -- Launch dev servers, shells, VS Code, or your file manager with one click. Optionally run terminals directly in the browser via xterm.js (requires `node-pty`).
 
 **File Explorer** -- Browse project files in a tree view with lazy loading. Preview markdown, code, and images in a dialog.
 
-**Claude AI** -- Chat with Claude in the workspace sidebar with full project context (tasks, git, files). AI-powered task analysis generates descriptions and implementation prompts automatically. Requires your own Anthropic API key.
+**AI Assistant (OpenAI, Claude, Gemini, Ollama)** -- Chat in the workspace sidebar with full project context (tasks, git, files) and tool-based file edits. AI-powered task analysis generates descriptions and implementation prompts automatically. Bring your own API key (Ollama runs locally).
 
 **MCP Server** -- Expose Shipyard as a Model Context Protocol server. Claude Desktop, Claude Code, or any MCP client can list projects, manage tasks, and read git status. Secured with OAuth 2.1 + PKCE.
 
@@ -142,7 +142,7 @@ The home screen shows all your registered projects with live git indicators (bra
 Each project opens in a tabbed workspace with two panels:
 
 - **Left (3/4)**: Kanban board with drag-and-drop between Inbox, In Progress, and Done columns
-- **Right (1/4)**: Quick Launch buttons, Claude context tools, file explorer, and Git panel
+- **Right (1/4)**: Quick Launch buttons, AI Assistant, file explorer, and Git panel
 
 ### Task Workflow
 
@@ -191,7 +191,7 @@ All data is stored locally in a `data/` directory as plain JSON files. Nothing i
 
 - **Projects**: registered paths and cached metadata
 - **Tasks**: one JSON file per project
-- **Claude API key**: encrypted with AES-256-GCM on disk, never exposed to the browser
+- **AI provider keys**: encrypted with AES-256-GCM on disk (OpenAI, Claude, Gemini). Ollama is local and does not require a key.
 - **Sync config** (Google Sheets URLs): stored only in your browser's localStorage, not on the server
 
 ### Portability
