@@ -159,10 +159,15 @@ export const api = {
     request<{ tasks: Array<{ title: string; description: string; prompt: string; priority: string; status: string }> }>(
       '/ai/bulk-organize', { method: 'POST', body: JSON.stringify({ projectId, rawText, providerId }) }
     ),
-  assistantChat: (projectId: string, messages: Array<{ role: 'user' | 'assistant'; content: string }>, providerId?: string) =>
-    request<{ message: string; toolCalls: Array<{ name: string; args: Record<string, any>; ok: boolean; result?: any; error?: string }> }>(
+  assistantChat: (projectId: string, messages: Array<{ role: 'user' | 'assistant'; content: string }>, providerId?: string, safeMode?: boolean) =>
+    request<{ message: string; toolCalls: Array<{ name: string; args: Record<string, any>; ok: boolean; result?: any; error?: string }>; pendingToolCalls?: Array<{ name: string; args: Record<string, any>; preview?: string }> }>(
       '/ai/assistant',
-      { method: 'POST', body: JSON.stringify({ projectId, messages, providerId }) , timeout: 120_000 }
+      { method: 'POST', body: JSON.stringify({ projectId, messages, providerId, safeMode }) , timeout: 120_000 }
+    ),
+  assistantApplyTools: (projectId: string, toolCalls: Array<{ name: string; args: Record<string, any> }>) =>
+    request<{ toolCalls: Array<{ name: string; args: Record<string, any>; ok: boolean; result?: any; error?: string }> }>(
+      '/ai/assistant/tools',
+      { method: 'POST', body: JSON.stringify({ projectId, toolCalls }), timeout: 120_000 }
     ),
 
   // Claude AI (Legacy - backward compatibility)

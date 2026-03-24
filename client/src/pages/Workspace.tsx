@@ -58,6 +58,18 @@ export function Workspace() {
     }
   }, [projectId, editor])
 
+  useEffect(() => {
+    if (!projectId) return
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { path: string; name: string; extension: string }
+      if (!detail?.path) return
+      editor.openFile(detail.path, detail.name, detail.extension, '')
+      setWorkspaceMode('editor')
+    }
+    window.addEventListener('shipyard:open-editor-file', handler as EventListener)
+    return () => window.removeEventListener('shipyard:open-editor-file', handler as EventListener)
+  }, [projectId, editor, setWorkspaceMode])
+
   const handleOpenInEditor = useCallback((path: string, name: string, extension: string) => {
     editor.openFile(path, name, extension, '')
     setWorkspaceMode('editor')

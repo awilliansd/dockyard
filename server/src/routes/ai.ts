@@ -4,6 +4,7 @@ import { FastifyInstance } from 'fastify';
 import * as ai from '../services/ai/index.js';
 import { OLLAMA_PROVIDER_ID } from '../services/ai/providers/ollama.js';
 import { runAssistantChat } from '../services/ai/assistantAgent.js';
+import { runAssistantToolCalls } from '../services/ai/assistantTools.js';
 import { buildProjectContext, buildTaskContext } from '../services/claudeContextBuilder.js';
 import * as taskStore from '../services/taskStore.js';
 import * as log from '../services/logService.js';
@@ -190,8 +191,8 @@ export async function aiRoutes(app: FastifyInstance) {
   });
 
   // --- Tool-enabled assistant chat ---
-  app.post<{ Body: { providerId: string; projectId: string; messages: ChatMessage[] } }>('/api/ai/assistant', async (request, reply) => {
-    const { providerId, projectId, messages } = request.body;
+  app.post<{ Body: { providerId: string; projectId: string; messages: ChatMessage[]; safeMode?: boolean } }>('/api/ai/assistant', async (request, reply) => {
+    const { providerId, projectId, messages, safeMode } = request.body;
 
     const definition = ai.getProviderDefinition(providerId);
     if (!definition) {
@@ -204,11 +205,27 @@ export async function aiRoutes(app: FastifyInstance) {
     }
 
     try {
-      const result = await runAssistantChat({ providerId, projectId, messages });
+      const result = await runAssistantChat({ providerId, projectId, messages, safeMode });
       return result;
     } catch (err: any) {
       log.error('ai', `Assistant chat failed for ${providerId}`, err.message, projectId);
       return reply.status(500).send({ error: `Assistant chat failed: ${err.message}` });
+    }
+  });
+
+  // Execute tool calls (safe mode confirmation)
+  app.post<{ Body: { projectId: string; toolCalls: Array<{ name: string; args: Record<string, any> }> } }>('/api/ai/assistant/tools', async (request, reply) => {
+    const { projectId, toolCalls } = request.body;
+    if (!projectId) return reply.status(400).send({ error: 'projectId is required' });
+    if (!Array.isArray(toolCalls) || toolCalls.length === 0) {
+      return reply.status(400).send({ error: 'toolCalls required' });
+    }
+    try {
+      const results = await runAssistantToolCalls(projectId, toolCalls);
+      return { toolCalls: results };
+    } catch (err: any) {
+      log.error('ai', 'Assistant tool execution failed', err.message, projectId);
+      return reply.status(500).send({ error: `Tool execution failed: ${err.message}` });
     }
   });
 }

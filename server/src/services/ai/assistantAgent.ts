@@ -1,5 +1,5 @@
 import type { ChatMessage } from './types.js';
-import { ASSISTANT_TOOLS, runAssistantTool } from './assistantTools.js';
+import { ASSISTANT_TOOLS, runAssistantTool, getWritePreview } from './assistantTools.js';
 import * as ai from './index.js';
 
 export interface ToolCallLog {
@@ -11,6 +11,7 @@ export interface ToolCallLog {
 }
 
 const MAX_TOOL_STEPS = 6;
+const DESTRUCTIVE_TOOLS = new Set(['write_file', 'delete_file', 'rename_file', 'git_commit']);
 
 function buildSystemPrompt(projectId: string) {
   const toolList = ASSISTANT_TOOLS.map(t => `- ${t.name}: ${t.description}`).join('\n');
@@ -65,8 +66,9 @@ export async function runAssistantChat(params: {
   providerId: string;
   projectId: string;
   messages: ChatMessage[];
-}): Promise<{ message: string; toolCalls: ToolCallLog[] }> {
-  const { providerId, projectId } = params;
+  safeMode?: boolean;
+}): Promise<{ message: string; toolCalls: ToolCallLog[]; pendingToolCalls?: Array<{ name: string; args: Record<string, any>; preview?: string }> }> {
+  const { providerId, projectId, safeMode } = params;
   const messages: ChatMessage[] = [...params.messages];
 
   const definition = ai.getProviderDefinition(providerId);
@@ -87,6 +89,30 @@ export async function runAssistantChat(params: {
     const toolRequest = parseToolRequest(responseText);
     if (!toolRequest) {
       return { message: responseText.trim(), toolCalls };
+    }
+
+    if (safeMode) {
+      const destructive = toolRequest.toolCalls.filter(c => DESTRUCTIVE_TOOLS.has(c.name));
+      if (destructive.length > 0) {
+        const pending: Array<{ name: string; args: Record<string, any>; preview?: string }> = [];
+        for (const call of destructive) {
+          if (call.name === 'write_file') {
+            const preview = await getWritePreview(projectId, call.args?.path, call.args?.content);
+            pending.push({
+              name: call.name,
+              args: call.args || {},
+              preview: preview.ok ? preview.data?.preview : `Preview unavailable: ${preview.error || 'unknown error'}`,
+            });
+          } else {
+            pending.push({ name: call.name, args: call.args || {} });
+          }
+        }
+        return {
+          message: 'Pending changes require confirmation.',
+          toolCalls,
+          pendingToolCalls: pending,
+        };
+      }
     }
 
     for (const call of toolRequest.toolCalls) {
