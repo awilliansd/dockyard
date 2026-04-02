@@ -15,7 +15,7 @@ const MAX_TOOL_STEPS = 6;
 function buildSystemPrompt(projectId: string) {
   const toolList = ASSISTANT_TOOLS.map(t => `- ${t.name}: ${t.description}`).join('\n');
   return [
-    'You are Shipyard\'s internal AI assistant. You can read and edit project files using tools.',
+    'You are Dockyard\'s internal AI assistant. You can read and edit project files using tools.',
     'When you need to use a tool, respond ONLY with JSON in one of these formats:',
     '{"tool":"tool_name","args":{...}}',
     '{"tool_calls":[{"name":"tool_name","args":{...}}, ...]}',

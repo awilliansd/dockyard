@@ -2,7 +2,7 @@
 set -e
 
 echo ""
-echo "  Shipyard - Setup"
+echo "  Dockyard - Setup"
 echo "  ────────────────"
 echo ""
 
@@ -44,7 +44,7 @@ mkdir -p data/tasks
 echo ""
 echo "  [ok] Setup complete!"
 echo ""
-echo "  Run Shipyard:"
+echo "  Run Dockyard:"
 echo "    pnpm dev          Start dev server (http://localhost:5421)"
 echo "    ./shipyard.sh      Start + open browser (Linux/macOS)"
 echo ""
@@ -63,7 +63,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
   if [ -n "$SHELL_RC" ]; then
     SHIPYARD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     echo "" >> "$SHELL_RC"
-    echo "# Shipyard" >> "$SHELL_RC"
+echo "# Dockyard" >> "$SHELL_RC"
     echo "alias shipyard='cd \"$SHIPYARD_DIR\" && ./shipyard.sh'" >> "$SHELL_RC"
     echo "  [ok] Alias added to $SHELL_RC"
     echo "  Run 'source $SHELL_RC' or open a new terminal, then type 'shipyard'"
@@ -82,7 +82,7 @@ if command -v xdg-open &>/dev/null && [ -d "$HOME/.local/share/applications" ]; 
     SHIPYARD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     cat > "$HOME/.local/share/applications/shipyard.desktop" << DESKTOP
 [Desktop Entry]
-Name=Shipyard
+Name=Dockyard
 Comment=Local Development Dashboard
 Exec=bash -c 'cd "$SHIPYARD_DIR" && ./shipyard.sh'
 Icon=$SHIPYARD_DIR/client/public/favicon.svg
@@ -90,7 +90,7 @@ Terminal=true
 Type=Application
 Categories=Development;
 DESKTOP
-    echo "  [ok] Desktop shortcut created. Search 'Shipyard' in your app launcher."
+echo "  [ok] Desktop shortcut created. Search 'Dockyard' in your app launcher."
   fi
 fi
 

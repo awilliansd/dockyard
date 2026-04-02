@@ -54,7 +54,7 @@ export function Settings() {
 
     const data: Record<string, any> = {
       exportedAt: new Date().toISOString(),
-      source: 'shipyard',
+  source: 'dockyard',
       version: 1,
     }
 
@@ -72,7 +72,7 @@ export function Settings() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `shipyard-backup-${new Date().toISOString().slice(0, 10)}.json`
+  a.download = `dockyard-backup-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
 
@@ -458,7 +458,7 @@ export function Settings() {
                     <div className="space-y-3">
                       <p className="text-xs font-medium text-muted-foreground">Import</p>
                       <p className="text-xs text-muted-foreground">
-                        Upload a Shipyard backup file. Settings and tasks will be merged with existing data.
+                  Upload a Dockyard backup file. Settings and tasks will be merged with existing data.
                       </p>
                       <Button onClick={handleImport} disabled={importing} className="gap-2" variant="outline" size="sm">
                         {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}

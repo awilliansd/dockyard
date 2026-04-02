@@ -28,7 +28,7 @@ function buildAiContext(projectName: string, projectPath: string, projectId: str
   const lines = [
     `Project: ${projectName}`,
     `Project path: ${projectPath}`,
-    `Shipyard tasks file: ${tasksFile}`,
+    `Dockyard tasks file: ${tasksFile}`,
     '',
   ]
 
@@ -171,7 +171,7 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
                     : 'Copies project info + tasks to clipboard, then opens your AI assistant. Just paste to give context.'
                 ) : (
                   mcpActive
-                    ? 'MCP is enabled. Open your AI assistant and connect to Shipyard.'
+                    ? 'MCP is enabled. Open your AI assistant and connect to Dockyard.'
                     : 'Copies project info + tasks to clipboard. Open your AI assistant and paste it.'
                 )}
               </p>

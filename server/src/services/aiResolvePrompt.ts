@@ -58,7 +58,7 @@ export function buildAiResolvePrompt(
   lines.push('');
 
   lines.push('## CRITICAL — YOU MUST DO THIS WHEN FINISHED:');
-  lines.push('After committing your changes, you MUST update the task status to "done" via the Shipyard API.');
+  lines.push('After committing your changes, you MUST update the task status to "done" via the Dockyard API.');
   lines.push('This is NOT optional — if you skip this step, the task will be stuck as in-progress.');
   lines.push('');
   lines.push('Run this curl command:');

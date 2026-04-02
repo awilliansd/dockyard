@@ -20,7 +20,7 @@ export function Header({ project, title }: HeaderProps) {
         </Button>
       )}
       <div className="flex-1 min-w-0">
-        <h1 className="text-sm font-semibold truncate">{project?.name || title || 'Shipyard'}</h1>
+        <h1 className="text-sm font-semibold truncate">{project?.name || title || 'Dockyard'}</h1>
         {project && (
           <p className="text-xs text-muted-foreground truncate">{project.path}</p>
         )}

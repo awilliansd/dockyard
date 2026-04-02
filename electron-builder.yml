@@ -1,6 +1,6 @@
-appId: com.shipyard.dev
-productName: Shipyard
-copyright: Copyright © 2026 Shipyard Contributors. Apache-2.0
+appId: com.dockyard.dev
+productName: Dockyard
+copyright: Copyright © 2026 Dockyard Contributors. Apache-2.0
 
 directories:
   output: release
@@ -44,8 +44,8 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: Shipyard
-  uninstallDisplayName: Shipyard
+  shortcutName: Dockyard
+  uninstallDisplayName: Dockyard
 
 mac:
   target:
@@ -56,7 +56,7 @@ mac:
   artifactName: "${productName}-${version}-${arch}.${ext}"
 
 dmg:
-  title: Shipyard
+  title: Dockyard
   contents:
     - x: 130
       y: 220
@@ -74,13 +74,13 @@ linux:
   icon: assets/icon.png
   category: Development
   artifactName: "${productName}-${version}.${ext}"
-  executableName: shipyard
+  executableName: dockyard
   desktop:
     entry:
-      Name: Shipyard
+      Name: Dockyard
       Comment: Local Development Dashboard
       Categories: Development;IDE;
-      StartupWMClass: shipyard
+      StartupWMClass: dockyard
 
 appImage:
   license: LICENSE

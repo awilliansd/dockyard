@@ -74,7 +74,7 @@ export async function aiRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: `Provider '${providerId}' is not configured.` });
     }
 
-    let systemPrompt = 'You are a helpful AI assistant integrated into Shipyard, a local development dashboard. You help with project management, task analysis, and development questions. Be concise and actionable.';
+    let systemPrompt = 'You are a helpful AI assistant integrated into Dockyard, a local development dashboard. You help with project management, task analysis, and development questions. Be concise and actionable.';
     if (projectId) {
       const context = await buildProjectContext(projectId);
       systemPrompt += `\n\nProject Context:\n${context}`;

@@ -1,4 +1,4 @@
-# Shipyard - Local Development Dashboard
+# Dockyard - Local Development Dashboard
 
 Dashboard web local (localhost) para gerenciamento de projetos, tarefas, git, terminais e AI. Complementa o VS Code.
 

@@ -63,7 +63,7 @@ export function McpSettingsCard() {
           )}
         </CardTitle>
         <CardDescription>
-          Expose Shipyard as an MCP server so MCP clients (e.g., Claude Desktop / Claude Code) can read projects, manage tasks, and view git status.
+          Expose Dockyard as an MCP server so MCP clients (e.g., Claude Desktop / Claude Code) can read projects, manage tasks, and view git status.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

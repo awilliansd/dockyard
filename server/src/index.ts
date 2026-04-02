@@ -106,7 +106,7 @@ try {
   log.info('server', `Terminal integration: ${termOk ? 'available' : 'disabled (node-pty not found)'}`);
   if (IS_ELECTRON) log.info('server', 'Mode: Electron embedded');
 
-  console.log(`Shipyard server running on http://${HOST}:${PORT}`);
+console.log(`Dockyard server running on http://${HOST}:${PORT}`);
   console.log(`Terminal integration: ${termOk ? 'available' : 'disabled (node-pty not found)'}`);
   console.log(`AI Providers: check /api/ai/providers`);
   console.log(`MCP Server: endpoint at /mcp (configure in Settings)`);

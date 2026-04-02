@@ -1,17 +1,17 @@
 {
-  "name": "shipyard",
+  "name": "dockyard",
   "version": "1.4.6",
   "description": "Local development dashboard for managing projects, tasks, git, and terminals",
   "author": {
-    "name": "Shipyard Contributors",
+    "name": "Dockyard Contributors",
     "email": "adcoderio@gmail.com"
   },
   "main": "electron/dist/main.js",
   "scripts": {
-    "dev": "concurrently -n server,client -c blue,green \"pnpm --filter shipyard-server dev\" \"pnpm --filter shipyard-client dev\"",
-    "dev:electron": "concurrently -n electron,client -c cyan,green \"pnpm electron:dev\" \"pnpm --filter shipyard-client dev\"",
-    "build": "pnpm --filter shipyard-client build && pnpm --filter shipyard-server build && pnpm electron:build",
-    "start": "pnpm --filter shipyard-server start",
+    "dev": "concurrently -n server,client -c blue,green \"pnpm --filter dockyard-server dev\" \"pnpm --filter dockyard-client dev\"",
+    "dev:electron": "concurrently -n electron,client -c cyan,green \"pnpm electron:dev\" \"pnpm --filter dockyard-client dev\"",
+    "build": "pnpm --filter dockyard-client build && pnpm --filter dockyard-server build && pnpm electron:build",
+    "start": "pnpm --filter dockyard-server start",
     "electron:build": "cd electron && npx tsc",
     "electron:dev": "cd electron && npx tsc && cross-env VITE_DEV_SERVER=http://localhost:5421 electron ../electron/dist/main.js",
     "electron:start": "electron .",
