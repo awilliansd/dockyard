@@ -16,8 +16,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/awilliansd/Shipyard/releases/latest"><img src="https://img.shields.io/github/v/release/awilliansd/Shipyard?style=flat-square&label=download" alt="Download" /></a>
-  <a href="https://github.com/awilliansd/Shipyard"><img src="https://img.shields.io/github/stars/awilliansd/Shipyard?style=flat-square" alt="Stars" /></a>
+  <a href="https://github.com/awilliansd/Dockyard/releases/latest"><img src="https://img.shields.io/github/v/release/awilliansd/Dockyard?style=flat-square&label=download" alt="Download" /></a>
+  <a href="https://github.com/awilliansd/Dockyard"><img src="https://img.shields.io/github/stars/awilliansd/Dockyard?style=flat-square" alt="Stars" /></a>
   <img src="https://img.shields.io/badge/react-18-61dafb?style=flat-square&logo=react&logoColor=white" alt="React 18" />
   <img src="https://img.shields.io/badge/fastify-5-000000?style=flat-square&logo=fastify&logoColor=white" alt="Fastify 5" />
   <img src="https://img.shields.io/badge/typescript-5-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript 5" />
@@ -27,13 +27,13 @@
 ---
 
 <p align="center">
-  <a href="https://github.com/awilliansd/Shipyard/releases/latest"><img src="https://img.shields.io/badge/Windows-.exe-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" /></a>&nbsp;
-  <a href="https://github.com/awilliansd/Shipyard/releases/latest"><img src="https://img.shields.io/badge/macOS-.dmg-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS" /></a>&nbsp;
-  <a href="https://github.com/awilliansd/Shipyard/releases/latest"><img src="https://img.shields.io/badge/Linux-.AppImage | .deb-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Download for Linux" /></a>
+  <a href="https://github.com/awilliansd/Dockyard/releases/latest"><img src="https://img.shields.io/badge/Windows-.exe-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" /></a>&nbsp;
+  <a href="https://github.com/awilliansd/Dockyard/releases/latest"><img src="https://img.shields.io/badge/macOS-.dmg-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS" /></a>&nbsp;
+  <a href="https://github.com/awilliansd/Dockyard/releases/latest"><img src="https://img.shields.io/badge/Linux-.AppImage | .deb-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Download for Linux" /></a>
 </p>
 
 <p align="center">
-  <img src="assets/shipyard-gif.gif" alt="Dockyard — workspace with kanban board, terminal, and git panel" width="100%" />
+  <img src="assets/dockyard-gif.gif" alt="Dockyard — workspace with kanban board, terminal, and git panel" width="100%" />
 </p>
 
 ## Why Dockyard
@@ -69,7 +69,7 @@
 
 ## Download
 
-Pre-built desktop installers are available on the [Releases](https://github.com/awilliansd/Shipyard/releases/latest) page:
+Pre-built desktop installers are available on the [Releases](https://github.com/awilliansd/Dockyard/releases/latest) page:
 
 | Platform | File |
 |----------|------|
@@ -91,8 +91,8 @@ Or run from source:
 ### Install and Run
 
 ```bash
-git clone https://github.com/awilliansd/Shipyard.git
-cd Shipyard
+git clone https://github.com/awilliansd/Dockyard.git
+cd Dockyard
 pnpm install
 pnpm dev
 ```
@@ -113,14 +113,14 @@ The setup scripts install dependencies and optionally create launch shortcuts:
 | OS | Command | Description |
 |----|---------|-------------|
 | Any | `pnpm dev` | Starts client (port 5421) + server (port 5420) |
-| Linux / macOS | `./devdash.sh` | Starts server and opens browser |
-| Windows | `devdash.cmd` | Starts server and opens browser |
+| Linux / macOS | `./dockyard.sh` | Starts server and opens browser |
+| Windows | `dockyard.cmd` | Starts server and opens browser |
 
 **Shell alias** (Linux/macOS):
 
 ```bash
 # Add to ~/.bashrc or ~/.zshrc
-alias shipyard='cd /path/to/Shipyard && ./devdash.sh'
+alias dockyard='cd /path/to/Dockyard && ./dockyard.sh'
 ```
 
 ### Integrated Terminal (optional)
@@ -300,7 +300,7 @@ function onEdit(e) {
 ## Project Structure
 
 ```
-shipyard/
+dockyard/
 ├── client/                  # Frontend (port 5421)
 │   ├── src/
 │   │   ├── components/      # UI components (shadcn/ui)
@@ -316,8 +316,8 @@ shipyard/
 ├── data/                    # Local data (auto-created, gitignored)
 ├── setup.sh                 # Linux/macOS setup
 ├── setup.cmd                # Windows setup
-├── devdash.sh               # Linux/macOS launcher
-└── devdash.cmd              # Windows launcher
+├── dockyard.sh              # Linux/macOS launcher
+└── dockyard.cmd             # Windows launcher
 ```
 
 ## Contributing
@@ -338,11 +338,11 @@ npx shadcn@latest add <component>
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=awilliansd%2FShipyard&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=awilliansd%2FDockyard&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=awilliansd/Shipyard&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=awilliansd/Shipyard&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=awilliansd/Shipyard&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=awilliansd/Dockyard&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=awilliansd/Dockyard&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=awilliansd/Dockyard&type=date&legend=top-left" />
  </picture>
 </a>
 

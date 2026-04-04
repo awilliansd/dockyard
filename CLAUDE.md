@@ -6,8 +6,8 @@ Dashboard web local (localhost) para gerenciamento de projetos, tarefas, git, te
 
 ```bash
 pnpm dev          # client (5421) + server (5420)
-shipyard.cmd      # Windows: batch file na raiz
-./shipyard.sh     # Linux: server + browser
+dockyard.cmd      # Windows: launcher
+./dockyard.sh     # Linux: launcher + abre browser
 ```
 
 ## Stack
@@ -144,12 +144,12 @@ Os timestamps sao cascading — etapas posteriores preenchem as anteriores autom
 
 ### Electron
 - Server roda como child process via spawn (`ELECTRON_RUN_AS_NODE=1`)
-- Data path: `SHIPYARD_DATA_DIR` env var → AppData em prod, ./data em dev
+- Data path: `%APPDATA%/Dockyard/data` em prod, `./data` em dev
 - Centralizado em `server/src/services/dataDir.ts`
 - asar desabilitado, afterPack reinstala deps via npm (pnpm symlinks nao sobrevivem)
 
 ### Google Sheets Sync
-- Config em **localStorage** apenas (`shipyard:sync:{projectId}`) — backend e proxy stateless
+- Config em **localStorage** apenas (`dockyard:sync:{projectId}`) — backend e proxy stateless
 - URL validada: so permite `https://script.google.com/macros/s/...`
 - Auto-push: debounce 2s apos mutations; auto-pull: polling 30s com merge bidirecional
 - Anti-loop: `lastPushAt` guard impede pull nos 10s apos push
@@ -157,7 +157,7 @@ Os timestamps sao cascading — etapas posteriores preenchem as anteriores autom
 ### Milestones
 - "General" e virtual (nao armazenado) — tasks sem milestoneId pertencem a ele
 - Deletar milestone move tasks para "General"
-- Milestone ativo em localStorage: `shipyard:milestone:{projectId}`
+- Milestone ativo em localStorage: `dockyard:milestone:{projectId}`
 
 ## Regras para Contribuicao
 
