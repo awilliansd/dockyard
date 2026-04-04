@@ -73,8 +73,8 @@ export function CommitForm({ projectId, hasStagedChanges, subrepo }: CommitFormP
           value={message}
           onChange={e => setMessage(e.target.value)}
           placeholder="Commit message..."
-          className="text-sm min-h-[36px] max-h-[120px] resize-none"
-          rows={1}
+          className="text-sm min-h-[60px] max-h-[200px] resize-y"
+          rows={2}
           onKeyDown={e => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault()
@@ -84,7 +84,7 @@ export function CommitForm({ projectId, hasStagedChanges, subrepo }: CommitFormP
           onInput={e => {
             const el = e.target as HTMLTextAreaElement
             el.style.height = 'auto'
-            el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+            el.style.height = Math.min(el.scrollHeight, 200) + 'px'
           }}
         />
         <Button

@@ -44,6 +44,15 @@ export function useGitBranches(projectId: string | undefined, subrepo?: string) 
   })
 }
 
+export function useCommitDiff(projectId: string | undefined, hash: string | undefined, subrepo?: string) {
+  return useQuery({
+    queryKey: ['commit-diff', projectId, hash, subrepo],
+    queryFn: () => api.getCommitDiff(projectId!, hash!, subrepo),
+    enabled: !!projectId && !!hash,
+    staleTime: Infinity, // commit diffs don't change
+  })
+}
+
 export function useGitMainCommit(projectId: string | undefined, currentBranch?: string, subrepo?: string) {
   const isNotMain = !!currentBranch && currentBranch !== 'main' && currentBranch !== 'master'
   return useQuery({

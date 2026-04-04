@@ -166,6 +166,29 @@ export async function undoLastCommit(projectPath: string): Promise<void> {
   await git.reset(['--soft', 'HEAD~1']);
 }
 
+export async function getCommitDiff(projectPath: string, hash: string): Promise<{ files: { file: string; status: string; additions: number; deletions: number }[]; diff: string }> {
+  const git = getGit(projectPath);
+  // Get list of changed files with stats
+  const nameStatus = await git.raw(['diff-tree', '--no-commit-id', '-r', '--name-status', hash]);
+  const numstat = await git.raw(['diff-tree', '--no-commit-id', '-r', '--numstat', hash]);
+  const diff = await git.raw(['diff-tree', '-p', '--no-commit-id', '-r', hash]);
+
+  const statusLines = nameStatus.trim().split('\n').filter(Boolean);
+  const statLines = numstat.trim().split('\n').filter(Boolean);
+
+  const files = statusLines.map((line, i) => {
+    const [status, ...fileParts] = line.split('\t');
+    const file = fileParts.join('\t'); // handle renames with tab
+    const statParts = statLines[i]?.split('\t') || [];
+    const additions = parseInt(statParts[0]) || 0;
+    const deletions = parseInt(statParts[1]) || 0;
+    const statusMap: Record<string, string> = { M: 'M', A: 'A', D: 'D', R: 'R', C: 'C' };
+    return { file, status: statusMap[status.charAt(0)] || status.charAt(0), additions, deletions };
+  });
+
+  return { files, diff };
+}
+
 export async function getMainBranchLastCommit(projectPath: string): Promise<{ hash: string; message: string; date: string; author_name: string; isMerged: boolean } | null> {
   const git = getGit(projectPath);
   try {

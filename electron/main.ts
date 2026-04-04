@@ -597,6 +597,7 @@ function createWindow(targetUrl: string) {
   });
 
   loadWindowWithRetry(mainWindow, targetUrl);
+  loadWindowWithRetry(mainWindow, targetUrl);
 
   // Open external links in default browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { FileChange } from './FileChange'
 import { CommitForm } from './CommitForm'
+import { CommitDetailDialog } from './CommitDetailDialog'
 import { useGitStatus, useGitLog, useGitMainCommit, useGitBranches, useCheckoutBranch, useStageAll, useUnstageAll, useGitPush, useGitPull, useDiscardAll, useUndoCommit } from '@/hooks/useGit'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -37,6 +38,7 @@ function SingleRepoPanel({ projectId, subrepo, onOpenInEditor, onOpenDiffInEdito
   const [confirmDiscard, setConfirmDiscard] = useState<'staged' | 'unstaged' | null>(null)
   const [confirmUndo, setConfirmUndo] = useState(false)
   const [expandedCommit, setExpandedCommit] = useState<string | null>(null)
+  const [selectedCommit, setSelectedCommit] = useState<{ hash: string; message: string; author_name: string; date: string } | null>(null)
 
   if (isLoading || !status) {
     return <div className="text-sm text-muted-foreground p-4">Loading git status...</div>
@@ -285,6 +287,15 @@ function SingleRepoPanel({ projectId, subrepo, onOpenInEditor, onOpenDiffInEdito
       {/* Commit form */}
       <CommitForm key={`${projectId}-${subrepo || ''}`} projectId={projectId} hasStagedChanges={hasStagedChanges} subrepo={subrepo} />
 
+      {/* Commit detail dialog */}
+      <CommitDetailDialog
+        open={!!selectedCommit}
+        onOpenChange={(open) => { if (!open) setSelectedCommit(null) }}
+        projectId={projectId}
+        commit={selectedCommit}
+        subrepo={subrepo}
+      />
+
       {/* Recent commits */}
       {commits.length > 0 && (
         <div className="space-y-1 pt-2 border-t">
@@ -322,14 +333,11 @@ function SingleRepoPanel({ projectId, subrepo, onOpenInEditor, onOpenDiffInEdito
                   'flex items-start gap-1.5 py-1 rounded hover:bg-accent/30 transition-colors px-1 cursor-pointer',
                   unpushed && 'border-l-2 border-yellow-500 pl-1.5'
                 )}
-                onClick={() => setExpandedCommit(expandedCommit === commit.hash ? null : commit.hash)}
+                onClick={() => setSelectedCommit({ hash: commit.hash, message: commit.message, author_name: commit.author_name, date: commit.date })}
               >
                 <GitCommit className={cn('h-3 w-3 mt-0.5 shrink-0', unpushed ? 'text-yellow-500' : 'text-muted-foreground/50')} />
                 <div className="flex-1 min-w-0">
-                  <p className={cn(
-                    'text-[11px] leading-tight',
-                    expandedCommit === commit.hash ? 'whitespace-pre-wrap break-words' : 'truncate'
-                  )}>{commit.message}</p>
+                  <p className="text-[11px] leading-tight truncate">{commit.message}</p>
                   <p className="text-[9px] text-muted-foreground/60">
                     {commit.author_name} &middot; {(() => {
                       try { return formatDistanceToNow(new Date(commit.date), { addSuffix: true }) }
