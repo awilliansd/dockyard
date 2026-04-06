@@ -18,8 +18,8 @@ interface PersistedTab {
   extension: string
 }
 
-const STORAGE_KEY = (projectId: string) => `shipyard:editor-tabs:${projectId}`
-const ACTIVE_KEY = (projectId: string) => `shipyard:editor-active-tab:${projectId}`
+const STORAGE_KEY = (projectId: string) => `dockyard:editor-tabs:${projectId}`
+const ACTIVE_KEY = (projectId: string) => `dockyard:editor-active-tab:${projectId}`
 
 function loadPersistedTabs(projectId: string): PersistedTab[] {
   try {

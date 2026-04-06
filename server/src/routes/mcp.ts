@@ -92,7 +92,7 @@ export async function mcpRoutes(app: FastifyInstance) {
       grant_types_supported: ['authorization_code', 'refresh_token'],
       code_challenge_methods_supported: ['S256'],
       token_endpoint_auth_methods_supported: ['none', 'client_secret_post'],
-      scopes_supported: ['shipyard:read', 'shipyard:write'],
+      scopes_supported: ['dockyard:read', 'dockyard:write'],
     };
   });
 
@@ -178,7 +178,7 @@ export async function mcpRoutes(app: FastifyInstance) {
     <form method="POST" action="/authorize">
       <input type="hidden" name="client_id" value="${client_id}" />
       <input type="hidden" name="redirect_uri" value="${redirect_uri}" />
-      <input type="hidden" name="scope" value="${scope || 'shipyard:read shipyard:write'}" />
+      <input type="hidden" name="scope" value="${scope || 'dockyard:read dockyard:write'}" />
       <input type="hidden" name="state" value="${state || ''}" />
       <input type="hidden" name="code_challenge" value="${code_challenge}" />
       <input type="hidden" name="code_challenge_method" value="${code_challenge_method}" />
@@ -226,7 +226,7 @@ export async function mcpRoutes(app: FastifyInstance) {
       body.code_challenge || '',
       body.code_challenge_method || 'S256',
       body.redirect_uri,
-      body.scope || 'shipyard:read shipyard:write',
+      body.scope || 'dockyard:read dockyard:write',
     );
 
     const redirectUri = new URL(body.redirect_uri);
@@ -354,7 +354,7 @@ async function handleJsonRpc(msg: any) {
           tools: { listChanged: false },
           resources: { subscribe: false, listChanged: false },
         },
-        serverInfo: { name: 'shipyard', version: '1.0.0' },
+        serverInfo: { name: 'dockyard', version: '1.0.0' },
       });
 
     case 'notifications/initialized':
@@ -390,14 +390,14 @@ async function handleJsonRpc(msg: any) {
     case 'resources/list':
       return jsonRpcResponse(id, {
         resources: [
-          { uri: 'shipyard://projects', name: 'All Projects', mimeType: 'application/json' },
-          { uri: 'shipyard://tasks/all', name: 'All Tasks', mimeType: 'application/json' },
+          { uri: 'dockyard://projects', name: 'All Projects', mimeType: 'application/json' },
+          { uri: 'dockyard://tasks/all', name: 'All Tasks', mimeType: 'application/json' },
         ],
       });
 
     case 'resources/read': {
       const uri = params?.uri;
-      if (uri === 'shipyard://projects') {
+      if (uri === 'dockyard://projects') {
         const { getProjects } = await import('../services/projectDiscovery.js');
         const projects = await getProjects();
         // Slim: only essential fields to save tokens
@@ -406,7 +406,7 @@ async function handleJsonRpc(msg: any) {
           contents: [{ uri, text: JSON.stringify(slim), mimeType: 'application/json' }],
         });
       }
-      if (uri === 'shipyard://tasks/all') {
+      if (uri === 'dockyard://tasks/all') {
         const tasks = await import('../services/taskStore.js');
         const all = await tasks.getAllTasks();
         // Slim: omit description/prompt (use get_task tool for full details)
@@ -422,7 +422,7 @@ async function handleJsonRpc(msg: any) {
       return jsonRpcResponse(id, {
         resourceTemplates: [
           {
-            uriTemplate: 'shipyard://projects/{projectId}/tasks',
+            uriTemplate: 'dockyard://projects/{projectId}/tasks',
             name: 'Project Tasks',
             mimeType: 'application/json',
           },

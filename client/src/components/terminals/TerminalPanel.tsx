@@ -25,11 +25,11 @@ interface GlobalTab {
   taskNumber?: number
 }
 
-const PANEL_HEIGHT_KEY = 'shipyard:terminal-height'
-const PANEL_VISIBLE_KEY = 'shipyard:terminal-visible'
-const TABS_STORAGE_KEY = 'shipyard:terminal-tabs'
-const ACTIVE_TAB_KEY = 'shipyard:terminal-active-tab'
-const SPLIT_SESSION_KEY = 'shipyard:terminal-split-session'
+const PANEL_HEIGHT_KEY = 'dockyard:terminal-height'
+const PANEL_VISIBLE_KEY = 'dockyard:terminal-visible'
+const TABS_STORAGE_KEY = 'dockyard:terminal-tabs'
+const ACTIVE_TAB_KEY = 'dockyard:terminal-active-tab'
+const SPLIT_SESSION_KEY = 'dockyard:terminal-split-session'
 const MIN_HEIGHT = 150
 const MAX_HEIGHT_RATIO = 0.7
 const DEFAULT_HEIGHT = 300
@@ -517,13 +517,13 @@ export function TerminalPanel() {
     )
   }, [launchNative])
 
-  // Listen for shipyard:open-terminal events (from TerminalLauncher) for ANY project
+  // Listen for dockyard:open-terminal events (from TerminalLauncher) for ANY project
   useEffect(() => {
     const handler = (e: CustomEvent<{ projectId: string; type: string; taskId?: string; taskNumber?: number; prompt?: string }>) => {
       handleNewTab(e.detail.type, e.detail.projectId, e.detail.taskId, e.detail.prompt, e.detail.taskNumber)
     }
-    window.addEventListener('shipyard:open-terminal' as any, handler as any)
-    return () => window.removeEventListener('shipyard:open-terminal' as any, handler as any)
+    window.addEventListener('dockyard:open-terminal' as any, handler as any)
+    return () => window.removeEventListener('dockyard:open-terminal' as any, handler as any)
   }, [handleNewTab])
 
   // Don't render if terminal not available

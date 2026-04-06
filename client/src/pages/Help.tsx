@@ -906,7 +906,7 @@ function SectionMcp() {
       <InfoBox>
         <pre className="text-[11px]">{`{
   "mcpServers": {
-    "shipyard": {
+    "dockyard": {
       "url": "http://localhost:${window.location.port || 5420}/mcp"
     }
   }
@@ -918,7 +918,7 @@ function SectionMcp() {
         Run this command or add to <code className="bg-muted px-1 rounded">.claude/settings.json</code>:
       </P>
       <InfoBox>
-        <p><code className="bg-muted px-1 rounded">{`claude mcp add shipyard --transport http --url http://localhost:${window.location.port || 5420}/mcp`}</code></p>
+        <p><code className="bg-muted px-1 rounded">{`claude mcp add dockyard --transport http --url http://localhost:${window.location.port || 5420}/mcp`}</code></p>
       </InfoBox>
 
       <H3>Available Tools</H3>

@@ -46,7 +46,7 @@ export function ProjectSettingsDialog({ project, open, onOpenChange, defaultTab 
   const linkLabelRef = useRef<HTMLInputElement>(null)
   const [externalLink, setExternalLink] = useState(project.externalLink || '')
   const [skipPermissions, setSkipPermissions] = useState(() => {
-    try { return localStorage.getItem('shipyard:skipPermissions') === 'true' } catch { return false }
+    try { return localStorage.getItem('dockyard:skipPermissions') === 'true' } catch { return false }
   })
   const [activeTab, setActiveTab] = useState(defaultTab || 'general')
   const { data: tasks } = useTasks(project.id)
@@ -343,7 +343,7 @@ export function ProjectSettingsDialog({ project, open, onOpenChange, defaultTab 
                   onClick={() => {
                     const next = !skipPermissions
                     setSkipPermissions(next)
-                    localStorage.setItem('shipyard:skipPermissions', String(next))
+                    localStorage.setItem('dockyard:skipPermissions', String(next))
                   }}
                   className="flex items-center justify-between w-full px-3 py-2.5 rounded-md border hover:bg-accent/50 transition-colors"
                 >
@@ -480,7 +480,7 @@ export function ProjectSettingsDialog({ project, open, onOpenChange, defaultTab 
                         const imported = parseCSV(ev.target?.result as string)
                         const diff = diffTasks(tasks, imported)
                         // Dispatch event for CsvReviewDialog in TaskBoard
-                        window.dispatchEvent(new CustomEvent('shipyard:csv-import', { detail: { diff } }))
+                        window.dispatchEvent(new CustomEvent('dockyard:csv-import', { detail: { diff } }))
                         onOpenChange(false)
                       } catch (err: any) { toast.error(err.message || 'Failed to parse CSV') }
                     }

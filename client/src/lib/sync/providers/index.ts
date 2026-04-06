@@ -23,7 +23,7 @@ const phase2Definitions: ProviderDefinition[] = [
     configFields: [
       { key: 'token', label: 'Personal Access Token', type: 'password', placeholder: 'ghp_...', required: true, helpText: 'Generate at github.com/settings/tokens' },
       { key: 'repo', label: 'Repository', type: 'text', placeholder: 'owner/repo', required: true },
-      { key: 'label', label: 'Filter label', type: 'text', placeholder: 'shipyard', required: false, helpText: 'Only sync issues with this label' },
+      { key: 'label', label: 'Filter label', type: 'text', placeholder: 'dockyard', required: false, helpText: 'Only sync issues with this label' },
     ],
   },
   {

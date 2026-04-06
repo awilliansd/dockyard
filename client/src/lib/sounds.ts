@@ -1,4 +1,4 @@
-const SOUND_KEY = 'shipyard:ai-sound-enabled'
+const SOUND_KEY = 'dockyard:ai-sound-enabled'
 
 let audioCtx: AudioContext | null = null
 

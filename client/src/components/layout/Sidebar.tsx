@@ -129,7 +129,7 @@ function ExpandedProjectItem({ project: p, location, openTab, taskCount, isActiv
 }
 
 // --- Section ---
-const SECTION_STORAGE_KEY = 'shipyard:sidebar-sections'
+const SECTION_STORAGE_KEY = 'dockyard:sidebar-sections'
 
 function loadSectionState(): Record<string, boolean> {
   try {

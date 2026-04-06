@@ -1,16 +1,16 @@
 import type { ProviderId, ProviderConfig } from './types'
 
-// Key format: shipyard:sync:{projectId}:{providerId}
-// Legacy format (Google Sheets): shipyard:sync:{projectId}
+// Key format: dockyard:sync:{projectId}:{providerId}
+// Legacy format (Google Sheets): dockyard:sync:{projectId}
 const SYNC_KEY = (projectId: string, providerId: ProviderId) =>
-  `shipyard:sync:${projectId}:${providerId}`
+  `dockyard:sync:${projectId}:${providerId}`
 
 const LEGACY_SHEETS_KEY = (projectId: string) =>
-  `shipyard:sync:${projectId}`
+  `dockyard:sync:${projectId}`
 
-// Global credentials (e.g., GitHub PAT): shipyard:sync:global:{providerId}
+// Global credentials (e.g., GitHub PAT): dockyard:sync:global:{providerId}
 const GLOBAL_KEY = (providerId: ProviderId) =>
-  `shipyard:sync:global:${providerId}`
+  `dockyard:sync:global:${providerId}`
 
 export function readProviderConfig(projectId: string, providerId: ProviderId): ProviderConfig | null {
   try {
@@ -18,7 +18,7 @@ export function readProviderConfig(projectId: string, providerId: ProviderId): P
     const raw = localStorage.getItem(SYNC_KEY(projectId, providerId))
     if (raw) return JSON.parse(raw)
 
-    // Legacy: Google Sheets used shipyard:sync:{projectId} directly
+    // Legacy: Google Sheets used dockyard:sync:{projectId} directly
     if (providerId === 'google-sheets') {
       const legacy = localStorage.getItem(LEGACY_SHEETS_KEY(projectId))
       if (legacy) {

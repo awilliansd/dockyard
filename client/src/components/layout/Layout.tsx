@@ -8,8 +8,8 @@ import { TabsProvider } from '@/hooks/useTabs'
 import { TerminalPanel } from '@/components/terminals/TerminalPanel'
 import { ServerStartupNotice } from './ServerStartupNotice'
 
-const SIDEBAR_KEY = 'shipyard-sidebar-collapsed'
-const SIDEBAR_WIDTH_KEY = 'shipyard-sidebar-width'
+const SIDEBAR_KEY = 'dockyard-sidebar-collapsed'
+const SIDEBAR_WIDTH_KEY = 'dockyard-sidebar-width'
 const SIDEBAR_WIDTH_DEFAULT = 240
 const SIDEBAR_WIDTH_MIN = 200
 const SIDEBAR_WIDTH_MAX = 420

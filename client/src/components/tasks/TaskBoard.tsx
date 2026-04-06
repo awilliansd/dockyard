@@ -301,16 +301,16 @@ export function TaskBoard({ projectId, projectName, projectPath, milestoneId, on
   const [csvReviewOpen, setCsvReviewOpen] = useState(false)
   const [csvDiff, setCsvDiff] = useState<CsvDiff | null>(null)
   const [sortBy, setSortBy] = useState<SortOption>(() =>
-    (localStorage.getItem(`shipyard:sort:${projectId}`) as SortOption) || 'updated'
+    (localStorage.getItem(`dockyard:sort:${projectId}`) as SortOption) || 'updated'
   )
   const [addingInColumn, setAddingInColumn] = useState<string | null>(null)
   const [bulkImportOpen, setBulkImportOpen] = useState(false)
   const [doneReadAt, setDoneReadAt] = useState<string | null>(() =>
-    localStorage.getItem(`shipyard:done-read:${projectId}`)
+    localStorage.getItem(`dockyard:done-read:${projectId}`)
   )
   const [showReadDone, setShowReadDone] = useState(false)
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>(() =>
-    (localStorage.getItem('shipyard:view:' + projectId) as 'kanban' | 'list') || 'kanban'
+    (localStorage.getItem('dockyard:view:' + projectId) as 'kanban' | 'list') || 'kanban'
   )
   const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({
     inbox: INITIAL_VISIBLE,
@@ -353,7 +353,7 @@ export function TaskBoard({ projectId, projectName, projectPath, milestoneId, on
     }
     try {
       const { prompt } = await api.getAiResolvePrompt(projectId, task.id)
-      window.dispatchEvent(new CustomEvent('shipyard:open-terminal', {
+      window.dispatchEvent(new CustomEvent('dockyard:open-terminal', {
         detail: { projectId, type: 'ai-resolve', taskId: task.id, taskNumber: task.number, prompt }
       }))
       toast.success('AI resolution started')
@@ -428,7 +428,7 @@ export function TaskBoard({ projectId, projectName, projectPath, milestoneId, on
 
   const handleMarkAllRead = useCallback(() => {
     const now = new Date().toISOString()
-    localStorage.setItem(`shipyard:done-read:${projectId}`, now)
+    localStorage.setItem(`dockyard:done-read:${projectId}`, now)
     setDoneReadAt(now)
     setShowReadDone(false)
     toast.success(`Marked ${unreadDone.length} tasks as read`)
@@ -534,7 +534,7 @@ export function TaskBoard({ projectId, projectName, projectPath, milestoneId, on
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => { setViewMode('kanban'); localStorage.setItem('shipyard:view:' + projectId, 'kanban') }}
+                  onClick={() => { setViewMode('kanban'); localStorage.setItem('dockyard:view:' + projectId, 'kanban') }}
                   className={cn('p-1.5 rounded-l-md transition-colors', viewMode === 'kanban' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground')}
                 >
                   <LayoutGrid className="h-3.5 w-3.5" />
@@ -545,7 +545,7 @@ export function TaskBoard({ projectId, projectName, projectPath, milestoneId, on
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => { setViewMode('list'); localStorage.setItem('shipyard:view:' + projectId, 'list') }}
+                  onClick={() => { setViewMode('list'); localStorage.setItem('dockyard:view:' + projectId, 'list') }}
                   className={cn('p-1.5 rounded-r-md transition-colors', viewMode === 'list' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground')}
                 >
                   <List className="h-3.5 w-3.5" />
@@ -559,7 +559,7 @@ export function TaskBoard({ projectId, projectName, projectPath, milestoneId, on
             onChange={e => {
               const v = e.target.value as SortOption
               setSortBy(v)
-              localStorage.setItem(`shipyard:sort:${projectId}`, v)
+              localStorage.setItem(`dockyard:sort:${projectId}`, v)
             }}
             className="h-7 text-xs bg-background border rounded px-1.5 cursor-pointer outline-none"
           >

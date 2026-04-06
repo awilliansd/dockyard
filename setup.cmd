@@ -39,6 +39,6 @@ echo   [ok] Setup complete!
 echo.
 echo   Run Dockyard:
 echo     pnpm dev          Start dev server (http://localhost:5421)
-echo     shipyard.cmd       Start + open browser
+echo     dockyard.cmd       Start + open browser
 echo.
 pause

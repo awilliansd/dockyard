@@ -10,7 +10,7 @@ import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
-const ONBOARDING_KEY = 'shipyard:onboarding-complete'
+const ONBOARDING_KEY = 'dockyard:onboarding-complete'
 
 interface ScannedProject {
   path: string

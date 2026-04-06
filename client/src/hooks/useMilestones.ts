@@ -61,7 +61,7 @@ export function useDeleteMilestone() {
   })
 }
 
-const MILESTONE_KEY = (projectId: string) => `shipyard:milestone:${projectId}`
+const MILESTONE_KEY = (projectId: string) => `dockyard:milestone:${projectId}`
 
 export function useActiveMilestone(projectId: string) {
   const [milestoneId, setMilestoneIdState] = useState<string>(() =>

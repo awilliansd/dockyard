@@ -138,7 +138,7 @@ export async function exchangeCode(
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${expiresIn}s`)
-    .setIssuer('shipyard-mcp')
+    .setIssuer('dockyard-mcp')
     .sign(getJwtSecret());
 
   const refreshToken = randomBytes(32).toString('hex');
@@ -184,7 +184,7 @@ export async function refreshAccessToken(
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${expiresIn}s`)
-    .setIssuer('shipyard-mcp')
+    .setIssuer('dockyard-mcp')
     .sign(getJwtSecret());
 
   const newRefreshToken = randomBytes(32).toString('hex');
@@ -215,7 +215,7 @@ export async function validateBearerToken(
   const token = authHeader.slice(7);
   try {
     const { payload } = await jose.jwtVerify(token, getJwtSecret(), {
-      issuer: 'shipyard-mcp',
+      issuer: 'dockyard-mcp',
     });
     return {
       valid: true,

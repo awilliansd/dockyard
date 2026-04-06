@@ -8,9 +8,9 @@ import type { Task } from '@/hooks/useTasks'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 
-const APPS_SCRIPT_TEMPLATE = `// Shipyard Sync v2 — Two-sheet system
+const APPS_SCRIPT_TEMPLATE = `// Dockyard Sync v2 — Two-sheet system
 // "Data" sheet: raw synced data (auto-managed)
-// "Dashboard" sheet: formatted view (click "Format Sheet" in Shipyard)
+// "Dashboard" sheet: formatted view (click "Format Sheet" in Dockyard)
 //
 // Deploy > New deployment > Web App
 // Execute as: Me | Access: Anyone
