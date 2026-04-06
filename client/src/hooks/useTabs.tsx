@@ -14,8 +14,8 @@ interface TabsContextType {
   switchTab: (id: string) => void
 }
 
-const STORAGE_KEY = 'shipyard-tabs'
-const ACTIVE_TAB_KEY = 'shipyard-active-tab'
+const STORAGE_KEY = 'dockyard-tabs'
+const ACTIVE_TAB_KEY = 'dockyard-active-tab'
 
 function loadTabs(): Tab[] {
   try {

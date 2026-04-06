@@ -10,7 +10,7 @@ import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
-const ONBOARDING_KEY = 'shipyard:onboarding-complete'
+const ONBOARDING_KEY = 'dockyard:onboarding-complete'
 
 interface ScannedProject {
   path: string
@@ -180,7 +180,7 @@ function StepWelcome() {
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold mb-2">Welcome to Shipyard</h1>
+        <h1 className="text-2xl font-bold mb-2">Welcome to Dockyard</h1>
         <p className="text-muted-foreground max-w-md">
           Your local development dashboard for managing projects, tasks, git, and terminals — all in one place.
         </p>
@@ -241,7 +241,7 @@ function StepAddProjects({
       <div>
         <h2 className="text-xl font-bold mb-1">Add Your Projects</h2>
         <p className="text-sm text-muted-foreground">
-          Point Shipyard to your project folders. It will detect git repos and tech stacks automatically.
+          Point Dockyard to your project folders. It will detect git repos and tech stacks automatically.
         </p>
       </div>
 
@@ -337,7 +337,7 @@ function StepFeatures() {
       <div>
         <h2 className="text-xl font-bold mb-1">What You Can Do</h2>
         <p className="text-sm text-muted-foreground">
-          Shipyard brings everything together so you don't need to leave your dashboard.
+          Dockyard brings everything together so you don't need to leave your dashboard.
         </p>
       </div>
 

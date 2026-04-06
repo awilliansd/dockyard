@@ -2,7 +2,7 @@
 set -e
 
 echo ""
-echo "  Shipyard - Setup"
+echo "  Dockyard - Setup"
 echo "  ────────────────"
 echo ""
 
@@ -44,13 +44,13 @@ mkdir -p data/tasks
 echo ""
 echo "  [ok] Setup complete!"
 echo ""
-echo "  Run Shipyard:"
+echo "  Run Dockyard:"
 echo "    pnpm dev          Start dev server (http://localhost:5421)"
-echo "    ./shipyard.sh      Start + open browser (Linux/macOS)"
+echo "    ./dockyard.sh      Start + open browser (Linux/macOS)"
 echo ""
 
 # Offer to create shell alias
-read -p "  Create 'shipyard' shell alias? [y/N] " -n 1 -r
+read -p "  Create 'dockyard' shell alias? [y/N] " -n 1 -r
 echo ""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
   SHELL_RC=""
@@ -63,13 +63,13 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
   if [ -n "$SHELL_RC" ]; then
     SHIPYARD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     echo "" >> "$SHELL_RC"
-    echo "# Shipyard" >> "$SHELL_RC"
-    echo "alias shipyard='cd \"$SHIPYARD_DIR\" && ./shipyard.sh'" >> "$SHELL_RC"
+echo "# Dockyard" >> "$SHELL_RC"
+    echo "alias dockyard='cd \"$SHIPYARD_DIR\" && ./dockyard.sh'" >> "$SHELL_RC"
     echo "  [ok] Alias added to $SHELL_RC"
-    echo "  Run 'source $SHELL_RC' or open a new terminal, then type 'shipyard'"
+    echo "  Run 'source $SHELL_RC' or open a new terminal, then type 'dockyard'"
   else
     echo "  [!] Could not find .bashrc or .zshrc. Add the alias manually:"
-    echo "      alias shipyard='cd \"$(pwd)\" && ./shipyard.sh'"
+    echo "      alias dockyard='cd \"$(pwd)\" && ./dockyard.sh'"
   fi
 fi
 
@@ -80,17 +80,17 @@ if command -v xdg-open &>/dev/null && [ -d "$HOME/.local/share/applications" ]; 
   echo ""
   if [[ $REPLY =~ ^[Yy]$ ]]; then
     SHIPYARD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    cat > "$HOME/.local/share/applications/shipyard.desktop" << DESKTOP
+    cat > "$HOME/.local/share/applications/dockyard.desktop" << DESKTOP
 [Desktop Entry]
-Name=Shipyard
+Name=Dockyard
 Comment=Local Development Dashboard
-Exec=bash -c 'cd "$SHIPYARD_DIR" && ./shipyard.sh'
+Exec=bash -c 'cd "$SHIPYARD_DIR" && ./dockyard.sh'
 Icon=$SHIPYARD_DIR/client/public/favicon.svg
 Terminal=true
 Type=Application
 Categories=Development;
 DESKTOP
-    echo "  [ok] Desktop shortcut created. Search 'Shipyard' in your app launcher."
+echo "  [ok] Desktop shortcut created. Search 'Dockyard' in your app launcher."
   fi
 fi
 

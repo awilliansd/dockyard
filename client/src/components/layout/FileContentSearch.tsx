@@ -152,7 +152,7 @@ export function FileContentSearch() {
   }, [])
 
   const openFileAtLine = useCallback((result: ContentResult, line?: number) => {
-    localStorage.setItem('shipyard:pending-editor-file', JSON.stringify({
+    localStorage.setItem('dockyard:pending-editor-file', JSON.stringify({
       projectId: result.projectId,
       path: result.filePath,
       name: result.file,

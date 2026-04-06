@@ -34,7 +34,7 @@ export function TaskManagerDialog({ projectId, tasks, open, onOpenChange }: Task
     setLoading(true)
     try {
       const { prompt } = await api.getAiManagePrompt(projectId, rawText)
-      window.dispatchEvent(new CustomEvent('shipyard:open-terminal', {
+      window.dispatchEvent(new CustomEvent('dockyard:open-terminal', {
         detail: { projectId, type: 'ai-manage', prompt }
       }))
       toast.success('AI Task Manager started in terminal')

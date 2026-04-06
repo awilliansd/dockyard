@@ -178,7 +178,7 @@ export function GlobalSearch() {
     if (activeFilter === 'all' || activeFilter === 'files') {
       fileResults.forEach((f, i) => items.push({ id: `file-${i}-${f.path}`, type: 'file', action: () => {
         if (f.type === 'file') {
-          localStorage.setItem('shipyard:pending-editor-file', JSON.stringify({
+          localStorage.setItem('dockyard:pending-editor-file', JSON.stringify({
             projectId: f.projectId,
             path: f.path,
             name: f.name,

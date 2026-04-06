@@ -197,9 +197,9 @@ export function buildTaskPrompt(
   lines.push('3. Test that your changes work correctly')
   lines.push('4. Create a git commit with your changes using a clear, concise commit message that describes what was done')
 
-  // Shipyard task update instructions
+// Dockyard task update instructions
   if (tasksFilePath) {
-    lines.push(`5. After completing the task, update the Shipyard tasks file to mark this task as done:`)
+  lines.push(`5. After completing the task, update the Dockyard tasks file to mark this task as done:`)
     lines.push(`   - File: ${tasksFilePath}`)
     lines.push(`   - Find the task with id "${task.id}" and set:`)
     lines.push(`     - "status": "done"`)

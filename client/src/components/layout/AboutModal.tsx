@@ -10,7 +10,7 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[420px] bg-[#1c1c1c] text-zinc-300 border-[#333] shadow-xl">
         <DialogHeader className="pt-2 pb-4 border-b border-[#333]/50">
-          <DialogTitle className="text-white text-lg font-bold text-center">Shipyard</DialogTitle>
+          <DialogTitle className="text-white text-lg font-bold text-center">Dockyard</DialogTitle>
         </DialogHeader>
         
         <div className="p-2 flex flex-col items-center gap-3 text-sm">
@@ -42,7 +42,7 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
           </div>
           
           <p className="text-zinc-400 text-center mt-4">
-            Shipyard is a local dashboard for developers who manage multiple projects.
+            Dockyard is a local dashboard for developers who manage multiple projects.
           </p>
         </div>
       </DialogContent>

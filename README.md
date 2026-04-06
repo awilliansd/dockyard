@@ -6,18 +6,18 @@
 
 
 <p align="center">
-  <img src="assets/icon.png" width="120" height="120" alt="Shipyard" />
+  <img src="assets/icon.png" width="120" height="120" alt="Dockyard" />
 </p>
 
-<h1 align="center">Shipyard</h1>
+<h1 align="center">Dockyard</h1>
 
 <p align="center">
   Local development dashboard &mdash; manage projects, tasks, git, and terminals from your browser.
 </p>
 
 <p align="center">
-  <a href="https://github.com/awilliansd/Shipyard/releases/latest"><img src="https://img.shields.io/github/v/release/awilliansd/Shipyard?style=flat-square&label=download" alt="Download" /></a>
-  <a href="https://github.com/awilliansd/Shipyard"><img src="https://img.shields.io/github/stars/awilliansd/Shipyard?style=flat-square" alt="Stars" /></a>
+  <a href="https://github.com/awilliansd/Dockyard/releases/latest"><img src="https://img.shields.io/github/v/release/awilliansd/Dockyard?style=flat-square&label=download" alt="Download" /></a>
+  <a href="https://github.com/awilliansd/Dockyard"><img src="https://img.shields.io/github/stars/awilliansd/Dockyard?style=flat-square" alt="Stars" /></a>
   <img src="https://img.shields.io/badge/react-18-61dafb?style=flat-square&logo=react&logoColor=white" alt="React 18" />
   <img src="https://img.shields.io/badge/fastify-5-000000?style=flat-square&logo=fastify&logoColor=white" alt="Fastify 5" />
   <img src="https://img.shields.io/badge/typescript-5-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript 5" />
@@ -27,19 +27,19 @@
 ---
 
 <p align="center">
-  <a href="https://github.com/awilliansd/Shipyard/releases/latest"><img src="https://img.shields.io/badge/Windows-.exe-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" /></a>&nbsp;
-  <a href="https://github.com/awilliansd/Shipyard/releases/latest"><img src="https://img.shields.io/badge/macOS-.dmg-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS" /></a>&nbsp;
-  <a href="https://github.com/awilliansd/Shipyard/releases/latest"><img src="https://img.shields.io/badge/Linux-.AppImage | .deb-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Download for Linux" /></a>
+  <a href="https://github.com/awilliansd/Dockyard/releases/latest"><img src="https://img.shields.io/badge/Windows-.exe-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" /></a>&nbsp;
+  <a href="https://github.com/awilliansd/Dockyard/releases/latest"><img src="https://img.shields.io/badge/macOS-.dmg-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS" /></a>&nbsp;
+  <a href="https://github.com/awilliansd/Dockyard/releases/latest"><img src="https://img.shields.io/badge/Linux-.AppImage | .deb-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Download for Linux" /></a>
 </p>
 
 <p align="center">
-  <img src="assets/shipyard-gif.gif" alt="Shipyard — workspace with kanban board, terminal, and git panel" width="100%" />
+  <img src="assets/dockyard-gif.gif" alt="Dockyard — workspace with kanban board, terminal, and git panel" width="100%" />
 </p>
 
-## Why Shipyard
+## Why Dockyard
 
 - **Local-first** -- runs entirely on `localhost`. No cloud services, no accounts, no telemetry. Your data stays on your machine as plain JSON files.
-- **Complements your editor** -- Shipyard is not an IDE. It sits alongside VS Code (or whatever you use) and gives you a bird's-eye view of all your projects, tasks, and git status in one place.
+- **Complements your editor** -- Dockyard is not an IDE. It sits alongside VS Code (or whatever you use) and gives you a bird's-eye view of all your projects, tasks, and git status in one place.
 - **Cross-platform** -- works on Linux, macOS, and Windows. Launches native terminals, file managers, and VS Code with one click.
 - **AI-ready** -- optional Claude integration for task analysis and chat, plus an MCP server so Claude Desktop or Claude Code can read your projects and tasks directly.
 
@@ -57,7 +57,7 @@
 
 **Claude AI** -- Chat with Claude in the workspace sidebar with full project context (tasks, git, files). AI-powered task analysis generates descriptions and implementation prompts automatically. Requires your own Anthropic API key.
 
-**MCP Server** -- Expose Shipyard as a Model Context Protocol server. Claude Desktop, Claude Code, or any MCP client can list projects, manage tasks, and read git status. Secured with OAuth 2.1 + PKCE.
+**MCP Server** -- Expose Dockyard as a Model Context Protocol server. Claude Desktop, Claude Code, or any MCP client can list projects, manage tasks, and read git status. Secured with OAuth 2.1 + PKCE.
 
 **Google Sheets Sync** -- Bidirectional sync of tasks with a Google Sheet via Apps Script. Auto-push on changes, auto-pull every 30 seconds, with per-task merge based on timestamps. No Google API keys needed.
 
@@ -69,14 +69,14 @@
 
 ## Download
 
-Pre-built desktop installers are available on the [Releases](https://github.com/awilliansd/Shipyard/releases/latest) page:
+Pre-built desktop installers are available on the [Releases](https://github.com/awilliansd/Dockyard/releases/latest) page:
 
 | Platform | File |
 |----------|------|
-| Windows | `Shipyard-Setup-x.x.x.exe` |
-| macOS (Apple Silicon) | `Shipyard-x.x.x-arm64.dmg` |
-| macOS (Intel) | `Shipyard-x.x.x-x64.dmg` |
-| Linux | `Shipyard-x.x.x.AppImage` or `.deb` |
+| Windows | `Dockyard-Setup-x.x.x.exe` |
+| macOS (Apple Silicon) | `Dockyard-x.x.x-arm64.dmg` |
+| macOS (Intel) | `Dockyard-x.x.x-x64.dmg` |
+| Linux | `Dockyard-x.x.x.AppImage` or `.deb` |
 
 Or run from source:
 
@@ -91,8 +91,8 @@ Or run from source:
 ### Install and Run
 
 ```bash
-git clone https://github.com/awilliansd/Shipyard.git
-cd Shipyard
+git clone https://github.com/awilliansd/Dockyard.git
+cd Dockyard
 pnpm install
 pnpm dev
 ```
@@ -113,14 +113,14 @@ The setup scripts install dependencies and optionally create launch shortcuts:
 | OS | Command | Description |
 |----|---------|-------------|
 | Any | `pnpm dev` | Starts client (port 5421) + server (port 5420) |
-| Linux / macOS | `./devdash.sh` | Starts server and opens browser |
-| Windows | `devdash.cmd` | Starts server and opens browser |
+| Linux / macOS | `./dockyard.sh` | Starts server and opens browser |
+| Windows | `dockyard.cmd` | Starts server and opens browser |
 
 **Shell alias** (Linux/macOS):
 
 ```bash
 # Add to ~/.bashrc or ~/.zshrc
-alias shipyard='cd /path/to/Shipyard && ./devdash.sh'
+alias dockyard='cd /path/to/Dockyard && ./dockyard.sh'
 ```
 
 ### Integrated Terminal (optional)
@@ -129,7 +129,7 @@ The in-browser terminal requires `node-pty`, which is listed as an optional depe
 
 ## First Run
 
-On first launch, Shipyard shows a setup wizard that walks you through adding projects, explains the core features, and provides a quick reference. You can skip it and configure projects later in Settings.
+On first launch, Dockyard shows a setup wizard that walks you through adding projects, explains the core features, and provides a quick reference. You can skip it and configure projects later in Settings.
 
 ## How It Works
 
@@ -152,7 +152,7 @@ Tasks track timestamps for each stage (inbox, in-progress, done) automatically.
 
 ### Terminal Launchers
 
-Shipyard detects your OS and opens native terminals:
+Dockyard detects your OS and opens native terminals:
 
 | Action | Linux | macOS | Windows |
 |--------|-------|-------|---------|
@@ -175,7 +175,7 @@ On Windows, terminals use `cmd.exe` (not bash) to avoid triggering WSL.
 
 ## Desktop App
 
-Shipyard can be packaged as a standalone desktop app using Electron. The server runs as a child process, and data is stored in the OS-appropriate app data directory.
+Dockyard can be packaged as a standalone desktop app using Electron. The server runs as a child process, and data is stored in the OS-appropriate app data directory.
 
 ```bash
 pnpm dist:win     # Windows (.exe installer)
@@ -215,7 +215,7 @@ Sync a project's tasks bidirectionally with a Google Sheet using a free Apps Scr
 4. Click **Deploy > New deployment > Web App**
 5. Set **Execute as**: Me, **Who has access**: Anyone
 6. Copy the deployment URL
-7. In Shipyard, open a project and click the **Sheets** button in the task board header
+7. In Dockyard, open a project and click the **Sheets** button in the task board header
 8. Paste the URL, click **Test**, then **Save**
 
 ### Apps Script
@@ -294,13 +294,13 @@ function onEdit(e) {
 ### Multi-machine Workflow
 
 1. Machine A: configure the sheet URL, push tasks
-2. Machine B: install Shipyard, add the same project, configure the same sheet URL, pull
+2. Machine B: install Dockyard, add the same project, configure the same sheet URL, pull
 3. Both machines stay in sync via the shared spreadsheet
 
 ## Project Structure
 
 ```
-shipyard/
+dockyard/
 ├── client/                  # Frontend (port 5421)
 │   ├── src/
 │   │   ├── components/      # UI components (shadcn/ui)
@@ -316,8 +316,8 @@ shipyard/
 ├── data/                    # Local data (auto-created, gitignored)
 ├── setup.sh                 # Linux/macOS setup
 ├── setup.cmd                # Windows setup
-├── devdash.sh               # Linux/macOS launcher
-└── devdash.cmd              # Windows launcher
+├── dockyard.sh              # Linux/macOS launcher
+└── dockyard.cmd             # Windows launcher
 ```
 
 ## Contributing
@@ -338,11 +338,11 @@ npx shadcn@latest add <component>
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=awilliansd%2FShipyard&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=awilliansd%2FDockyard&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=awilliansd/Shipyard&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=awilliansd/Shipyard&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=awilliansd/Shipyard&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=awilliansd/Dockyard&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=awilliansd/Dockyard&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=awilliansd/Dockyard&type=date&legend=top-left" />
  </picture>
 </a>
 

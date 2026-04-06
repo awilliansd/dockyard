@@ -27,7 +27,7 @@ export function TaskEditor({ projectId, task, milestoneId, open, onOpenChange }:
   const [subtasks, setSubtasks] = useState<{ id: string; title: string; done: boolean }[]>([])
   const [newSubtask, setNewSubtask] = useState('')
   const [quickCreate, setQuickCreate] = useState(() =>
-    localStorage.getItem('shipyard:quick-create') === 'true'
+    localStorage.getItem('dockyard:quick-create') === 'true'
   )
   const titleInputRef = useRef<HTMLInputElement>(null)
 
@@ -98,7 +98,7 @@ export function TaskEditor({ projectId, task, milestoneId, open, onOpenChange }:
   const toggleQuickCreate = () => {
     const next = !quickCreate
     setQuickCreate(next)
-    localStorage.setItem('shipyard:quick-create', String(next))
+    localStorage.setItem('dockyard:quick-create', String(next))
   }
 
   return (

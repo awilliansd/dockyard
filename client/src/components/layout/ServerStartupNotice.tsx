@@ -47,7 +47,7 @@ export function ServerStartupNotice() {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="max-w-md rounded-xl border border-zinc-800 bg-zinc-950/95 px-5 py-4 text-center shadow-2xl">
-        <div className="text-sm font-semibold text-zinc-100">Inicializando o Shipyard…</div>
+        <div className="text-sm font-semibold text-zinc-100">Inicializando o Dockyard…</div>
         <div className="mt-2 text-xs text-zinc-400">
           O servidor ainda está carregando. Isso pode levar alguns segundos na primeira abertura.
         </div>

@@ -1,6 +1,6 @@
 {
-  "name": "Shipyard",
-  "short_name": "Shipyard",
+  "name": "Dockyard",
+  "short_name": "Dockyard",
   "description": "Local development dashboard for managing projects, tasks, git, and terminal launchers",
   "start_url": "/",
   "display": "standalone",

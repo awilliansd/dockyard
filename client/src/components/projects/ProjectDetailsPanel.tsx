@@ -14,7 +14,7 @@ interface ProjectDetailsPanelProps {
 export function ProjectDetailsPanel({ project }: ProjectDetailsPanelProps) {
   const updateProject = useUpdateProject()
   const [collapsed, setCollapsed] = useState(() =>
-    localStorage.getItem('shipyard:details-collapsed') !== 'false'
+    localStorage.getItem('dockyard:details-collapsed') !== 'false'
   )
 
   // Notes
@@ -35,7 +35,7 @@ export function ProjectDetailsPanel({ project }: ProjectDetailsPanelProps) {
   const toggleCollapsed = () => {
     const next = !collapsed
     setCollapsed(next)
-    localStorage.setItem('shipyard:details-collapsed', String(next))
+    localStorage.setItem('dockyard:details-collapsed', String(next))
   }
 
   const saveNotes = () => {

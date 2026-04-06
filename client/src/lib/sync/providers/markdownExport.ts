@@ -60,7 +60,7 @@ function generateChecklist(tasks: Task[], groupBy: GroupBy, projectName: string,
     }
   }
 
-  lines.push('', `---`, `*Exported from Shipyard on ${new Date().toISOString().slice(0, 10)}*`)
+  lines.push('', `---`, `*Exported from Dockyard on ${new Date().toISOString().slice(0, 10)}*`)
   return lines.join('\n')
 }
 
@@ -79,7 +79,7 @@ function generateTable(tasks: Task[], projectName: string, includeDone: boolean)
     lines.push(`| ${check} | ${PRIORITY_EMOJI[t.priority]} ${t.priority} | ${t.title} | ${desc} |`)
   }
 
-  lines.push('', `---`, `*Exported from Shipyard on ${new Date().toISOString().slice(0, 10)}*`)
+  lines.push('', `---`, `*Exported from Dockyard on ${new Date().toISOString().slice(0, 10)}*`)
   return lines.join('\n')
 }
 
@@ -102,7 +102,7 @@ function generateDetailed(tasks: Task[], projectName: string, includeDone: boole
     }
   }
 
-  lines.push(`---`, `*Exported from Shipyard on ${new Date().toISOString().slice(0, 10)}*`)
+  lines.push(`---`, `*Exported from Dockyard on ${new Date().toISOString().slice(0, 10)}*`)
   return lines.join('\n')
 }
 

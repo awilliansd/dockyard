@@ -127,9 +127,9 @@ function ShortcutRow({ keys, description }: { keys: string; description: string 
 function SectionOverview() {
   return (
     <>
-      <H2>Shipyard — Local Development Dashboard</H2>
+      <H2>Dockyard — Local Development Dashboard</H2>
       <P>
-        Shipyard is a local dashboard for developers who manage multiple projects. It centralizes
+        Dockyard is a local dashboard for developers who manage multiple projects. It centralizes
         task management, git operations, terminal launchers, and project navigation in a single
         browser-based interface.
       </P>
@@ -277,7 +277,7 @@ function SectionEditor() {
     <>
       <H2>Code Editor</H2>
       <P>
-        Shipyard includes a built-in code editor powered by CodeMirror 6. Toggle between
+        Dockyard includes a built-in code editor powered by CodeMirror 6. Toggle between
         Kanban/List and Editor modes using the mode buttons in the workspace toolbar.
       </P>
 
@@ -487,7 +487,7 @@ function SectionTerminal() {
     <>
       <H2>Integrated Terminal</H2>
       <P>
-        Shipyard includes a full terminal emulator inside the browser, powered by xterm.js and node-pty.
+        Dockyard includes a full terminal emulator inside the browser, powered by xterm.js and node-pty.
         It supports colors, interactive programs, and all the features of a real terminal.
       </P>
 
@@ -655,9 +655,9 @@ function SectionSettings() {
 
       <H3>Adding Projects</H3>
       <P>
-        Shipyard doesn't auto-scan your filesystem. You manually select which projects to track:
+        Dockyard doesn't auto-scan your filesystem. You manually select which projects to track:
       </P>
-      <Bullet title="Scan a folder">Select a parent directory and Shipyard finds all projects inside it (up to 3 levels deep).</Bullet>
+      <Bullet title="Scan a folder">Select a parent directory and Dockyard finds all projects inside it (up to 3 levels deep).</Bullet>
       <Bullet title="Add folder">Select a specific project folder directly.</Bullet>
       <P>
         Projects are detected by markers: package.json, .git, Cargo.toml, go.mod, requirements.txt, pyproject.toml, CLAUDE.md.
@@ -756,7 +756,7 @@ function SectionData() {
       <H3>File Locations</H3>
       <InfoBox>
         <p><strong>Dev mode:</strong> <code className="bg-muted px-1 rounded">./data/</code> inside the project folder</p>
-        <p><strong>Desktop app:</strong> <code className="bg-muted px-1 rounded">%APPDATA%/shipyard/data/</code> (Windows) or <code className="bg-muted px-1 rounded">~/Library/Application Support/shipyard/data/</code> (macOS)</p>
+        <p><strong>Desktop app:</strong> <code className="bg-muted px-1 rounded">%APPDATA%/dockyard/data/</code> (Windows) or <code className="bg-muted px-1 rounded">~/Library/Application Support/dockyard/data/</code> (macOS)</p>
       </InfoBox>
 
       <H3>File Structure</H3>
@@ -784,7 +784,7 @@ function SectionData() {
 
       <H3>Privacy</H3>
       <P>
-        Shipyard never sends data to external servers. The only network calls are:
+        Dockyard never sends data to external servers. The only network calls are:
       </P>
       <Bullet title="AI Providers">Only if you configure a provider. Calls go to that provider's API or local runtime.</Bullet>
       <Bullet title="Google Sheets sync">Only if you configure it. Goes through your own Apps Script URL.</Bullet>
@@ -801,12 +801,12 @@ function SectionAiProviders() {
     <>
       <H2>AI Providers</H2>
       <P>
-        Shipyard supports multiple AI providers (e.g., Claude, OpenAI, Gemini, Ollama). Choose
+        Dockyard supports multiple AI providers (e.g., Claude, OpenAI, Gemini, Ollama). Choose
         one as the active provider to power chat, task analysis, bulk import, and other AI features.
       </P>
 
       <H3>Setup</H3>
-      <Bullet title="Configure in Shipyard">
+      <Bullet title="Configure in Dockyard">
         Go to Settings &gt; AI Providers, pick a provider, and enter its required settings. Click "Test" to verify, then "Save".
       </Bullet>
       <Bullet title="Security">
@@ -835,7 +835,7 @@ function SectionAiProviders() {
       <H3>AI Task Resolution</H3>
       <P>
         For tasks in progress, click the sparkles button to open your AI assistant with the task context
-        pre-loaded. Shipyard tracks the AI session and monitors progress. When the AI completes
+        pre-loaded. Dockyard tracks the AI session and monitors progress. When the AI completes
         the work, the task is automatically flagged for review with a pulsing indicator.
       </P>
       <Bullet title="Session tracking">Active AI sessions show a pulsing purple indicator on the task card.</Bullet>
@@ -855,7 +855,7 @@ function SectionAiProviders() {
 
       <H3>Sound Notifications</H3>
       <P>
-        Shipyard can play a short chime when AI operations complete (bulk import, task analysis, etc.).
+        Dockyard can play a short chime when AI operations complete (bulk import, task analysis, etc.).
         Enable or disable this in Settings under the sound toggle. The sound is synthesized via
         Web Audio — no audio files needed.
       </P>
@@ -880,7 +880,7 @@ function SectionMcp() {
     <>
       <H2>MCP Server</H2>
       <P>
-        Shipyard can act as a <strong>Model Context Protocol (MCP)</strong> server, allowing
+        Dockyard can act as a <strong>Model Context Protocol (MCP)</strong> server, allowing
         MCP-compatible clients (e.g., Claude Desktop / Claude Code) to connect and interact with
         your projects and tasks from outside the dashboard.
       </P>
@@ -906,7 +906,7 @@ function SectionMcp() {
       <InfoBox>
         <pre className="text-[11px]">{`{
   "mcpServers": {
-    "shipyard": {
+    "dockyard": {
       "url": "http://localhost:${window.location.port || 5420}/mcp"
     }
   }
@@ -918,7 +918,7 @@ function SectionMcp() {
         Run this command or add to <code className="bg-muted px-1 rounded">.claude/settings.json</code>:
       </P>
       <InfoBox>
-        <p><code className="bg-muted px-1 rounded">{`claude mcp add shipyard --transport http --url http://localhost:${window.location.port || 5420}/mcp`}</code></p>
+        <p><code className="bg-muted px-1 rounded">{`claude mcp add dockyard --transport http --url http://localhost:${window.location.port || 5420}/mcp`}</code></p>
       </InfoBox>
 
       <H3>Available Tools</H3>
@@ -954,13 +954,13 @@ function SectionElectron() {
     <>
       <H2>Desktop App (Electron)</H2>
       <P>
-        Shipyard can run as a standalone desktop application. The Electron wrapper packages
+        Dockyard can run as a standalone desktop application. The Electron wrapper packages
         the server and client into a single installable app.
       </P>
 
       <H3>Installation</H3>
       <P>
-        Run the installer for your platform (e.g., <code>Shipyard-Setup-1.0.0.exe</code> on Windows).
+        Run the installer for your platform (e.g., <code>Dockyard-Setup-1.0.0.exe</code> on Windows).
         The app installs to the default location and creates Start Menu/Desktop shortcuts.
       </P>
 

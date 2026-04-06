@@ -25,18 +25,18 @@ export function Workspace() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTab, setSettingsTab] = useState<string | undefined>()
   const [workspaceMode, _setWorkspaceMode] = useState<'tasks' | 'editor'>(() => {
-    const saved = localStorage.getItem(`shipyard:workspace-mode:${projectId}`)
+    const saved = localStorage.getItem(`dockyard:workspace-mode:${projectId}`)
     return saved === 'editor' ? 'editor' : 'tasks'
   })
 
   const setWorkspaceMode = useCallback((mode: 'tasks' | 'editor') => {
     _setWorkspaceMode(mode)
-    if (projectId) localStorage.setItem(`shipyard:workspace-mode:${projectId}`, mode)
+    if (projectId) localStorage.setItem(`dockyard:workspace-mode:${projectId}`, mode)
   }, [projectId])
 
   useEffect(() => {
     if (!projectId) return
-    const saved = localStorage.getItem(`shipyard:workspace-mode:${projectId}`)
+    const saved = localStorage.getItem(`dockyard:workspace-mode:${projectId}`)
     _setWorkspaceMode(saved === 'editor' ? 'editor' : 'tasks')
   }, [projectId])
   const { milestoneId, setMilestoneId } = useActiveMilestone(projectId || '')
@@ -44,17 +44,17 @@ export function Workspace() {
   const editor = useEditorTabs(projectId || '')
 
   useEffect(() => {
-    const raw = localStorage.getItem('shipyard:pending-editor-file')
+    const raw = localStorage.getItem('dockyard:pending-editor-file')
     if (!raw || !projectId) return
     try {
       const pending = JSON.parse(raw)
       if (pending.projectId === projectId) {
-        localStorage.removeItem('shipyard:pending-editor-file')
+        localStorage.removeItem('dockyard:pending-editor-file')
         editor.openFile(pending.path, pending.name, pending.extension, '')
         setWorkspaceMode('editor')
       }
     } catch {
-      localStorage.removeItem('shipyard:pending-editor-file')
+      localStorage.removeItem('dockyard:pending-editor-file')
     }
   }, [projectId, editor])
 

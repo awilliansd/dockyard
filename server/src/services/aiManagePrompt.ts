@@ -39,7 +39,7 @@ export function buildAiManagePrompt(
   lines.push('Analyze the user input above and organize it into tasks for this project.');
   lines.push('The input could be: task lists, meeting notes, client emails, bug reports, or instructions like "mark all X as done".');
   lines.push('');
-  lines.push('For each action, use the Shipyard API:');
+  lines.push('For each action, use the Dockyard API:');
   lines.push('');
 
   lines.push('### To CREATE a new task:');

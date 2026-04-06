@@ -129,7 +129,7 @@ function ExpandedProjectItem({ project: p, location, openTab, taskCount, isActiv
 }
 
 // --- Section ---
-const SECTION_STORAGE_KEY = 'shipyard:sidebar-sections'
+const SECTION_STORAGE_KEY = 'dockyard:sidebar-sections'
 
 function loadSectionState(): Record<string, boolean> {
   try {
@@ -343,7 +343,7 @@ export function Sidebar({ collapsed, onToggle, width }: SidebarProps) {
       {/* Header */}
       <div className="h-9 px-3 flex items-center justify-between shrink-0">
         <Link to="/" className="flex items-center gap-1.5 text-[13px] font-semibold text-foreground/80 hover:text-foreground transition-colors">
-          Shipyard
+          Dockyard
         </Link>
         <div className="flex items-center">
           <Button

@@ -16,7 +16,7 @@ export function McpSettingsCard() {
 
   const claudeDesktopConfig = JSON.stringify({
     mcpServers: {
-      shipyard: {
+      dockyard: {
         url: serverUrl,
       },
     },
@@ -24,7 +24,7 @@ export function McpSettingsCard() {
 
   const claudeCodeConfig = JSON.stringify({
     mcpServers: {
-      shipyard: {
+      dockyard: {
         type: "url",
         url: serverUrl,
       },
@@ -63,7 +63,7 @@ export function McpSettingsCard() {
           )}
         </CardTitle>
         <CardDescription>
-          Expose Shipyard as an MCP server so MCP clients (e.g., Claude Desktop / Claude Code) can read projects, manage tasks, and view git status.
+          Expose Dockyard as an MCP server so MCP clients (e.g., Claude Desktop / Claude Code) can read projects, manage tasks, and view git status.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -140,7 +140,7 @@ export function McpSettingsCard() {
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Claude Code Config (Example)</p>
               <p className="text-xs text-muted-foreground">
-                Add to <code className="bg-muted px-1 rounded">.claude/settings.json</code> or run: <code className="bg-muted px-1 rounded">claude mcp add shipyard --transport http --url {serverUrl}</code>
+                Add to <code className="bg-muted px-1 rounded">.claude/settings.json</code> or run: <code className="bg-muted px-1 rounded">claude mcp add dockyard --transport http --url {serverUrl}</code>
               </p>
               <div className="relative">
                 <pre className="bg-muted/50 rounded-lg p-3 text-[11px] overflow-x-auto">{claudeCodeConfig}</pre>

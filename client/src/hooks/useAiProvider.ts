@@ -21,7 +21,7 @@ export interface ChatMessage {
 }
 
 // --- Provider Management ---
-const ACTIVE_PROVIDER_KEY = 'shipyard:ai-active-provider'
+const ACTIVE_PROVIDER_KEY = 'dockyard:ai-active-provider'
 
 export function getStoredActiveProviderId() {
   try {

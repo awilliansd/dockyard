@@ -190,10 +190,10 @@ export function TasksPage() {
   const [viewerOpen, setViewerOpen] = useState(false)
   const [viewingTask, setViewingTask] = useState<Task | null>(null)
   const [sortBy, setSortBy] = useState<SortOption>(() =>
-    (localStorage.getItem('shipyard:sort:global') as SortOption) || 'updated'
+    (localStorage.getItem('dockyard:sort:global') as SortOption) || 'updated'
   )
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>(() =>
-    (localStorage.getItem('shipyard:view:global') as 'kanban' | 'list') || 'kanban'
+    (localStorage.getItem('dockyard:view:global') as 'kanban' | 'list') || 'kanban'
   )
   const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({
     inbox: INITIAL_VISIBLE,
@@ -324,7 +324,7 @@ export function TasksPage() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={() => { setViewMode('kanban'); localStorage.setItem('shipyard:view:global', 'kanban') }}
+                      onClick={() => { setViewMode('kanban'); localStorage.setItem('dockyard:view:global', 'kanban') }}
                       className={cn('p-1.5 rounded-l-md transition-colors', viewMode === 'kanban' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground')}
                     >
                       <LayoutGrid className="h-3.5 w-3.5" />
@@ -335,7 +335,7 @@ export function TasksPage() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={() => { setViewMode('list'); localStorage.setItem('shipyard:view:global', 'list') }}
+                      onClick={() => { setViewMode('list'); localStorage.setItem('dockyard:view:global', 'list') }}
                       className={cn('p-1.5 rounded-r-md transition-colors', viewMode === 'list' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground')}
                     >
                       <List className="h-3.5 w-3.5" />
@@ -381,7 +381,7 @@ export function TasksPage() {
               value={sortBy}
               onValueChange={(v: SortOption) => {
                 setSortBy(v)
-                localStorage.setItem('shipyard:sort:global', v)
+                localStorage.setItem('dockyard:sort:global', v)
               }}
             >
               <SelectTrigger className="h-8 w-[140px] text-xs">

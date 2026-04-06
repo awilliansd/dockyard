@@ -28,7 +28,7 @@ function buildAiContext(projectName: string, projectPath: string, projectId: str
   const lines = [
     `Project: ${projectName}`,
     `Project path: ${projectPath}`,
-    `Shipyard tasks file: ${tasksFile}`,
+    `Dockyard tasks file: ${tasksFile}`,
     '',
   ]
 
@@ -60,7 +60,7 @@ function buildAiContext(projectName: string, projectPath: string, projectId: str
 }
 
 function openIntegratedTerminal(projectId: string, type: string) {
-  window.dispatchEvent(new CustomEvent('shipyard:open-terminal', { detail: { projectId, type } }))
+  window.dispatchEvent(new CustomEvent('dockyard:open-terminal', { detail: { projectId, type } }))
 }
 
 export function TerminalLauncher({ projectId, projectPath, projectName }: TerminalLauncherProps) {
@@ -78,7 +78,7 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
   const activeProviderName = claudeStatus?.providerName || 'your AI assistant'
   const [taskManagerOpen, setTaskManagerOpen] = useState(false)
   const [skipPermissions, setSkipPermissions] = useState(() => {
-    try { return localStorage.getItem('shipyard:skipPermissions') === 'true' } catch { return false }
+    try { return localStorage.getItem('dockyard:skipPermissions') === 'true' } catch { return false }
   })
 
   const assistantType = skipPermissions ? 'claude-yolo' : 'claude'
@@ -171,7 +171,7 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
                     : 'Copies project info + tasks to clipboard, then opens your AI assistant. Just paste to give context.'
                 ) : (
                   mcpActive
-                    ? 'MCP is enabled. Open your AI assistant and connect to Shipyard.'
+                    ? 'MCP is enabled. Open your AI assistant and connect to Dockyard.'
                     : 'Copies project info + tasks to clipboard. Open your AI assistant and paste it.'
                 )}
               </p>
@@ -232,7 +232,7 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
                   checked={skipPermissions}
                   onChange={e => {
                     setSkipPermissions(e.target.checked)
-                    localStorage.setItem('shipyard:skipPermissions', String(e.target.checked))
+                    localStorage.setItem('dockyard:skipPermissions', String(e.target.checked))
                   }}
                   className="rounded border-muted-foreground/30 h-3 w-3"
                 />

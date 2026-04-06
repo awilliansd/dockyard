@@ -1,6 +1,6 @@
 @echo off
 echo.
-echo   Shipyard - Setup
+echo   Dockyard - Setup
 echo   ----------------
 echo.
 
@@ -37,8 +37,8 @@ if not exist "data\tasks" mkdir data\tasks
 echo.
 echo   [ok] Setup complete!
 echo.
-echo   Run Shipyard:
+echo   Run Dockyard:
 echo     pnpm dev          Start dev server (http://localhost:5421)
-echo     shipyard.cmd       Start + open browser
+echo     dockyard.cmd       Start + open browser
 echo.
 pause

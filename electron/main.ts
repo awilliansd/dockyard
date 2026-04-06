@@ -132,7 +132,7 @@ function startServer(): Promise<void> {
     proc.stdout?.on('data', (data: Buffer) => {
       const msg = data.toString();
       console.log('[Server]', msg.trim());
-      // Match our console.log: "Shipyard server running on http://..."
+      // Match our console.log: "Dockyard server running on http://..."
       if (!started && (msg.includes('running on') || msg.includes(`${PORT}`))) {
         started = true;
         // Server reported ready via stdout — confirm with HTTP health check
@@ -168,8 +168,8 @@ function startServer(): Promise<void> {
         if (lastServerErrorHint) {
           logElectron('[Electron] Server exited due to port conflict:', lastServerErrorHint);
           dialog.showErrorBox(
-            'Shipyard - Port In Use',
-            `The Shipyard server could not start because the port is already in use.\n\nDetails:\n${lastServerErrorHint}\n\nClose other instances or free the port and try again.`
+            'Dockyard - Port In Use',
+            `The Dockyard server could not start because the port is already in use.\n\nDetails:\n${lastServerErrorHint}\n\nClose other instances or free the port and try again.`
           );
           return;
         }
@@ -245,7 +245,7 @@ async function restartServerWithBackoff() {
   if (restartTimestamps.length > 3) {
     logElectron('[Electron] Server keeps crashing. Aborting auto-restart.');
     dialog.showErrorBox(
-      'Shipyard - Server Failure',
+      'Dockyard - Server Failure',
       `The server crashed multiple times during startup.\n\nCheck logs at:\n${getElectronLogPath()}`
     );
     restartInProgress = false;
@@ -340,7 +340,7 @@ function createSplashWindow() {
   });
 
   const logoMarkup = logoDataUrl
-    ? `<img src="${logoDataUrl}" alt="Shipyard" style="width:64px;height:64px;margin:0 auto 8px;display:block;filter: drop-shadow(0 6px 18px rgba(0,0,0,0.5));" />`
+    ? `<img src="${logoDataUrl}" alt="Dockyard" style="width:64px;height:64px;margin:0 auto 8px;display:block;filter: drop-shadow(0 6px 18px rgba(0,0,0,0.5));" />`
     : '';
 
   const html = `
@@ -348,7 +348,7 @@ function createSplashWindow() {
     <html>
       <head>
         <meta charset="utf-8" />
-        <title>Shipyard</title>
+        <title>Dockyard</title>
         <style>
           :root { color-scheme: dark; }
           body {
@@ -392,7 +392,7 @@ function createSplashWindow() {
       <body>
         <div class="card">
           ${logoMarkup}
-          <div class="logo">Shipyard</div>
+          <div class="logo">Dockyard</div>
           <div class="spinner"></div>
           <div class="sub">Carregando...</div>
         </div>
@@ -584,7 +584,7 @@ function createWindow(targetUrl: string) {
     height: 900,
     minWidth: 900,
     minHeight: 600,
-    title: 'Shipyard',
+    title: 'Dockyard',
     icon: existsSync(ICON_PATH) ? ICON_PATH : undefined,
     backgroundColor: '#09090b',
     show: false,
@@ -637,11 +637,11 @@ function createTray() {
     : nativeImage.createEmpty();
 
   tray = new Tray(icon);
-  tray.setToolTip('Shipyard');
+  tray.setToolTip('Dockyard');
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Show Shipyard',
+      label: 'Show Dockyard',
       click: () => {
         mainWindow?.show();
         mainWindow?.focus();
@@ -701,7 +701,7 @@ if (!gotTheLock) {
     } catch (err) {
       logElectron('[Electron] Failed to start:', err);
       dialog.showErrorBox(
-        'Shipyard - Failed to Start',
+        'Dockyard - Failed to Start',
         `Could not start the server.\n\n${err instanceof Error ? err.message : String(err)}`
       );
       app.quit();
