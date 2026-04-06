@@ -85,10 +85,10 @@ export async function createSession(
     shellArgs = ['-NoLogo'];
     if (type === 'claude') {
       env['CLAUDECODE'] = '';
-      initialCommand = 'claude';
+      initialCommand = 'openclaude';
     } else if (type === 'claude-yolo' || type === 'ai-resolve' || type === 'ai-manage') {
       env['CLAUDECODE'] = '';
-      initialCommand = 'claude --dangerously-skip-permissions';
+      initialCommand = 'openclaude --dangerously-skip-permissions';
     } else if (type === 'dev') {
       initialCommand = await detectDevCommand(projectPath);
     }
@@ -97,10 +97,10 @@ export async function createSession(
     shellArgs = ['-il'];
     if (type === 'claude') {
       env['CLAUDECODE'] = '';
-      initialCommand = 'claude';
+      initialCommand = 'openclaude';
     } else if (type === 'claude-yolo' || type === 'ai-resolve' || type === 'ai-manage') {
       env['CLAUDECODE'] = '';
-      initialCommand = 'claude --dangerously-skip-permissions';
+      initialCommand = 'openclaude --dangerously-skip-permissions';
     } else if (type === 'dev') {
       initialCommand = await detectDevCommand(projectPath);
     }
@@ -110,7 +110,7 @@ export async function createSession(
   const shortName = projectName && projectName.length > maxLen
     ? projectName.slice(0, maxLen - 3) + '...'
     : projectName || projectId;
-  const typeLabels: Record<string, string> = { claude: 'Claude', 'claude-yolo': 'Claude', dev: 'Dev', shell: 'Shell', 'ai-resolve': 'AI', 'ai-manage': 'AI Tasks' };
+  const typeLabels: Record<string, string> = { claude: 'Open Claude', 'claude-yolo': 'Open Claude', dev: 'Dev', shell: 'Shell', 'ai-resolve': 'AI', 'ai-manage': 'AI Tasks' };
   const title = `[${shortName}] ${typeLabels[type] || 'Shell'}`;
 
   const spawnOptions: Record<string, any> = {

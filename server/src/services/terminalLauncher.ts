@@ -8,8 +8,8 @@ export type TerminalType = 'claude' | 'claude-yolo' | 'dev' | 'shell';
 const os = platform();
 
 const typeLabel: Record<TerminalType, string> = {
-  claude: 'Claude',
-  'claude-yolo': 'Claude',
+  claude: 'Open Claude',
+  'claude-yolo': 'Open Claude',
   dev: 'Dev',
   shell: 'Shell',
 };

@@ -158,22 +158,15 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
             <TooltipTrigger asChild>
               <Button variant={aiAvailable ? "outline" : "default"} className="w-full justify-start gap-2 h-8 text-xs" onClick={handleLaunchAssistant}>
                 <Sparkles className="h-3.5 w-3.5" />
-                {isClaudeActive
-                  ? (mcpActive ? 'Open AI Assistant' : 'Open AI + Copy Context')
-                  : 'Copy Context'}
+                {mcpActive ? 'Open Claude' : 'Open Claude + Copy Context'}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="left">
               <p className="max-w-[200px] text-xs">
-                {isClaudeActive ? (
-                  mcpActive
-                    ? 'Opens your AI assistant — MCP gives it access to projects and tasks automatically'
-                    : 'Copies project info + tasks to clipboard, then opens your AI assistant. Just paste to give context.'
-                ) : (
-                  mcpActive
-                    ? 'MCP is enabled. Open your AI assistant and connect to Dockyard.'
-                    : 'Copies project info + tasks to clipboard. Open your AI assistant and paste it.'
-                )}
+                {mcpActive
+                  ? 'Opens Open Claude — MCP gives it access to projects and tasks automatically'
+                  : 'Copies project info + tasks to clipboard, then opens Open Claude. Just paste to give context.'
+                }
               </p>
             </TooltipContent>
           </Tooltip>
@@ -222,7 +215,7 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
           </Tooltip>
         )}
 
-        {/* Skip permissions (Claude Code) */}
+        {/* Skip permissions */}
         {projectPath && isClaudeActive && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -236,10 +229,10 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
                   }}
                   className="rounded border-muted-foreground/30 h-3 w-3"
                 />
-                <span className="text-[10px] text-muted-foreground ml-1.5">Skip permissions (Claude Code only)</span>
+                <span className="text-[10px] text-muted-foreground ml-1.5">Skip permissions</span>
               </label>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Claude Code: --dangerously-skip-permissions</TooltipContent>
+            <TooltipContent side="bottom">openclaude --dangerously-skip-permissions</TooltipContent>
           </Tooltip>
         )}
       </div>

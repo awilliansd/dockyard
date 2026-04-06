@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom'
 import { TaskBoard } from '@/components/tasks/TaskBoard'
 import { GitPanel } from '@/components/git/GitPanel'
 import { TerminalLauncher } from '@/components/terminals/TerminalLauncher'
-import { ChatPanel } from '@/components/claude/ChatPanel'
 import { useProjects, useUpdateProject } from '@/hooks/useProjects'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -212,7 +211,6 @@ export function Workspace() {
         {/* Right sidebar */}
         <div className="w-64 lg:w-72 xl:w-80 border-l overflow-y-auto p-3 space-y-4 shrink-0 scrollbar-dark">
           <TerminalLauncher projectId={project.id} projectPath={project.path} projectName={project.name} />
-          <ChatPanel projectId={project.id} />
           <FileExplorer projectId={project.id} projectPath={project.path} onOpenInEditor={handleOpenInEditor} activeFilePath={editor.activeTabPath} />
           {hasGit && (
             <GitPanel projectId={project.id} subRepos={project.subRepos} isGitRepo={project.isGitRepo} onOpenInEditor={handleOpenInEditor} onOpenDiffInEditor={handleOpenDiffInEditor} activeFilePath={editor.activeTabPath} />
