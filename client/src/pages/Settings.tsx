@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { FolderBrowser } from '@/components/ui/folder-browser'
 import { SyncSettingsCard } from '@/components/sync/SyncSettingsCard'
-import { AiProvidersSettingsCard } from '@/components/claude/AiProvidersSettingsCard'
+import { ClaudeSettingsCard } from '@/components/claude/ClaudeSettingsCard'
 import { McpSettingsCard } from '@/components/mcp/McpSettingsCard'
 import { FolderPlus, Plus, FolderOpen, Check, Loader2, GitBranch, X, FolderSearch, Download, Upload, Volume2, VolumeX, Sparkles, Server, Cloud, Database } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -409,7 +409,7 @@ export function Settings() {
                 <p className="text-xs text-muted-foreground mt-0.5">Configure AI providers, MCP server, and sync providers.</p>
               </div>
 
-              <AiProvidersSettingsCard />
+              <ClaudeSettingsCard />
               <McpSettingsCard />
               <SyncSettingsCard projects={projects || []} />
             </>

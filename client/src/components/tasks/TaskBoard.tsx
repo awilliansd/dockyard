@@ -290,7 +290,7 @@ export function TaskBoard({ projectId, projectName, projectPath, milestoneId, on
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
   const { data: terminalStatus } = useTerminalStatus()
   const { data: claudeStatus } = useClaudeStatus()
-  const isClaudeActive = claudeStatus?.providerId === 'claude'
+  const isClaudeActive = true
   const updateTask = useUpdateTask()
   const reorderTasks = useReorderTasks()
   const [editorOpen, setEditorOpen] = useState(false)

@@ -28,7 +28,7 @@ export function ProjectCard({ project, taskCounts }: ProjectCardProps) {
   const openFolder = useOpenFolder()
   const updateProject = useUpdateProject()
   const { data: claudeStatus } = useClaudeStatus()
-  const isClaudeActive = claudeStatus?.providerId === 'claude'
+  const isClaudeActive = true
 
   const handleLaunch = (e: React.MouseEvent, type: string) => {
     e.stopPropagation()

@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { useActiveProvider } from '@/hooks/useAiProvider'
 
 export function useGitStatus(projectId: string | undefined, subrepo?: string) {
   return useQuery({
@@ -177,10 +176,9 @@ export function useDiscardFile() {
 
 export function useGenerateCommitMessage() {
   const queryClient = useQueryClient()
-  const activeProvider = useActiveProvider()
   return useMutation({
     mutationFn: ({ projectId, subrepo }: { projectId: string; subrepo?: string }) =>
-      api.generateCommitMessage(projectId, subrepo, activeProvider?.id),
+      api.generateCommitMessage(projectId, subrepo),
     onSettled: (_, __, variables) => {
       queryClient.invalidateQueries({ queryKey: ['git-status', variables.projectId, variables.subrepo] })
     },

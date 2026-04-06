@@ -132,10 +132,10 @@ export async function launchTerminal(projectPath: string, type: TerminalType, pr
   let command: string | undefined;
   switch (type) {
     case 'claude':
-      command = 'claude';
+      command = 'openclaude';
       break;
     case 'claude-yolo':
-      command = 'claude --dangerously-skip-permissions';
+      command = 'openclaude --dangerously-skip-permissions';
       break;
     case 'dev':
       command = (await detectDevCommand(projectPath)) || undefined;
@@ -146,19 +146,19 @@ export async function launchTerminal(projectPath: string, type: TerminalType, pr
   }
 
   if (os === 'linux') {
-    // Linux: prefix claude commands with env clear
-    if (type === 'claude') command = 'unset CLAUDECODE && claude';
-    else if (type === 'claude-yolo') command = 'unset CLAUDECODE && claude --dangerously-skip-permissions';
+    // Linux: prefix openclaude commands with env clear
+    if (type === 'claude') command = 'unset CLAUDECODE && openclaude';
+    else if (type === 'claude-yolo') command = 'unset CLAUDECODE && openclaude --dangerously-skip-permissions';
     launchLinuxTerminal(projectPath, title, command);
   } else if (os === 'darwin') {
-    // macOS: prefix claude commands with env clear
-    if (type === 'claude') command = 'unset CLAUDECODE && claude';
-    else if (type === 'claude-yolo') command = 'unset CLAUDECODE && claude --dangerously-skip-permissions';
+    // macOS: prefix openclaude commands with env clear
+    if (type === 'claude') command = 'unset CLAUDECODE && openclaude';
+    else if (type === 'claude-yolo') command = 'unset CLAUDECODE && openclaude --dangerously-skip-permissions';
     launchMacTerminal(projectPath, title, command);
   } else {
-    // Windows: prefix claude commands with env clear
-    if (type === 'claude') command = 'set CLAUDECODE= && claude';
-    else if (type === 'claude-yolo') command = 'set CLAUDECODE= && claude --dangerously-skip-permissions';
+    // Windows: prefix openclaude commands with env clear
+    if (type === 'claude') command = 'set CLAUDECODE= && openclaude';
+    else if (type === 'claude-yolo') command = 'set CLAUDECODE= && openclaude --dangerously-skip-permissions';
     launchWindowsTerminal(projectPath, title, command);
   }
 }

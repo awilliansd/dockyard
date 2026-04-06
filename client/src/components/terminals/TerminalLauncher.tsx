@@ -74,8 +74,8 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
   const { data: claudeStatus } = useClaudeStatus()
   const mcpActive = mcpStatus?.enabled ?? false
   const aiAvailable = claudeStatus?.configured || claudeStatus?.cliAvailable
-  const isClaudeActive = claudeStatus?.providerId === 'claude'
-  const activeProviderName = claudeStatus?.providerName || 'your AI assistant'
+  const isClaudeActive = true
+  const activeProviderName = 'Claude'
   const [taskManagerOpen, setTaskManagerOpen] = useState(false)
   const [skipPermissions, setSkipPermissions] = useState(() => {
     try { return localStorage.getItem('dockyard:skipPermissions') === 'true' } catch { return false }
