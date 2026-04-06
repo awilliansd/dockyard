@@ -39,7 +39,7 @@ export function TaskAnalysisButton({ projectId, taskId, title, onResult }: TaskA
       onClick={handleAnalyze}
       disabled={analyze.isPending || !title.trim()}
       className="gap-1.5 text-xs"
-      title="Use AI to analyze this task and generate description/details"
+      title="Use Claude AI to analyze this task and generate description/details"
     >
       {analyze.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
       AI Analyze

@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { useActiveProvider, type ChatMessage } from '@/hooks/useAiProvider'
-import { AiProviderConfigDialog } from './AiProviderConfigDialog'
-import { Send, Settings, Loader2, ChevronDown, ChevronRight, Trash2, Sparkles } from 'lucide-react'
+import { useClaudeStatus, streamChat, type ChatMessage } from '@/hooks/useClaude'
+import { ClaudeConfigDialog } from './ClaudeConfigDialog'
+import { Bot, Send, Settings, Loader2, ChevronDown, ChevronRight, Trash2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { playAiCompleteSound } from '@/lib/sounds'
-import { api } from '@/lib/api'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -16,7 +15,7 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ projectId }: ChatPanelProps) {
-  const activeProvider = useActiveProvider()
+  const { data: status } = useClaudeStatus()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
@@ -43,42 +42,36 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
     setInput('')
     setIsStreaming(true)
 
-    // Placeholder assistant message while waiting
-    setMessages([...newMessages, { role: 'assistant', content: '...' }])
+    // Add empty assistant message to stream into
+    const assistantMsg: ChatMessage = { role: 'assistant', content: '' }
+    setMessages([...newMessages, assistantMsg])
 
-    try {
-      const result = await api.assistantChat(projectId, newMessages, activeProvider?.id)
-      const toolNames = Array.from(new Set((result.toolCalls || []).map(t => t.name)))
-      const updatedFiles = Array.from(new Set(
-        (result.toolCalls || [])
-          .filter(t => t.name === 'write_file' && t.ok)
-          .map(t => t.args?.path)
-          .filter(Boolean)
-      ))
-
-      const meta: string[] = []
-      if (updatedFiles.length > 0) meta.push(`Updated files: ${updatedFiles.join(', ')}`)
-      if (toolNames.length > 0) meta.push(`Tools: ${toolNames.join(', ')}`)
-
-      const content = meta.length > 0
-        ? `${result.message}\n\n_${meta.join(' · ')}_`
-        : result.message
-
-      setMessages(prev => {
-        const updated = [...prev]
-        updated[updated.length - 1] = { role: 'assistant', content }
-        return updated
-      })
-      setIsStreaming(false)
-      playAiCompleteSound()
-    } catch (err: any) {
-      setMessages(prev => {
-        const updated = [...prev]
-        updated[updated.length - 1] = { role: 'assistant', content: `Error: ${err.message || 'Request failed'}` }
-        return updated
-      })
-      setIsStreaming(false)
-    }
+    await streamChat(
+      projectId,
+      newMessages,
+      (chunk) => {
+        setMessages(prev => {
+          const updated = [...prev]
+          const last = updated[updated.length - 1]
+          if (last.role === 'assistant') {
+            updated[updated.length - 1] = { ...last, content: last.content + chunk }
+          }
+          return updated
+        })
+      },
+      () => { setIsStreaming(false); playAiCompleteSound() },
+      (error) => {
+        setMessages(prev => {
+          const updated = [...prev]
+          const last = updated[updated.length - 1]
+          if (last.role === 'assistant' && !last.content) {
+            updated[updated.length - 1] = { ...last, content: `Error: ${error}` }
+          }
+          return updated
+        })
+        setIsStreaming(false)
+      },
+    )
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -92,7 +85,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
     setMessages([])
   }
 
-  const aiAvailable = activeProvider?.configured
+  const aiAvailable = status?.configured || status?.cliAvailable
 
   if (!aiAvailable) {
     return (
@@ -100,14 +93,14 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             <Sparkles className="h-3.5 w-3.5" />
-            AI Assistant
+            Claude AI
           </h3>
           <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 text-muted-foreground" onClick={() => setConfigOpen(true)}>
             <Settings className="h-3 w-3" />
             Setup
           </Button>
         </div>
-        <AiProviderConfigDialog providerId={activeProvider?.id || 'claude'} open={configOpen} onOpenChange={setConfigOpen} />
+        <ClaudeConfigDialog open={configOpen} onOpenChange={setConfigOpen} />
       </div>
     )
   }
@@ -121,10 +114,11 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
         >
           {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           <Sparkles className="h-3.5 w-3.5" />
-          {activeProvider?.name || 'AI Assistant'}
+          Claude AI
         </button>
         <div className="flex items-center gap-1">
-          <div className="h-1.5 w-1.5 rounded-full bg-green-500" title={`${activeProvider?.name} active`} />
+          <span className="text-[9px] font-medium text-muted-foreground/60">{status?.configured ? 'API' : 'CLI'}</span>
+          <div className="h-1.5 w-1.5 rounded-full bg-green-500" title={status?.configured ? 'API connected' : 'CLI available'} />
           {messages.length > 0 && (
             <button onClick={clearChat} className="text-muted-foreground hover:text-foreground p-0.5" title="Clear chat">
               <Trash2 className="h-3 w-3" />
@@ -142,7 +136,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
           <div className="max-h-64 overflow-y-auto p-2 space-y-2 scrollbar-dark">
             {messages.length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-4">
-                Ask anything about this project. You can request file edits.
+                Ask anything about this project...
               </p>
             )}
             {messages.map((msg, i) => (
@@ -154,7 +148,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
               )}>
                 {msg.role === 'assistant' ? (
                   <div className="prose prose-xs prose-invert max-w-none [&_p]:mb-1 [&_p]:mt-0 [&_pre]:text-[10px] [&_code]:text-[10px] [&_li]:my-0">
-                    <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{ a: ({ children, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer">{children}</a> }}>
+                    <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
                       {msg.content || (isStreaming && i === messages.length - 1 ? '...' : '')}
                     </Markdown>
                   </div>
@@ -173,7 +167,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={`Ask ${activeProvider?.name || 'AI'}...`}
+              placeholder="Ask Claude..."
               className="min-h-[32px] max-h-20 text-xs resize-none"
               rows={1}
               disabled={isStreaming}
@@ -191,7 +185,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
         </div>
       )}
 
-      <AiProviderConfigDialog providerId={activeProvider?.id || 'claude'} open={configOpen} onOpenChange={setConfigOpen} />
+      <ClaudeConfigDialog open={configOpen} onOpenChange={setConfigOpen} />
     </div>
   )
 }
