@@ -59,8 +59,8 @@ function buildAiContext(projectName: string, projectPath: string, projectId: str
   return lines.join('\n')
 }
 
-function openIntegratedTerminal(projectId: string, type: string) {
-  window.dispatchEvent(new CustomEvent('dockyard:open-terminal', { detail: { projectId, type } }))
+function openIntegratedTerminal(projectId: string, type: string, skipPermissions?: boolean) {
+  window.dispatchEvent(new CustomEvent('dockyard:open-terminal', { detail: { projectId, type, skipPermissions } }))
 }
 
 export function TerminalLauncher({ projectId, projectPath, projectName }: TerminalLauncherProps) {
@@ -108,7 +108,7 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
     }
 
     if (hasIntegrated) {
-      openIntegratedTerminal(projectId, assistantType)
+      openIntegratedTerminal(projectId, assistantType, skipPermissions)
     } else {
       launchTerminal.mutate({ projectId, type: assistantType })
     }

@@ -61,6 +61,7 @@ export async function createSession(
   projectName?: string,
   taskId?: string,
   prompt?: string,
+  skipPermissions?: boolean,
 ): Promise<string | null> {
   if (!nodePty) return null;
 
@@ -80,27 +81,24 @@ export async function createSession(
   let shellArgs: string[] = [];
   let initialCommand: string | null = null;
 
+  // Determine if we should use skip permissions flag
+  const useSkip = skipPermissions ?? (type === 'claude-yolo' || type === 'ai-resolve' || type === 'ai-manage');
+
   if (os === 'win32') {
     // Windows: PowerShell with -NoLogo for cleaner startup
     shellArgs = ['-NoLogo'];
-    if (type === 'claude') {
+    if (type === 'claude' || type === 'claude-yolo' || type === 'ai-resolve' || type === 'ai-manage') {
       env['CLAUDECODE'] = '';
-      initialCommand = 'openclaude';
-    } else if (type === 'claude-yolo' || type === 'ai-resolve' || type === 'ai-manage') {
-      env['CLAUDECODE'] = '';
-      initialCommand = 'openclaude --dangerously-skip-permissions';
+      initialCommand = useSkip ? 'openclaude --dangerously-skip-permissions' : 'openclaude';
     } else if (type === 'dev') {
       initialCommand = await detectDevCommand(projectPath);
     }
   } else {
     // Linux/macOS: interactive login shell (enables readline + history)
     shellArgs = ['-il'];
-    if (type === 'claude') {
+    if (type === 'claude' || type === 'claude-yolo' || type === 'ai-resolve' || type === 'ai-manage') {
       env['CLAUDECODE'] = '';
-      initialCommand = 'openclaude';
-    } else if (type === 'claude-yolo' || type === 'ai-resolve' || type === 'ai-manage') {
-      env['CLAUDECODE'] = '';
-      initialCommand = 'openclaude --dangerously-skip-permissions';
+      initialCommand = useSkip ? 'openclaude --dangerously-skip-permissions' : 'openclaude';
     } else if (type === 'dev') {
       initialCommand = await detectDevCommand(projectPath);
     }

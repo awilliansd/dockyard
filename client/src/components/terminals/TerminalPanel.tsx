@@ -228,7 +228,7 @@ export function TerminalPanel() {
   }, [panelHeight])
 
   // Create a new terminal tab for a given project (or active project)
-  const handleNewTab = useCallback(async (type = 'shell', forProjectId?: string, taskId?: string, prompt?: string, taskNumber?: number) => {
+  const handleNewTab = useCallback(async (type = 'shell', forProjectId?: string, taskId?: string, prompt?: string, taskNumber?: number, skipPermissions?: boolean) => {
     if (!status?.available) {
       toast.error('Integrated terminal not available')
       return
@@ -249,6 +249,7 @@ export function TerminalPanel() {
       const session = await createSession.mutateAsync({
         projectId: targetProject, type, cols: 80, rows: 24, taskId,
         ...(prompt ? { prompt } : {}),
+        skipPermissions,
       })
       const tab: GlobalTab = {
         sessionId: session.id,
@@ -519,8 +520,8 @@ export function TerminalPanel() {
 
   // Listen for dockyard:open-terminal events (from TerminalLauncher) for ANY project
   useEffect(() => {
-    const handler = (e: CustomEvent<{ projectId: string; type: string; taskId?: string; taskNumber?: number; prompt?: string }>) => {
-      handleNewTab(e.detail.type, e.detail.projectId, e.detail.taskId, e.detail.prompt, e.detail.taskNumber)
+    const handler = (e: CustomEvent<{ projectId: string; type: string; taskId?: string; taskNumber?: number; prompt?: string; skipPermissions?: boolean }>) => {
+      handleNewTab(e.detail.type, e.detail.projectId, e.detail.taskId, e.detail.prompt, e.detail.taskNumber, e.detail.skipPermissions)
     }
     window.addEventListener('dockyard:open-terminal' as any, handler as any)
     return () => window.removeEventListener('dockyard:open-terminal' as any, handler as any)
