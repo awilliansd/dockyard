@@ -353,8 +353,9 @@ export function TaskBoard({ projectId, projectName, projectPath, milestoneId, on
     }
     try {
       const { prompt } = await api.getAiResolvePrompt(projectId, task.id)
+      const skipPermissions = localStorage.getItem('dockyard:skipPermissions') === 'true'
       window.dispatchEvent(new CustomEvent('dockyard:open-terminal', {
-        detail: { projectId, type: 'ai-resolve', taskId: task.id, taskNumber: task.number, prompt }
+        detail: { projectId, type: 'ai-resolve', taskId: task.id, taskNumber: task.number, prompt, skipPermissions }
       }))
       toast.success('AI resolution started')
     } catch (err: any) {

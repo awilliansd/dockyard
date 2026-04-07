@@ -34,8 +34,9 @@ export function TaskManagerDialog({ projectId, tasks, open, onOpenChange }: Task
     setLoading(true)
     try {
       const { prompt } = await api.getAiManagePrompt(projectId, rawText)
+      const skipPermissions = localStorage.getItem('dockyard:skipPermissions') === 'true'
       window.dispatchEvent(new CustomEvent('dockyard:open-terminal', {
-        detail: { projectId, type: 'ai-manage', prompt }
+        detail: { projectId, type: 'ai-manage', prompt, skipPermissions }
       }))
       toast.success('AI Task Manager started in terminal')
       setRawText('')
