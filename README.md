@@ -33,7 +33,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/dockyard-gif.gif" alt="Dockyard — workspace with kanban board, terminal, and git panel" width="100%" />
+  <img src="assets/dockyard.gif" alt="Dockyard — workspace with kanban board, terminal, and git panel" width="100%" />
 </p>
 
 ## Why Dockyard
