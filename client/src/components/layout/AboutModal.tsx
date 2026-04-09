@@ -26,7 +26,7 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
           
           <div className="flex items-center gap-2">
             <span className="text-cyan-400 font-medium">Version:</span>
-            <span className="text-zinc-200">1.4.6</span>
+            <span className="text-zinc-200">1.5.7</span>
           </div>
           
           <div className="flex items-center gap-2">

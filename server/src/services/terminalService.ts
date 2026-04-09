@@ -181,8 +181,9 @@ export async function createSession(
     }, delay);
   }
 
-  // For AI resolve/manage sessions: inject prompt when Claude CLI is ready
-  if (prompt && (type === 'ai-resolve' || type === 'ai-manage')) {
+  // For AI resolve/manage sessions: auto-inject prompt only for OpenClaude.
+  // Other CLIs are started with prompt copied to clipboard on the client side.
+  if (prompt && aiRuntime === 'openclaude' && (type === 'ai-resolve' || type === 'ai-manage')) {
     injectPromptWhenReady(id, prompt);
   }
 
