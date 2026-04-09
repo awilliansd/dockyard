@@ -9,10 +9,10 @@ export async function settingsRoutes(app: FastifyInstance) {
     return { ...getSettings(), tasksDir: TASKS_DIR };
   });
 
-  app.put<{ Body: { aiAutoCommitEnabled?: boolean; aiCliRuntime?: 'openclaude' | 'codex' | 'gemini' } }>('/api/settings', async (request) => {
+  app.put<{ Body: { aiAutoCommitEnabled?: boolean; aiCliRuntime?: 'openclaude' | 'codex' | 'gemini' | 'omniroute' } }>('/api/settings', async (request) => {
     const current = getSettings();
     const runtime = request.body.aiCliRuntime;
-    const isValidRuntime = runtime === 'openclaude' || runtime === 'codex' || runtime === 'gemini';
+    const isValidRuntime = runtime === 'openclaude' || runtime === 'codex' || runtime === 'gemini' || runtime === 'omniroute';
     const next = {
       ...current,
       ...(typeof request.body.aiAutoCommitEnabled === 'boolean'

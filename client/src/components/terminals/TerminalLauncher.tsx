@@ -58,9 +58,10 @@ function buildAiContext(projectName: string, projectPath: string, projectId: str
   return lines.join('\n')
 }
 
-function runtimeName(runtime: 'openclaude' | 'codex' | 'gemini') {
+function runtimeName(runtime: 'openclaude' | 'codex' | 'gemini' | 'omniroute') {
   if (runtime === 'codex') return 'Codex CLI'
   if (runtime === 'gemini') return 'Gemini CLI'
+  if (runtime === 'omniroute') return 'OmniRoute'
   return 'OpenClaude'
 }
 
@@ -68,7 +69,7 @@ function openIntegratedTerminal(
   projectId: string,
   type: string,
   skipPermissions?: boolean,
-  runtime?: 'openclaude' | 'codex' | 'gemini',
+  runtime?: 'openclaude' | 'codex' | 'gemini' | 'omniroute',
 ) {
   window.dispatchEvent(new CustomEvent('dockyard:open-terminal', { detail: { projectId, type, skipPermissions, runtime } }))
 }

@@ -167,7 +167,7 @@ export function Settings() {
   })
 
   const saveSettingsMutation = useMutation({
-    mutationFn: (data: { aiAutoCommitEnabled?: boolean; aiCliRuntime?: 'openclaude' | 'codex' | 'gemini' }) => api.saveSettings(data),
+    mutationFn: (data: { aiAutoCommitEnabled?: boolean; aiCliRuntime?: 'openclaude' | 'codex' | 'gemini' | 'omniroute' }) => api.saveSettings(data),
     onSuccess: (nextSettings) => {
       queryClient.setQueryData(['settings'], nextSettings)
       queryClient.invalidateQueries({ queryKey: ['settings'] })
@@ -215,12 +215,12 @@ export function Settings() {
     )
   }
 
-  const handleChangeAiRuntime = (runtime: 'openclaude' | 'codex' | 'gemini') => {
+  const handleChangeAiRuntime = (runtime: 'openclaude' | 'codex' | 'gemini' | 'omniroute') => {
     saveSettingsMutation.mutate(
       { aiCliRuntime: runtime },
       {
         onSuccess: () => {
-          toast.success(`AI CLI runtime set to ${runtime === 'openclaude' ? 'OpenClaude' : runtime === 'codex' ? 'Codex CLI' : 'Gemini CLI'}`)
+          toast.success(`AI CLI runtime set to ${runtime === 'openclaude' ? 'OpenClaude' : runtime === 'codex' ? 'Codex CLI' : runtime === 'gemini' ? 'Gemini CLI' : 'OmniRoute'}`)
         },
       }
     )
@@ -410,11 +410,12 @@ export function Settings() {
                         </p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
                       {[
                         { value: 'openclaude' as const, title: 'OpenClaude', desc: 'Best with skip confirmations mode' },
                         { value: 'codex' as const, title: 'Codex CLI', desc: 'Use your ChatGPT/Codex CLI workflow' },
                         { value: 'gemini' as const, title: 'Gemini CLI', desc: 'Use your Gemini CLI workflow' },
+                        { value: 'omniroute' as const, title: 'OmniRoute', desc: 'Use your OmniRoute CLI workflow' },
                       ].map(opt => {
                         const selected = (settings?.aiCliRuntime || 'openclaude') === opt.value
                         return (
