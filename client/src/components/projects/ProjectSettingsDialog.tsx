@@ -9,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { useUpdateProject, type Project } from '@/hooks/useProjects'
 import { useTasks, type Task } from '@/hooks/useTasks'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 import { tasksToCSV, parseCSV, diffTasks, type CsvDiff } from '@/lib/csv'
 import { getProvider } from '@/lib/sync/registry'
 import type { ProviderConfig } from '@/lib/sync/types'
@@ -35,6 +37,7 @@ interface ProjectSettingsDialogProps {
 
 export function ProjectSettingsDialog({ project, open, onOpenChange, defaultTab }: ProjectSettingsDialogProps) {
   const updateProject = useUpdateProject()
+  const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
 
   const [name, setName] = useState(project.name)
   const [notes, setNotes] = useState(project.notes || '')
@@ -339,31 +342,37 @@ export function ProjectSettingsDialog({ project, open, onOpenChange, defaultTab 
 
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">AI Assistant</label>
-                <button
-                  onClick={() => {
-                    const next = !skipPermissions
-                    setSkipPermissions(next)
-                    localStorage.setItem('dockyard:skipPermissions', String(next))
-                  }}
-                  className="flex items-center justify-between w-full px-3 py-2.5 rounded-md border hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Zap className={cn('h-4 w-4', skipPermissions ? 'text-yellow-500' : 'text-muted-foreground/50')} />
-                    <div className="text-left">
-                      <span className="text-xs font-medium">Skip permissions (Claude Code)</span>
-                      <p className="text-[10px] text-muted-foreground">Uses --dangerously-skip-permissions flag</p>
+                {settings?.aiCliRuntime === 'openclaude' ? (
+                  <button
+                    onClick={() => {
+                      const next = !skipPermissions
+                      setSkipPermissions(next)
+                      localStorage.setItem('dockyard:skipPermissions', String(next))
+                    }}
+                    className="flex items-center justify-between w-full px-3 py-2.5 rounded-md border hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Zap className={cn('h-4 w-4', skipPermissions ? 'text-yellow-500' : 'text-muted-foreground/50')} />
+                      <div className="text-left">
+                        <span className="text-xs font-medium">Skip confirmations (OpenClaude)</span>
+                        <p className="text-[10px] text-muted-foreground">Uses openclaude --dangerously-skip-permissions</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className={cn(
-                    'w-8 h-4.5 rounded-full transition-colors relative',
-                    skipPermissions ? 'bg-yellow-500' : 'bg-muted'
-                  )}>
                     <div className={cn(
-                      'absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white transition-transform',
-                      skipPermissions ? 'translate-x-3.5' : 'translate-x-0.5'
-                    )} />
+                      'w-8 h-4.5 rounded-full transition-colors relative',
+                      skipPermissions ? 'bg-yellow-500' : 'bg-muted'
+                    )}>
+                      <div className={cn(
+                        'absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white transition-transform',
+                        skipPermissions ? 'translate-x-3.5' : 'translate-x-0.5'
+                      )} />
+                    </div>
+                  </button>
+                ) : (
+                  <div className="w-full px-3 py-2.5 rounded-md border bg-muted/30 text-[11px] text-muted-foreground">
+                    This option is available only when AI CLI runtime is set to OpenClaude.
                   </div>
-                </button>
+                )}
               </div>
             </div>
           </TabsContent>

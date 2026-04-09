@@ -89,7 +89,7 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
     try { return localStorage.getItem('dockyard:skipPermissions') === 'true' } catch { return false }
   })
 
-  const assistantType = skipPermissions ? 'assistant-yolo' : 'assistant'
+  const assistantType = 'assistant'
 
   const handleCopyContext = () => {
     if (!projectPath || !projectName) return

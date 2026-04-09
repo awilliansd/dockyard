@@ -18,7 +18,7 @@ try {
 export interface TerminalSession {
   id: string;
   projectId: string;
-  type: string; // 'shell' | 'dev' | 'claude' | 'ai-resolve'
+  type: string; // 'shell' | 'dev' | 'assistant' | 'ai-resolve' | 'ai-manage'
   title: string;
   pty: import('node-pty').IPty;
   createdAt: string;
@@ -104,10 +104,10 @@ export async function createSession(
   let shellArgs: string[] = [];
   let initialCommand: string | null = null;
   const aiRuntime = normalizeRuntime(runtime);
-  const isAgentType = type === 'claude' || type === 'claude-yolo' || type === 'assistant' || type === 'assistant-yolo' || type === 'ai-resolve' || type === 'ai-manage';
+  const isAgentType = type === 'assistant' || type === 'ai-resolve' || type === 'ai-manage';
 
   // Determine if we should use skip permissions flag
-  const useSkip = skipPermissions ?? (type === 'claude-yolo' || type === 'assistant-yolo' || type === 'ai-resolve' || type === 'ai-manage');
+  const useSkip = skipPermissions ?? (type === 'ai-resolve' || type === 'ai-manage');
 
   if (os === 'win32') {
     // Windows: PowerShell with -NoLogo for cleaner startup
@@ -134,10 +134,7 @@ export async function createSession(
     ? projectName.slice(0, maxLen - 3) + '...'
     : projectName || projectId;
   const typeLabels: Record<string, string> = {
-    claude: getRuntimeLabel(aiRuntime),
-    'claude-yolo': getRuntimeLabel(aiRuntime),
     assistant: getRuntimeLabel(aiRuntime),
-    'assistant-yolo': getRuntimeLabel(aiRuntime),
     dev: 'Dev',
     shell: 'Shell',
     'ai-resolve': `AI (${getRuntimeLabel(aiRuntime)})`,
@@ -183,7 +180,7 @@ export async function createSession(
   }
 
   // For AI resolve/manage sessions: inject prompt when Claude CLI is ready
-  if (prompt && (type === 'ai-resolve' || type === 'ai-manage' || type === 'claude-yolo' || type === 'assistant-yolo')) {
+  if (prompt && (type === 'ai-resolve' || type === 'ai-manage')) {
     injectPromptWhenReady(id, prompt);
   }
 

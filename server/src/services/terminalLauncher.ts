@@ -4,16 +4,13 @@ import { join } from 'path';
 import { platform } from 'os';
 import { getSettings } from './settingsStore.js';
 
-export type TerminalType = 'claude' | 'claude-yolo' | 'assistant' | 'assistant-yolo' | 'dev' | 'shell';
+export type TerminalType = 'assistant' | 'dev' | 'shell';
 type AiCliRuntime = 'openclaude' | 'codex' | 'gemini';
 
 const os = platform();
 
 const typeLabel: Record<TerminalType, string> = {
-  claude: 'Open Claude',
-  'claude-yolo': 'Open Claude',
   assistant: 'AI Assistant',
-  'assistant-yolo': 'AI Assistant',
   dev: 'Dev',
   shell: 'Shell',
 };
@@ -156,17 +153,14 @@ export async function launchTerminal(
   options?: { runtime?: string; skipPermissions?: boolean },
 ): Promise<void> {
   const runtime = normalizeRuntime(options?.runtime);
-  const useSkip = options?.skipPermissions ?? (type === 'claude-yolo' || type === 'assistant-yolo');
-  const isAssistantType = type === 'claude' || type === 'claude-yolo' || type === 'assistant' || type === 'assistant-yolo';
+  const useSkip = options?.skipPermissions ?? false;
+  const isAssistantType = type === 'assistant';
   const titleBase = isAssistantType ? runtimeLabel(runtime) : typeLabel[type];
   const title = projectName ? buildTitle(projectName, type).replace(typeLabel[type], titleBase) : titleBase;
 
   let command: string | undefined;
   switch (type) {
-    case 'claude':
-    case 'claude-yolo':
     case 'assistant':
-    case 'assistant-yolo':
       command = buildAssistantCommand(runtime, useSkip);
       break;
     case 'dev':
