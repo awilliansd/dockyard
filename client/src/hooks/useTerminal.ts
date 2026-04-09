@@ -37,7 +37,7 @@ export function useCreateTerminalSession() {
       taskId?: string
       prompt?: string
       skipPermissions?: boolean
-      runtime?: 'openclaude' | 'codex' | 'gemini'
+      runtime?: 'openclaude' | 'codex' | 'gemini' | 'omniroute'
     }) =>
       api.createTerminalSession(projectId, type, cols, rows, taskId, prompt, skipPermissions, runtime),
     onSuccess: (_, variables) => {

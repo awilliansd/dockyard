@@ -348,10 +348,16 @@ export function TaskBoard({ projectId, projectName, projectPath, milestoneId, on
       const { prompt } = await api.getAiResolvePrompt(projectId, task.id)
       const skipPermissions = localStorage.getItem('dockyard:skipPermissions') === 'true'
       const runtime = settings?.aiCliRuntime || 'openclaude'
+      const promptForSession = runtime === 'openclaude' ? prompt : undefined
+      if (runtime !== 'openclaude') {
+        try { await navigator.clipboard.writeText(prompt) } catch {}
+      }
       window.dispatchEvent(new CustomEvent('dockyard:open-terminal', {
-        detail: { projectId, type: 'ai-resolve', taskId: task.id, taskNumber: task.number, prompt, skipPermissions, runtime }
+        detail: { projectId, type: 'ai-resolve', taskId: task.id, taskNumber: task.number, prompt: promptForSession, skipPermissions, runtime }
       }))
-      toast.success('AI resolution started')
+      toast.success(runtime === 'openclaude'
+        ? 'AI resolution started'
+        : 'AI opened and prompt copied to clipboard — paste it in the CLI')
     } catch (err: any) {
       toast.error(err.message || 'Failed to start AI resolution')
     }

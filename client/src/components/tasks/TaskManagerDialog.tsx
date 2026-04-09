@@ -36,10 +36,16 @@ export function TaskManagerDialog({ projectId, tasks, open, onOpenChange }: Task
       const { prompt } = await api.getAiManagePrompt(projectId, rawText)
       const skipPermissions = localStorage.getItem('dockyard:skipPermissions') === 'true'
       const runtime = settings?.aiCliRuntime || 'openclaude'
+      const promptForSession = runtime === 'openclaude' ? prompt : undefined
+      if (runtime !== 'openclaude') {
+        try { await navigator.clipboard.writeText(prompt) } catch {}
+      }
       window.dispatchEvent(new CustomEvent('dockyard:open-terminal', {
-        detail: { projectId, type: 'ai-manage', prompt, skipPermissions, runtime }
+        detail: { projectId, type: 'ai-manage', prompt: promptForSession, skipPermissions, runtime }
       }))
-      toast.success('AI Task Manager started in terminal')
+      toast.success(runtime === 'openclaude'
+        ? 'AI Task Manager started in terminal'
+        : 'AI Task Manager opened and prompt copied — paste it in the CLI')
       setRawText('')
       onOpenChange(false)
     } catch (err: any) {

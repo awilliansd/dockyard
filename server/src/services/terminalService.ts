@@ -29,24 +29,26 @@ export interface TerminalSession {
 
 const sessions = new Map<string, TerminalSession>();
 
-type AiCliRuntime = 'openclaude' | 'codex' | 'gemini';
+type AiCliRuntime = 'openclaude' | 'codex' | 'gemini' | 'omniroute';
 
 function normalizeRuntime(runtime?: string): AiCliRuntime {
-  if (runtime === 'codex' || runtime === 'gemini' || runtime === 'openclaude') return runtime;
+  if (runtime === 'codex' || runtime === 'gemini' || runtime === 'openclaude' || runtime === 'omniroute') return runtime;
   const configured = getSettings().aiCliRuntime;
-  if (configured === 'codex' || configured === 'gemini' || configured === 'openclaude') return configured;
+  if (configured === 'codex' || configured === 'gemini' || configured === 'openclaude' || configured === 'omniroute') return configured;
   return 'openclaude';
 }
 
 function getRuntimeLabel(runtime: AiCliRuntime): string {
   if (runtime === 'codex') return 'Codex';
   if (runtime === 'gemini') return 'Gemini';
+  if (runtime === 'omniroute') return 'OmniRoute';
   return 'Open Claude';
 }
 
 function buildAssistantCommand(runtime: AiCliRuntime, useSkip: boolean): string {
   if (runtime === 'codex') return 'codex';
   if (runtime === 'gemini') return 'gemini';
+  if (runtime === 'omniroute') return 'omniroute';
   return useSkip ? 'openclaude --dangerously-skip-permissions' : 'openclaude';
 }
 
@@ -179,8 +181,9 @@ export async function createSession(
     }, delay);
   }
 
-  // For AI resolve/manage sessions: inject prompt when Claude CLI is ready
-  if (prompt && (type === 'ai-resolve' || type === 'ai-manage')) {
+  // For AI resolve/manage sessions: auto-inject prompt only for OpenClaude.
+  // Other CLIs are started with prompt copied to clipboard on the client side.
+  if (prompt && aiRuntime === 'openclaude' && (type === 'ai-resolve' || type === 'ai-manage')) {
     injectPromptWhenReady(id, prompt);
   }
 
