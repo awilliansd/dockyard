@@ -4,6 +4,7 @@ import { getProjects } from '../services/projectDiscovery.js';
 import { buildAiResolvePrompt } from '../services/aiResolvePrompt.js';
 import { buildAiManagePrompt } from '../services/aiManagePrompt.js';
 import * as log from '../services/logService.js';
+import { getSettings } from '../services/settingsStore.js';
 
 export async function taskRoutes(app: FastifyInstance) {
   // All tasks across all projects
@@ -182,7 +183,10 @@ export async function taskRoutes(app: FastifyInstance) {
       if (!project) return reply.status(404).send({ error: 'Project not found' });
 
       const port = (request.server.addresses()?.[0] as any)?.port || 5420;
-      const prompt = buildAiResolvePrompt(task, project, port);
+      const settings = getSettings();
+      const prompt = buildAiResolvePrompt(task, project, port, {
+        aiAutoCommitEnabled: settings.aiAutoCommitEnabled,
+      });
       return { prompt };
     }
   );

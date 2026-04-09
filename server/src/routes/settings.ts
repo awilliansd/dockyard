@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { getSettings } from '../services/settingsStore.js';
+import { getSettings, saveSettings } from '../services/settingsStore.js';
 import { TASKS_DIR } from '../services/taskStore.js';
 import { readdir, stat } from 'fs/promises';
 import { join } from 'path';
@@ -7,6 +7,19 @@ import { join } from 'path';
 export async function settingsRoutes(app: FastifyInstance) {
   app.get('/api/settings', async () => {
     return { ...getSettings(), tasksDir: TASKS_DIR };
+  });
+
+  app.put<{ Body: { aiAutoCommitEnabled?: boolean } }>('/api/settings', async (request) => {
+    const current = getSettings();
+    const next = {
+      ...current,
+      ...(typeof request.body.aiAutoCommitEnabled === 'boolean'
+        ? { aiAutoCommitEnabled: request.body.aiAutoCommitEnabled }
+        : {}),
+    };
+
+    const saved = await saveSettings(next);
+    return { ...saved, tasksDir: TASKS_DIR };
   });
 
   // List subdirectories of a given path (for folder browser)

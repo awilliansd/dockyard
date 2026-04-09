@@ -1,11 +1,21 @@
 import type { Task, Project } from '../types/index.js';
 
+function isProtectedBranch(branch?: string): boolean {
+  if (!branch) return false;
+  const normalized = branch.trim().toLowerCase();
+  return normalized === 'main' || normalized === 'develop' || normalized === 'master';
+}
+
 export function buildAiResolvePrompt(
   task: Task,
   project: Project,
   serverPort: number = 5420,
+  options?: { aiAutoCommitEnabled?: boolean },
 ): string {
   const lines: string[] = [];
+  const currentBranch = project.gitBranch || '';
+  const autoCommitEnabled = options?.aiAutoCommitEnabled === true;
+  const protectedBranch = isProtectedBranch(currentBranch);
 
   lines.push(`# Task: ${task.title}`);
   lines.push('');
@@ -43,7 +53,15 @@ export function buildAiResolvePrompt(
   lines.push(`2. Explore the codebase at ${project.path} to understand the current state`);
   lines.push('3. Implement the required changes');
   lines.push('4. Test your implementation');
-  lines.push('5. Create a git commit with your changes using a clear, concise commit message that describes what was done (do NOT use --no-verify or skip hooks)');
+  if (!autoCommitEnabled) {
+    lines.push('5. Do NOT create a commit automatically. Leave changes unstaged/staged for human review first.');
+  } else if (protectedBranch) {
+    lines.push(`5. Do NOT create a commit automatically because current branch "${currentBranch}" is protected.`);
+    lines.push('   Protected branches: main, develop, master.');
+  } else {
+    lines.push('5. Create a git commit with your changes using a clear, concise commit message that describes what was done (do NOT use --no-verify or skip hooks).');
+    lines.push(`   Allowed because current branch "${currentBranch || '(unknown)'}" is not protected.`);
+  }
   lines.push('');
 
   lines.push('## IMPORTANT: When starting work on this task');
@@ -58,7 +76,7 @@ export function buildAiResolvePrompt(
   lines.push('');
 
   lines.push('## CRITICAL — YOU MUST DO THIS WHEN FINISHED:');
-  lines.push('After committing your changes, you MUST update the task status to "done" via the Dockyard API.');
+  lines.push('After finishing the implementation, you MUST update the task status to "done" via the Dockyard API.');
   lines.push('This is NOT optional — if you skip this step, the task will be stuck as in-progress.');
   lines.push('');
   lines.push('Run this curl command:');

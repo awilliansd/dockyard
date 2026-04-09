@@ -7,7 +7,7 @@ import { SyncSettingsCard } from '@/components/sync/SyncSettingsCard'
 import { ClaudeSettingsCard } from '@/components/claude/ClaudeSettingsCard'
 import { McpSettingsCard } from '@/components/mcp/McpSettingsCard'
 import { FolderPlus, Plus, FolderOpen, Check, Loader2, GitBranch, X, FolderSearch, Download, Upload, Volume2, VolumeX, Sparkles, Server, Cloud, Database } from 'lucide-react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useProjects } from '@/hooks/useProjects'
 import { useAllTasks, useImportAllTasks } from '@/hooks/useTasks'
 import { api } from '@/lib/api'
@@ -28,6 +28,7 @@ export function Settings() {
   const queryClient = useQueryClient()
   const { data: projects } = useProjects()
   const { data: allTasks } = useAllTasks()
+  const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
   const importAllTasks = useImportAllTasks()
 
   const [scanBrowserOpen, setScanBrowserOpen] = useState(false)
@@ -168,6 +169,15 @@ export function Settings() {
     onError: (err) => toast.error(`Failed: ${err.message}`),
   })
 
+  const saveSettingsMutation = useMutation({
+    mutationFn: (data: { aiAutoCommitEnabled: boolean }) => api.saveSettings(data),
+    onSuccess: (nextSettings) => {
+      queryClient.setQueryData(['settings'], nextSettings)
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
+    },
+    onError: (err) => toast.error(`Failed to save settings: ${err.message}`),
+  })
+
   const handleScanFolder = (path: string) => {
     scanMutation.mutate(path)
   }
@@ -194,6 +204,18 @@ export function Settings() {
   const handleAddSelected = () => {
     if (selectedPaths.size === 0) return
     addMutation.mutate(Array.from(selectedPaths))
+  }
+
+  const handleToggleAutoCommit = () => {
+    const nextValue = !settings?.aiAutoCommitEnabled
+    saveSettingsMutation.mutate(
+      { aiAutoCommitEnabled: nextValue },
+      {
+        onSuccess: () => {
+          toast.success(nextValue ? 'AI auto-commit enabled for non-protected branches' : 'AI auto-commit disabled')
+        },
+      }
+    )
   }
 
   type SectionId = 'projects' | 'preferences' | 'ai' | 'data'
@@ -370,7 +392,7 @@ export function Settings() {
               </div>
 
               <Card>
-                <CardContent className="pt-5">
+                <CardContent className="pt-5 space-y-2.5">
                   <button
                     onClick={() => {
                       const next = !soundOn
@@ -394,6 +416,31 @@ export function Settings() {
                       <div className={cn(
                         'absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform',
                         soundOn ? 'translate-x-4' : 'translate-x-0.5'
+                      )} />
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={handleToggleAutoCommit}
+                    disabled={saveSettingsMutation.isPending}
+                    className="flex items-center justify-between w-full px-3 py-2.5 rounded-md border hover:bg-accent/50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <div className="flex items-center gap-3">
+                      <GitBranch className="h-4 w-4 text-muted-foreground" />
+                      <div className="text-left">
+                        <span className="text-sm font-medium">AI auto-commit</span>
+                        <p className="text-xs text-muted-foreground">
+                          Allow auto-commit only on non-protected branches. Never on `main` or `develop`.
+                        </p>
+                      </div>
+                    </div>
+                    <div className={cn(
+                      'w-9 h-5 rounded-full transition-colors relative',
+                      settings?.aiAutoCommitEnabled ? 'bg-primary' : 'bg-muted'
+                    )}>
+                      <div className={cn(
+                        'absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform',
+                        settings?.aiAutoCommitEnabled ? 'translate-x-4' : 'translate-x-0.5'
                       )} />
                     </div>
                   </button>

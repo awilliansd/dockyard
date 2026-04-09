@@ -69,7 +69,9 @@ export function TaskViewer({ task, projectName, projectPath, open, onOpenChange,
   const PriIcon = pri.icon
 
   const handleCopy = () => {
-    const prompt = buildTaskPrompt(task, projectName, projectPath, settings?.tasksDir)
+    const prompt = buildTaskPrompt(task, projectName, projectPath, settings?.tasksDir, {
+      aiAutoCommitEnabled: settings?.aiAutoCommitEnabled,
+    })
     navigator.clipboard.writeText(prompt)
     toast.success('Copied to clipboard')
   }
