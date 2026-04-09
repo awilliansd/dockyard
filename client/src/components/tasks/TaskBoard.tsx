@@ -452,11 +452,19 @@ export function TaskBoard({ projectId, projectName, projectPath, milestoneId, on
   const handleCopyColumn = useCallback((colKey: string) => {
     if (!projectPath || !projectName) return
     const colTasks = grouped[colKey] || []
-    const prompt = buildColumnPrompt(colKey as 'inbox' | 'in_progress' | 'done', colTasks, projectName, projectPath, projectId, settings?.tasksDir || '')
+    const prompt = buildColumnPrompt(
+      colKey as 'inbox' | 'in_progress' | 'done',
+      colTasks,
+      projectName,
+      projectPath,
+      projectId,
+      settings?.tasksDir || '',
+      { aiAutoCommitEnabled: settings?.aiAutoCommitEnabled }
+    )
     if (!prompt) { toast.info('No tasks in this column'); return }
     navigator.clipboard.writeText(prompt)
     toast.success('Copied to clipboard')
-  }, [grouped, projectName, projectPath, projectId, settings?.tasksDir])
+  }, [grouped, projectName, projectPath, projectId, settings?.tasksDir, settings?.aiAutoCommitEnabled])
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveTask(event.active.data.current?.task || null)

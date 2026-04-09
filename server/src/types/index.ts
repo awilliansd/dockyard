@@ -74,6 +74,8 @@ export interface TasksFile {
 export interface Settings {
   // Paths of projects the user has added to the dashboard
   selectedProjects: string[];
+  // If true, AI may auto-commit, but never on protected branches (main/develop/master)
+  aiAutoCommitEnabled: boolean;
 }
 
 // ── Claude API Integration ──────────────────────────────

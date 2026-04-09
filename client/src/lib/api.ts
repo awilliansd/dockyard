@@ -1,5 +1,11 @@
 const BASE_URL = '/api';
 
+export interface AppSettings {
+  tasksDir: string;
+  selectedProjects: string[];
+  aiAutoCommitEnabled: boolean;
+}
+
 interface RequestOptions extends RequestInit {
   timeout?: number;
 }
@@ -138,7 +144,9 @@ export const api = {
   removeProject: (path: string) => request<{ projects: any[] }>('/projects/remove', { method: 'POST', body: JSON.stringify({ path }) }),
 
   // Settings
-  getSettings: () => request<{ tasksDir: string }>('/settings'),
+  getSettings: () => request<AppSettings>('/settings'),
+  saveSettings: (data: Partial<Pick<AppSettings, 'aiAutoCommitEnabled'>>) =>
+    request<AppSettings>('/settings', { method: 'PUT', body: JSON.stringify(data) }),
 
   // Browse filesystem
   browse: (path: string) => request<{ directories: { name: string; path: string }[] }>('/browse', { method: 'POST', body: JSON.stringify({ path }) }),

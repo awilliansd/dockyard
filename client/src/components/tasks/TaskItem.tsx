@@ -87,7 +87,9 @@ export function TaskItem({ task, projectName, projectPath, showProjectBadge, pro
 
   const handleCopyPrompt = (e: React.MouseEvent) => {
     e.stopPropagation()
-    const prompt = buildTaskPrompt(task, projectName, projectPath, settings?.tasksDir)
+    const prompt = buildTaskPrompt(task, projectName, projectPath, settings?.tasksDir, {
+      aiAutoCommitEnabled: settings?.aiAutoCommitEnabled,
+    })
     navigator.clipboard.writeText(prompt)
     toast.success('Copied to clipboard')
   }

@@ -7,6 +7,7 @@ const SETTINGS_FILE = join(DATA_DIR, 'settings.json');
 
 const DEFAULT_SETTINGS: Settings = {
   selectedProjects: [],
+  aiAutoCommitEnabled: false,
 };
 
 let settings: Settings = { ...DEFAULT_SETTINGS };

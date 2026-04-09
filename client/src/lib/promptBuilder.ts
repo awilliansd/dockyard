@@ -1,6 +1,35 @@
 import type { Task } from '@/hooks/useTasks'
 
 const priorityLabel: Record<string, string> = { urgent: 'URGENT', high: 'HIGH', medium: 'MEDIUM', low: 'LOW' }
+const protectedBranches = new Set(['main', 'develop', 'master'])
+
+type PromptOptions = {
+  aiAutoCommitEnabled?: boolean
+  gitBranch?: string
+}
+
+function appendCommitInstruction(lines: string[], options?: PromptOptions) {
+  const branch = (options?.gitBranch || '').trim()
+  const normalized = branch.toLowerCase()
+  const isProtected = protectedBranches.has(normalized)
+
+  if (!options?.aiAutoCommitEnabled) {
+    lines.push('4. Do NOT create a git commit automatically. Leave changes for human review and manual commit.')
+    return
+  }
+
+  if (isProtected) {
+    lines.push(`4. Do NOT create a git commit automatically because current branch "${branch}" is protected (main/develop/master).`)
+    return
+  }
+
+  lines.push('4. Create a git commit with your changes using a clear, concise commit message that describes what was done')
+  if (branch) {
+    lines.push(`   Current branch "${branch}" is not protected.`)
+  } else {
+    lines.push('   Only do this on non-protected branches (never main/develop/master).')
+  }
+}
 
 function formatTaskBlock(t: Task, index?: number): string[] {
   const lines: string[] = []
@@ -25,6 +54,7 @@ export function buildInProgressPrompt(
   projectPath: string,
   projectId: string,
   tasksDir: string,
+  options?: PromptOptions,
 ): string | null {
   const inProgress = tasks
     .filter(t => t.status === 'in_progress')
@@ -58,7 +88,7 @@ export function buildInProgressPrompt(
   lines.push('1. Investigate the codebase to understand the context')
   lines.push('2. Plan and implement the solution')
   lines.push('3. Test that your changes work correctly')
-  lines.push('4. Create a git commit with your changes using a clear, concise commit message that describes what was done')
+  appendCommitInstruction(lines, options)
   lines.push(`5. Update the tasks file (${tasksFilePath}) to mark the task as done:`)
   lines.push(`   - Set "status": "done"`)
   lines.push(`   - Set "doneAt" and "updatedAt" to the current ISO timestamp`)
@@ -78,6 +108,7 @@ export function buildColumnPrompt(
   projectPath: string,
   projectId: string,
   tasksDir: string,
+  options?: PromptOptions,
 ): string | null {
   if (tasks.length === 0) return null
 
@@ -129,7 +160,7 @@ export function buildColumnPrompt(
     lines.push('1. Investigate the codebase to understand the context')
     lines.push('2. Plan and implement the solution')
     lines.push('3. Test that your changes work correctly')
-    lines.push('4. Create a git commit with your changes using a clear, concise commit message that describes what was done')
+    appendCommitInstruction(lines, options)
     lines.push(`5. Update the tasks file (${tasksFilePath}) to mark the task as done:`)
     lines.push('   - Set "status": "done"')
     lines.push('   - Set "doneAt" and "updatedAt" to the current ISO timestamp')
@@ -167,6 +198,7 @@ export function buildTaskPrompt(
   projectName: string | undefined,
   projectPath: string | undefined,
   tasksDir: string | undefined,
+  options?: PromptOptions,
 ): string {
   const sep = tasksDir?.includes('\\') ? '\\' : '/'
   const tasksFilePath = tasksDir ? `${tasksDir}${sep}${task.projectId}.json` : null
@@ -195,7 +227,7 @@ export function buildTaskPrompt(
   lines.push('1. Investigate the codebase to understand the context of this task')
   lines.push('2. Plan and implement the solution')
   lines.push('3. Test that your changes work correctly')
-  lines.push('4. Create a git commit with your changes using a clear, concise commit message that describes what was done')
+  appendCommitInstruction(lines, options)
 
 // Dockyard task update instructions
   if (tasksFilePath) {

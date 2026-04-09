@@ -68,7 +68,9 @@ function TaskRow({ task, projectName, projectPath, showProjectBadge, projectMap,
   }
 
   const handleCopyPrompt = () => {
-    const prompt = buildTaskPrompt(task, displayProjectName, displayProjectPath, settings?.tasksDir)
+    const prompt = buildTaskPrompt(task, displayProjectName, displayProjectPath, settings?.tasksDir, {
+      aiAutoCommitEnabled: settings?.aiAutoCommitEnabled,
+    })
     navigator.clipboard.writeText(prompt)
     toast.success('Copied to clipboard')
   }
