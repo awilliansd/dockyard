@@ -3,7 +3,9 @@
     "allow": [
       "Bash(curl:*)",
       "Bash(git commit:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(find client/src -type f -name *.ts -o -name *.tsx)",
+      "Bash(find server/src -type f -name *.ts)"
     ]
   }
 }

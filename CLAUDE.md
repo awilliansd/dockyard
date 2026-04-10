@@ -24,20 +24,21 @@ dockyard.cmd      # Windows: launcher
 
 ```
 client/src/
-  components/   # ui/ (shadcn), layout/, projects/, tasks/, git/, claude/,
+  components/   # ui/ (shadcn), layout/, projects/, tasks/, git/, ai/,
                 # terminals/, editor/, files/, sync/, mcp/, onboarding/
-  hooks/        # useProjects, useTasks, useGit, useClaude, useTerminal,
+  hooks/        # useProjects, useTasks, useGit, useAi, useAiSessions, useTerminal,
                 # useMilestones, useSheetSync, useFiles, useEditorTabs, useLogs, useMcp
   pages/        # Dashboard, Workspace, TasksPage, Settings, Help, LogsPage
   lib/          # api.ts (fetch wrapper), sync/ (provider pattern)
 
 server/src/
-  routes/       # projects, tasks, git, terminals, terminalWs, claude, mcp,
+  routes/       # projects, tasks, git, terminals, terminalWs, mcp,
                 # files, logs, sync, settings
   services/     # projectDiscovery, gitService, taskStore, terminalLauncher,
-                # terminalService, claudeService, claudeContextBuilder,
-                # claudeCliService, aiResolvePrompt, aiManagePrompt,
+                # terminalService, ai/,
                 # mcpServer, mcpAuth, logService, settingsStore, dataDir
+  services/ai/  # index, assistantAgent, assistantTools, security, types, utils
+                # providers: claude, gemini, ollama, openai
 
 data/           # Persistencia (auto-criado)
   projects.json, settings.json, claude.json, .claude-key,
@@ -135,8 +136,9 @@ Os timestamps sao cascading — etapas posteriores preenchem as anteriores autom
 - **macOS**: `osascript` (Terminal.app)
 - Terminal integrado: xterm.js + node-pty (optional dep) + WebSocket
 
-### AI Task Management (Claude CLI)
-- `claudeCliService.ts`: detecta e executa Claude CLI (`claude`) como subprocess
+### AI Task Management (AI providers + Claude CLI)
+- `services/ai/assistantAgent.ts`: orquestra provedores AI e execucao de tarefas
+- `services/ai/providers/claude.ts`: integra Claude CLI (`claude`) como provider
 - `aiResolvePrompt.ts`: monta prompt para Claude resolver UMA tarefa (inclui contexto do projeto + task + MCP tools disponiveis)
 - `aiManagePrompt.ts`: monta prompt para Claude gerenciar MULTIPLAS tarefas a partir de texto livre
 - Auto-close: TerminalPanel detecta quando sessao AI termina e marca task como done se Claude nao o fez
