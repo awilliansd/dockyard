@@ -4,7 +4,7 @@ export interface AppSettings {
   tasksDir: string;
   selectedProjects: string[];
   aiAutoCommitEnabled: boolean;
-  aiCliRuntime: 'openclaude' | 'codex' | 'gemini';
+  aiCliRuntime: 'openclaude' | 'codex' | 'gemini' | 'opencode';
 }
 
 interface RequestOptions extends RequestInit {
@@ -112,7 +112,7 @@ export const api = {
     ),
 
   // Terminals (native launchers)
-  launchTerminal: (projectId: string, type: string, runtime?: 'openclaude' | 'codex' | 'gemini', skipPermissions?: boolean) =>
+  launchTerminal: (projectId: string, type: string, runtime?: 'openclaude' | 'codex' | 'gemini' | 'opencode', skipPermissions?: boolean) =>
     request('/terminals/launch', {
       method: 'POST',
       body: JSON.stringify({
@@ -130,7 +130,7 @@ export const api = {
     request<{ sessions: { id: string; projectId: string; type: string; title: string; createdAt: string }[] }>(
       `/terminal/sessions${projectId ? `?projectId=${projectId}` : ''}`
     ),
-  createTerminalSession: (projectId: string, type = 'shell', cols = 80, rows = 24, taskId?: string, prompt?: string, skipPermissions?: boolean, runtime?: 'openclaude' | 'codex' | 'gemini') =>
+  createTerminalSession: (projectId: string, type = 'shell', cols = 80, rows = 24, taskId?: string, prompt?: string, skipPermissions?: boolean, runtime?: 'openclaude' | 'codex' | 'gemini' | 'opencode') =>
     request<{ id: string; projectId: string; type: string; title: string; createdAt: string; taskId?: string }>(
       '/terminal/sessions',
       { method: 'POST', body: JSON.stringify({ projectId, type, cols, rows, ...(taskId ? { taskId } : {}), ...(prompt ? { prompt } : {}), ...(skipPermissions !== undefined ? { skipPermissions } : {}), ...(runtime ? { runtime } : {}) }) }

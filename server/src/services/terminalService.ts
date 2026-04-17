@@ -29,24 +29,26 @@ export interface TerminalSession {
 
 const sessions = new Map<string, TerminalSession>();
 
-type AiCliRuntime = 'openclaude' | 'codex' | 'gemini';
+type AiCliRuntime = 'openclaude' | 'codex' | 'gemini' | 'opencode';
 
 function normalizeRuntime(runtime?: string): AiCliRuntime {
-  if (runtime === 'codex' || runtime === 'gemini' || runtime === 'openclaude') return runtime;
+  if (runtime === 'codex' || runtime === 'gemini' || runtime === 'openclaude' || runtime === 'opencode') return runtime;
   const configured = getSettings().aiCliRuntime;
-  if (configured === 'codex' || configured === 'gemini' || configured === 'openclaude') return configured;
+  if (configured === 'codex' || configured === 'gemini' || configured === 'openclaude' || configured === 'opencode') return configured;
   return 'openclaude';
 }
 
 function getRuntimeLabel(runtime: AiCliRuntime): string {
   if (runtime === 'codex') return 'Codex';
   if (runtime === 'gemini') return 'Gemini';
+  if (runtime === 'opencode') return 'OpenCode';
   return 'Open Claude';
 }
 
 function buildAssistantCommand(runtime: AiCliRuntime, useSkip: boolean): string {
   if (runtime === 'codex') return 'codex';
   if (runtime === 'gemini') return 'gemini';
+  if (runtime === 'opencode') return 'opencode';
   return useSkip ? 'openclaude --dangerously-skip-permissions' : 'openclaude';
 }
 

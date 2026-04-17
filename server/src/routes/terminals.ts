@@ -4,7 +4,7 @@ import { getProjects, updateProject } from '../services/projectDiscovery.js';
 import * as log from '../services/logService.js';
 
 export async function terminalRoutes(app: FastifyInstance) {
-  app.post<{ Body: { projectId: string; type: TerminalType; runtime?: 'openclaude' | 'codex' | 'gemini'; skipPermissions?: boolean } }>(
+  app.post<{ Body: { projectId: string; type: TerminalType; runtime?: 'openclaude' | 'codex' | 'gemini' | 'opencode'; skipPermissions?: boolean } }>(
     '/api/terminals/launch',
     async (request, reply) => {
       const projects = await getProjects();

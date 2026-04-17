@@ -63,7 +63,7 @@ export function useLaunchTerminal() {
     mutationFn: ({ projectId, type, runtime, skipPermissions }: {
       projectId: string
       type: string
-      runtime?: 'openclaude' | 'codex' | 'gemini'
+      runtime?: 'openclaude' | 'codex' | 'gemini' | 'opencode'
       skipPermissions?: boolean
     }) =>
       api.launchTerminal(projectId, type, runtime, skipPermissions),

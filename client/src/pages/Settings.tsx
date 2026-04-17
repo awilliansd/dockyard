@@ -21,6 +21,13 @@ interface ScannedProject {
 
 type ExportOption = 'settings' | 'tasks'
 
+function runtimeDisplayName(runtime: 'openclaude' | 'codex' | 'gemini' | 'opencode') {
+  if (runtime === 'openclaude') return 'OpenClaude'
+  if (runtime === 'codex') return 'Codex CLI'
+  if (runtime === 'gemini') return 'Gemini CLI'
+  return 'OpenCode CLI'
+}
+
 export function Settings() {
   const queryClient = useQueryClient()
   const { data: projects } = useProjects()
@@ -167,7 +174,7 @@ export function Settings() {
   })
 
   const saveSettingsMutation = useMutation({
-    mutationFn: (data: { aiAutoCommitEnabled?: boolean; aiCliRuntime?: 'openclaude' | 'codex' | 'gemini' }) => api.saveSettings(data),
+    mutationFn: (data: { aiAutoCommitEnabled?: boolean; aiCliRuntime?: 'openclaude' | 'codex' | 'gemini' | 'opencode' }) => api.saveSettings(data),
     onSuccess: (nextSettings) => {
       queryClient.setQueryData(['settings'], nextSettings)
       queryClient.invalidateQueries({ queryKey: ['settings'] })
@@ -215,12 +222,12 @@ export function Settings() {
     )
   }
 
-  const handleChangeAiRuntime = (runtime: 'openclaude' | 'codex' | 'gemini') => {
+  const handleChangeAiRuntime = (runtime: 'openclaude' | 'codex' | 'gemini' | 'opencode') => {
     saveSettingsMutation.mutate(
       { aiCliRuntime: runtime },
       {
         onSuccess: () => {
-          toast.success(`AI CLI runtime set to ${runtime === 'openclaude' ? 'OpenClaude' : runtime === 'codex' ? 'Codex CLI' : 'Gemini CLI'}`)
+          toast.success(`AI CLI runtime set to ${runtimeDisplayName(runtime)}`)
         },
       }
     )
@@ -410,11 +417,12 @@ export function Settings() {
                         </p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
                       {[
                         { value: 'openclaude' as const, title: 'OpenClaude', desc: 'Best with skip confirmations mode' },
                         { value: 'codex' as const, title: 'Codex CLI', desc: 'Use your ChatGPT/Codex CLI workflow' },
                         { value: 'gemini' as const, title: 'Gemini CLI', desc: 'Use your Gemini CLI workflow' },
+                        { value: 'opencode' as const, title: 'OpenCode CLI', desc: 'Use your OpenCode CLI workflow' },
                       ].map(opt => {
                         const selected = (settings?.aiCliRuntime || 'openclaude') === opt.value
                         return (

@@ -243,7 +243,7 @@ function SectionWorkspace() {
       </P>
       <Bullet title="General">Edit project name, toggle favorite, view path and tech stack.</Bullet>
       <Bullet title="Links & Notes">Add a quick link (shown in header), project notes, and multiple labeled URLs.</Bullet>
-      <Bullet title="Launch">Configure AI assistant launch preferences (skip permissions for Claude Code).</Bullet>
+      <Bullet title="Launch">Configure AI assistant launch preferences (skip permissions for OpenClaude).</Bullet>
 
       <H3>File Content Search</H3>
       <P>
@@ -504,8 +504,8 @@ function SectionTerminal() {
       </P>
       <Bullet title="Shell">Opens a shell in the project directory (PowerShell on Windows, bash/zsh on Linux/macOS).</Bullet>
       <Bullet title="Dev">Runs <code>pnpm dev</code> (or npm/yarn) in the project directory.</Bullet>
-      <Bullet title="AI Assistant">Opens your AI assistant in the project directory.</Bullet>
-      <Bullet title="Skip permissions">Opens Claude Code with auto-accept (<code>claude --dangerously-skip-permissions</code>).</Bullet>
+      <Bullet title="AI Assistant">Opens your configured AI CLI runtime (OpenClaude, Codex CLI, Gemini CLI, or OpenCode CLI) in the project directory.</Bullet>
+      <Bullet title="Skip permissions">Available only for OpenClaude (<code>openclaude --dangerously-skip-permissions</code>).</Bullet>
 
       <H3>Native Terminal Fallback</H3>
       <P>

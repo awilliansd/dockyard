@@ -17,6 +17,8 @@ interface TerminalLauncherProps {
   projectName?: string
 }
 
+type AiCliRuntime = 'openclaude' | 'codex' | 'gemini' | 'opencode'
+
 const priorityLabel = { urgent: 'URGENT', high: 'HIGH', medium: 'MEDIUM', low: 'LOW' }
 const statusLabel = { backlog: 'BACKLOG', todo: 'TODO', in_progress: 'IN_PROGRESS', done: 'DONE' }
 
@@ -58,9 +60,10 @@ function buildAiContext(projectName: string, projectPath: string, projectId: str
   return lines.join('\n')
 }
 
-function runtimeName(runtime: 'openclaude' | 'codex' | 'gemini') {
+function runtimeName(runtime: AiCliRuntime) {
   if (runtime === 'codex') return 'Codex CLI'
   if (runtime === 'gemini') return 'Gemini CLI'
+  if (runtime === 'opencode') return 'OpenCode CLI'
   return 'OpenClaude'
 }
 
@@ -68,7 +71,7 @@ function openIntegratedTerminal(
   projectId: string,
   type: string,
   skipPermissions?: boolean,
-  runtime?: 'openclaude' | 'codex' | 'gemini',
+  runtime?: AiCliRuntime,
 ) {
   window.dispatchEvent(new CustomEvent('dockyard:open-terminal', { detail: { projectId, type, skipPermissions, runtime } }))
 }
@@ -82,7 +85,7 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: api.getSettings, staleTime: Infinity })
   const { data: mcpStatus } = useMcpStatus()
   const mcpActive = mcpStatus?.enabled ?? false
-  const aiRuntime = settings?.aiCliRuntime || 'openclaude'
+  const aiRuntime: AiCliRuntime = settings?.aiCliRuntime || 'openclaude'
   const activeProviderName = runtimeName(aiRuntime)
   const [taskManagerOpen, setTaskManagerOpen] = useState(false)
   const [skipPermissions, setSkipPermissions] = useState(() => {
@@ -135,21 +138,19 @@ export function TerminalLauncher({ projectId, projectPath, projectName }: Termin
 
       {/* Primary actions */}
       <div className="space-y-1">
-        {(
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="default" className="w-full justify-start gap-2 h-8 text-xs" onClick={() => setTaskManagerOpen(true)}>
-                <Wand2 className="h-3.5 w-3.5" />
-                AI Task Manager
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              <p className="max-w-[200px] text-xs">
-                Paste any text — notes, emails, bug reports — and AI organizes them into tasks.
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="default" className="w-full justify-start gap-2 h-8 text-xs" onClick={() => setTaskManagerOpen(true)}>
+              <Wand2 className="h-3.5 w-3.5" />
+              AI Task Manager
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            <p className="max-w-[200px] text-xs">
+              Paste any text — notes, emails, bug reports — and AI organizes them into tasks.
+            </p>
+          </TooltipContent>
+        </Tooltip>
 
         {projectPath && projectName && (
           <Tooltip>

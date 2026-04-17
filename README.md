@@ -41,7 +41,7 @@
 - **Local-first** -- runs entirely on `localhost`. No cloud services, no accounts, no telemetry. Your data stays on your machine as plain JSON files.
 - **Complements your editor** -- Dockyard is not an IDE. It sits alongside VS Code (or whatever you use) and gives you a bird's-eye view of all your projects, tasks, and git status in one place.
 - **Cross-platform** -- works on Linux, macOS, and Windows. Launches native terminals, file managers, and VS Code with one click.
-- **Agentic AI & Terminals** -- Dockyard bridges the gap between your task list and your terminal. Launch **OpenClaude**, **Codex CLI**, or **Gemini CLI** with full project context, or let AI manage your tasks directly.
+- **Agentic AI & Terminals** -- Dockyard bridges the gap between your task list and your terminal. Launch **OpenClaude**, **Codex CLI**, **Gemini CLI**, or **OpenCode CLI** with full project context, or let AI manage your tasks directly.
 
 ## Features
 
@@ -52,15 +52,15 @@
 **Milestones** -- Group tasks into milestones for phased work. A virtual "General" milestone holds ungrouped tasks. Create, close, and reorder milestones per project.
 
 **Integrated Terminal** -- Full-featured terminal in your browser powered by **xterm.js** and **node-pty**.
-- **Automated AI Injection**: Launch OpenClaude, Codex CLI, or Gemini CLI and Dockyard automatically detects when they are ready to receive a task-specific prompt.
-- **Supported AI CLI runtimes**: OpenClaude, Codex CLI, and Gemini CLI.
+- **Automated AI Injection**: Launch OpenClaude and Dockyard automatically detects when it is ready to receive a task-specific prompt.
+- **Supported AI CLI runtimes**: OpenClaude, Codex CLI, Gemini CLI, and OpenCode CLI.
 - **Context-Aware**: Prompts include project path, tech stack, current git branch, and detailed task instructions.
 - **Smart Detection**: Uses content-based and silence-based detection with retry logic to ensure prompts are injected only when the CLI is fully initialized.
 - **Native Fallback**: If `node-pty` is unavailable, Dockyard seamlessly falls back to launching native OS terminals (Windows Terminal, Terminal.app, gnome-terminal, etc.).
 
 **OpenClaude Integration** -- Deep support for [OpenClaude](https://github.com/OpenClaude/openclaude). Launch in normal or `--dangerously-skip-permissions` (YOLO) mode. Dockyard ensures a clean environment by unsetting conflicting variables and providing bracketed paste support for large prompt injections.
 
-**Codex/Gemini CLI Integration** -- Dockyard can launch `codex` and `gemini` as AI runtimes for assistant and task workflows, including clipboard context handoff and integrated terminal sessions.
+**Codex/Gemini/OpenCode CLI Integration** -- Dockyard can launch `codex`, `gemini`, and `opencode` as AI runtimes for assistant and task workflows, including clipboard context handoff and integrated terminal sessions.
 
 **Git Panel** -- Stage, unstage, commit, push, pull, view diffs, and browse commit history without leaving the browser.
 - **Multi-repo support**: Automatically detects sub-repositories within a project (e.g., `client/` and `server/` folders with their own `.git`).

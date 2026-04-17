@@ -30,7 +30,7 @@ export async function terminalWsRoutes(app: FastifyInstance) {
   );
 
   // REST: Create a new terminal session
-  app.post<{ Body: { projectId: string; type?: string; cols?: number; rows?: number; taskId?: string; prompt?: string; skipPermissions?: boolean; runtime?: 'openclaude' | 'codex' | 'gemini' } }>(
+  app.post<{ Body: { projectId: string; type?: string; cols?: number; rows?: number; taskId?: string; prompt?: string; skipPermissions?: boolean; runtime?: 'openclaude' | 'codex' | 'gemini' | 'opencode' } }>(
     '/api/terminal/sessions',
     async (request, reply) => {
       if (!isAvailable()) {
