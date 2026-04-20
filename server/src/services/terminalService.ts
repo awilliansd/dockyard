@@ -181,9 +181,8 @@ export async function createSession(
     }, delay);
   }
 
-  // For AI resolve/manage sessions: auto-inject prompt only for OpenClaude.
-  // Other CLIs are started with prompt copied to clipboard on the client side.
-  if (prompt && aiRuntime === 'openclaude' && (type === 'ai-resolve' || type === 'ai-manage')) {
+  // For AI resolve/manage sessions: auto-inject prompt for all AI runtimes.
+  if (prompt && (aiRuntime === 'openclaude' || aiRuntime === 'opencode' || aiRuntime === 'codex' || aiRuntime === 'gemini') && (type === 'ai-resolve' || type === 'ai-manage')) {
     injectPromptWhenReady(id, prompt);
   }
 
@@ -341,8 +340,8 @@ export function injectPromptWhenReady(sessionId: string, prompt: string): void {
   const MIN_WAIT = 3_000;    // Always wait at least 3s (shell + claude startup)
 
   // Regex to detect Claude CLI's idle prompt at the end of output.
-  // Matches lines ending with `> ` or `❯ ` (with optional ANSI escapes).
-  const PROMPT_RE = /(?:^|\n)\s*(?:\x1b\[[0-9;]*m)*[>❯]\s*(?:\x1b\[[0-9;]*m)*\s*$/;
+  // Matches lines ending with `>`, `❯`, `$`, or `#` (with optional ANSI escapes).
+  const PROMPT_RE = /(?:^|\n)\s*(?:\x1b\[[0-9;]*m)*[>❯$#]\s*(?:\x1b\[[0-9;]*m)*\s*$/;
 
   // Listen for PTY output to track when it last produced data
   const disposable = session.pty.onData((data: string) => {

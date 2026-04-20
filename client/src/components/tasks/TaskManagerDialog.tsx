@@ -36,16 +36,21 @@ export function TaskManagerDialog({ projectId, tasks, open, onOpenChange }: Task
       const { prompt } = await api.getAiManagePrompt(projectId, rawText)
       const skipPermissions = localStorage.getItem('dockyard:skipPermissions') === 'true'
       const runtime = settings?.aiCliRuntime || 'openclaude'
-      const promptForSession = runtime === 'openclaude' ? prompt : undefined
+      
+      // Re-enable clipboard fallback for non-OpenClaude runtimes
       if (runtime !== 'openclaude') {
         try { await navigator.clipboard.writeText(prompt) } catch {}
       }
+
+      const promptForSession = ['openclaude', 'opencode', 'codex', 'gemini'].includes(runtime) ? prompt : undefined
       window.dispatchEvent(new CustomEvent('dockyard:open-terminal', {
         detail: { projectId, type: 'ai-manage', prompt: promptForSession, skipPermissions, runtime }
       }))
-      toast.success(runtime === 'openclaude'
-        ? 'AI Task Manager started in terminal'
-        : 'AI Task Manager opened and prompt copied — paste it in the CLI')
+      
+      toast.success(runtime === 'openclaude' 
+        ? 'AI Task Manager started' 
+        : 'AI Task Manager started (context copied to clipboard as fallback)')
+      
       setRawText('')
       onOpenChange(false)
     } catch (err: any) {
