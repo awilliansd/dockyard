@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, shell, dialog, MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, Tray, Menu, nativeImage, shell, dialog, MenuItemConstructorOptions, ipcMain } from 'electron';
 import { join, resolve } from 'path';
 import { existsSync, mkdirSync, appendFileSync, readFileSync } from 'fs';
 import { spawn, type ChildProcess } from 'child_process';
@@ -791,6 +791,8 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(async () => {
+    ipcMain.handle('get-app-version', () => app.getVersion());
+
     try {
       createSplashWindow();
       await startServer();

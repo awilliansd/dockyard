@@ -4,6 +4,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('electronAPI', {
   isElectron: true,
   platform: process.platform,
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   onMenuEvent: (callback: (event: string) => void) => {
     ipcRenderer.on('menu-event', (_event, value) => callback(value));
     return () => {

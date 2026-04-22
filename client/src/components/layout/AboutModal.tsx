@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 interface AboutModalProps {
@@ -6,6 +7,16 @@ interface AboutModalProps {
 }
 
 export function AboutModal({ open, onOpenChange }: AboutModalProps) {
+  const [version, setVersion] = useState('N/A')
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.electronAPI?.getAppVersion) {
+      window.electronAPI.getAppVersion()
+        .then((v: string) => setVersion(v || 'N/A'))
+        .catch(() => setVersion('N/A'))
+    }
+  }, [])
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[420px] bg-[#1c1c1c] text-zinc-300 border-[#333] shadow-xl">
@@ -26,7 +37,7 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
           
           <div className="flex items-center gap-2">
             <span className="text-cyan-400 font-medium">Version:</span>
-            <span className="text-zinc-200">1.6.0</span>
+            <span className="text-zinc-200">{version}</span>
           </div>
           
           <div className="flex items-center gap-2">
