@@ -74,10 +74,8 @@ export function TabBar() {
 
   const isHome = location.pathname === '/' || location.pathname === '/tasks' || location.pathname === '/settings' || location.pathname === '/help' || location.pathname === '/logs'
 
-  useEffect(() => {
-    // @ts-expect-error - electronAPI is injected
+useEffect(() => {
     if (window.electronAPI?.onMenuEvent) {
-      // @ts-expect-error
       return window.electronAPI.onMenuEvent((event: string) => {
         if (event === 'navigate-help') {
           navigate('/help')
