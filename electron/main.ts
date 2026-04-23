@@ -49,6 +49,19 @@ const DATA_DIR = isDev
 mkdirSync(DATA_DIR, { recursive: true });
 mkdirSync(join(DATA_DIR, 'tasks'), { recursive: true });
 
+// App version from package.json
+const APP_VERSION = (() => {
+  try {
+    const pkgPath = resolve(ROOT_DIR, 'package.json');
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+    return pkg.version || '1.0.0';
+  } catch {
+    return '1.0.0';
+  }
+})();
+
+const WINDOW_TITLE = `Dockyard - v${APP_VERSION}`;
+
 // ── Server process ─────────────────────────────────────────────────
 
 // Use different port than dev server (5420) to avoid conflicts
@@ -686,7 +699,7 @@ function createWindow(targetUrl: string) {
     height: 900,
     minWidth: 900,
     minHeight: 600,
-    title: 'Dockyard',
+    title: WINDOW_TITLE,
     icon: existsSync(ICON_PATH) ? ICON_PATH : undefined,
     backgroundColor: '#09090b',
     show: false,
