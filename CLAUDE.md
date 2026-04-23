@@ -161,6 +161,16 @@ Os timestamps sao cascading — etapas posteriores preenchem as anteriores autom
 - Deletar milestone move tasks para "General"
 - Milestone ativo em localStorage: `dockyard:milestone:{projectId}`
 
+## Versionamento
+
+Versoes dos 3 package.json (root + server + client) sao sincronizadas via:
+
+```bash
+pnpm bump <versao>    # ex: pnpm bump 1.6.7
+```
+
+Script: `scripts/bump-version.mjs`
+
 ## Regras para Contribuicao
 
 1. **SEMPRE atualize este CLAUDE.md** quando mudar arquitetura, rotas, modelos ou convencoes

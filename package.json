@@ -1,6 +1,6 @@
 {
   "name": "dockyard",
-  "version": "1.6.6",
+  "version": "1.6.7",
   "description": "Local development dashboard for managing projects, tasks, git, and terminals",
   "author": {
     "name": "Dockyard Contributors",
@@ -18,7 +18,8 @@
     "dist": "pnpm build && electron-builder --publish never --config electron-builder.yml",
     "dist:win": "pnpm build && electron-builder --win --publish never --config electron-builder.yml",
     "dist:mac": "pnpm build && electron-builder --mac --publish never --config electron-builder.yml",
-    "dist:linux": "pnpm build && electron-builder --linux --publish never --config electron-builder.yml"
+    "dist:linux": "pnpm build && electron-builder --linux --publish never --config electron-builder.yml",
+    "bump": "node scripts/bump-version.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
