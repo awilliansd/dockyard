@@ -10,11 +10,16 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
   const [version, setVersion] = useState('N/A')
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.electronAPI?.getAppVersion) {
-      window.electronAPI.getAppVersion()
-        .then((v: string) => setVersion(v || 'N/A'))
-        .catch(() => setVersion('N/A'))
-    }
+    fetch('/api/version')
+      .then(res => res.json())
+      .then(data => setVersion(data.version || 'N/A'))
+      .catch(() => {
+        if (window.electronAPI?.getAppVersion) {
+          window.electronAPI.getAppVersion()
+            .then((v: string) => setVersion(v || 'N/A'))
+            .catch(() => setVersion('N/A'))
+        }
+      })
   }, [])
 
   return (

@@ -1,6 +1,6 @@
 {
   "name": "dockyard-client",
-  "version": "1.0.0",
+  "version": "1.6.7",
   "type": "module",
   "scripts": {
     "dev": "vite --port 5421",

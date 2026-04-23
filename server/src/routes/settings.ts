@@ -2,9 +2,25 @@ import { FastifyInstance } from 'fastify';
 import { getSettings, saveSettings } from '../services/settingsStore.js';
 import { TASKS_DIR } from '../services/taskStore.js';
 import { readdir, stat } from 'fs/promises';
-import { join } from 'path';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export async function settingsRoutes(app: FastifyInstance) {
+  app.get('/api/version', async () => {
+    try {
+      const packageJsonPath = join(__dirname, '..', '..', '..', 'package.json');
+      const content = readFileSync(packageJsonPath, 'utf-8');
+      const pkg = JSON.parse(content);
+      return { version: pkg.version || 'unknown' };
+    } catch {
+      return { version: 'unknown' };
+    }
+  });
+
   app.get('/api/settings', async () => {
     return { ...getSettings(), tasksDir: TASKS_DIR };
   });
