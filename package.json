@@ -1,6 +1,6 @@
 {
   "name": "dockyard",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "description": "Local development dashboard for managing projects, tasks, git, and terminals",
   "author": {
     "name": "Dockyard Contributors",
